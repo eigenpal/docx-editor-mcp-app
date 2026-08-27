@@ -1,8 +1,8 @@
 # docx-editor-mcp-app
 
-An MCP App that opens a `.docx` in the docx-editor.dev engine, inside a Claude or
-ChatGPT conversation. The engine does the document work. This repository is the
-wiring.
+An MCP App that opens a `.docx` in the docx-editor.dev engine, inside a Claude
+or ChatGPT conversation. The engine does the document work. This repository is
+the wiring.
 
 ## Communication
 
@@ -16,153 +16,132 @@ Write all replies in ASD-STE100 Simplified Technical English.
 - Do not use idioms, slang, or jargon.
 - Keep paragraphs to 6 sentences or fewer.
 
-Keep technical items exact. File paths, function names, flags, and numbers do not
-change. For example, write `src/server/fetch-proxy.ts` and `PUBLIC_ORIGIN` in
-full.
+Keep technical items exact. File paths, function names, flags, and numbers do
+not change. For example, write `src/server/fetch-proxy.ts` and `PUBLIC_ORIGIN`
+in full.
 
-## The split — server declares, widget executes
+Write all documentation — `README.md`, `CONTRIBUTING.md`, code comments, PR
+bodies — in the
+[Google developer documentation style](https://developers.google.com/style):
+second person, active voice, present tense, sentence-case headings, American
+spelling, short sentences, one idea each. Use code font for identifiers and
+file names. Use bold for UI elements only. Apply the STE rules above to
+documentation too.
 
-Two halves. Neither is where you expect it.
+## The split: server declares, widget executes
 
-| Half   | File                | Answers                                                                     |
-| ------ | ------------------- | --------------------------------------------------------------------------- |
-| Server | `src/server/mcp.ts` | `open_document`, and the one HTML resource                                  |
-| Widget | `src/app/main.tsx`  | `read_document`, `find_text`, `edit_text`, `add_comment`, `export_document` |
+| Half   | File                | Answers                                   |
+| ------ | ------------------- | ----------------------------------------- |
+| Server | `src/server/mcp.ts` | `open_document` and the one HTML resource |
+| Widget | `src/app/main.tsx`  | Every other tool, against the live editor |
 
 The widget registers its tools with `App.registerTool` and declares
 `capabilities: { tools: { listChanged: true } }`. The host proxies each model
-call into the iframe. That is the whole execution model, and it works only
-because `@docx-editor.dev/core` parses, lays out, paints and serializes OOXML in
-the browser. No document service runs beside this server. No document state lives
-in it.
+call into the iframe. This works because `@docx-editor.dev/core` parses, lays
+out, paints, and serializes OOXML in the browser. The server holds no document
+state.
 
-**A host that does not call app-registered tools gets a read-only view.** The
-widget covers that case with `ui/update-model-context` on load, so the model can
-still READ the document. Do not remove that call because the tools "work
-anyway" — it is the fallback for a host that does not.
+A host that does not call app-registered tools gets a read-only view. The
+widget covers that case: it pushes document text and review counts through
+`ui/update-model-context` on load and after every change. Do not remove that
+push.
 
 ## The catalog is the allowlist
 
-`src/shared/catalog.ts` is the only place a tool is described. Both halves import
-it. The engine ships no tool schemas on purpose: which operations a model may
-reach is a decision about the model's interface, not about the editor.
-
-Adding a tool means two edits, and the compiler enforces the second. `HANDLERS`
-in `src/app/executor.ts` is typed `Record<AppToolName, …>`, so a tool with no
-executor fails `bun run typecheck` rather than failing at the model's first call.
+`src/shared/catalog.ts` is the only place that describes a tool. Both halves
+import it. To add a tool, make two edits: describe it in the catalog, and
+implement it in `HANDLERS` in `src/app/executor.ts`. `HANDLERS` is typed
+`Record<AppToolName, …>`, so a missing executor fails `bun run typecheck`.
 
 ## Document work goes through editor-api
 
 `@docx-editor.dev/editor-api/browser` borrows the editor the reader has open.
-`run(context => ...)` is the Office.js batch shape.
+`run(context => ...)` is the Office.js batch shape. Known traps:
 
-**Two phases, and the first is not optional.** `text` and `uniqueLocalId` are
-properties of a `Paragraph`, not of the collection. Load the collection, `sync`,
-then load each item, then `sync` again. Asking the collection for `text` throws
-`InvalidArgument`.
+- Load in two phases. `text` and `uniqueLocalId` are properties of a
+  `Paragraph`, not of the collection. Load the collection, `sync`, load each
+  item, `sync` again. A load on the collection throws `InvalidArgument`.
+- `hit.paragraphs.getFirst()` fails with `InvalidObjectPath` inside a batch.
+  Materialize `hit.paragraphs` instead.
+- `Paragraph` has no `search`. Search the `Body` and filter by owner.
+- editor-api cannot create a comment. Select the phrase through editor-api,
+  then create the comment through `useReviewOf` from
+  `@docx-editor.dev/pro/react`.
+- Tracked changes are engine commands. Select through editor-api, then
+  `editor.exec({ type: 'proposeReplacement' | 'proposeDeletion' })`.
+- `exec` returns an `ExecResult` value with a `code` and a `reason`. It does
+  not throw. Give the reason to the model.
+- Locate and select a phrase in ONE `run()` batch (`selectExactPhrase`). Two
+  batches race the reader's typing and can select the wrong occurrence.
 
-- `hit.paragraphs.getFirst()` does not survive a batch. It mints a promised
-  object whose path is already released, and the run dies with
-  `InvalidObjectPath`. Materialise `hit.paragraphs` instead.
-- `Paragraph` has no `search`. Only `Body` and `Range` do. Search the body and
-  filter by owner.
-- editor-api cannot CREATE a comment. `addComment` selects the phrase through
-  editor-api, then lands the comment through `useReviewOf` from
-  `@docx-editor.dev/pro/react`. Both halves drive the same editor.
-- Tracked changes are engine commands, not editor-api calls. Select through
-  editor-api, then `editor.exec({ type: 'proposeReplacement' | 'proposeDeletion' })`.
-- `exec` returns an `ExecResult`, a refusal VALUE with a `code` and a `reason`.
-  It does not throw. Give the reason to the model; it is usually enough for a
-  retry that can work.
-
-Paragraphs are addressed by `uniqueLocalId`. The runtime issues it, so every
-paragraph has one, whether or not the OOXML carried an id.
-
-## Anchors are verbatim and case-sensitive
-
-`resolveAnchor` matches case-sensitively on purpose. The model is told to copy
-the phrase out of `read_document`, and a case-insensitive match would silently
-anchor to a different occurrence than the one it meant. Zero hits, a hit in the
-wrong paragraph, and two hits in the right one are three different refusals, and
-each one names what to do differently.
+The runtime issues `uniqueLocalId` for every paragraph. Anchors match
+case-sensitively on purpose: the model copies phrases verbatim from
+`read_document`. Each refusal names what to do differently.
 
 ## Untrusted input
 
-**Every value from a `.docx` is attacker-controlled.** A `.docx` is a zip of XML
-the sender fully controls: font names, hyperlink targets, run text. The engine
-sanitizes at its own parse boundary. This repository must not undo that, which is
-what the `innerHTML` ban in `eslint.config.js` is for.
+Every value from a `.docx` is attacker-controlled. The engine sanitizes at its
+parse boundary. Do not undo that here; `eslint.config.js` bans `innerHTML` for
+this reason.
 
-**The URL in `open_document` is attacker-controlled too.** It arrives from a tool
-call a document, a web page or a chat message can steer. `src/server/fetch-proxy.ts`
-is the boundary: scheme, resolved address, redirect and size, all checked before
-any body is read. Read it before you change it, and keep
-`src/server/__tests__/fetch-proxy.test.ts` passing.
-
-The proxy exists only because a sandboxed iframe may reach nothing its resource's
-CSP did not name, and `open_document` takes an arbitrary URL. Do not "simplify"
-it by putting a wildcard in `connectDomains`.
+The URL in `open_document` is attacker-controlled too. `src/server/fetch-proxy.ts`
+is the boundary: it checks scheme, pins the resolved address at dial time,
+refuses redirects, and caps the body size while streaming. Read it before you
+change it, and keep `src/server/__tests__/fetch-proxy.test.ts` passing. Do not
+widen `connectDomains` to avoid the proxy.
 
 ## PUBLIC_ORIGIN
 
-One origin, named in three places: the CSP allowlist, the widget's
-`harfbuzz.wasm` URL, and the `/fetch` proxy the widget calls. The widget bundle
-is built once and carries a `__PUBLIC_ORIGIN__` placeholder;
-`src/server/ui-resource.ts` substitutes it per deployment, then hashes the result
-into the resource URI.
+One origin, used in three places: the CSP allowlist, the widget's
+`harfbuzz.wasm` URL, and the `/fetch` proxy. The HTML shell carries a
+`__PUBLIC_ORIGIN__` placeholder; `src/server/ui-resource.ts` substitutes it per
+deployment and hashes the result into the resource URI. The widget JS reads its
+own origin from `import.meta.url`.
 
-Get it wrong and the engine cannot load HarfBuzz. It does not crash. It falls
-back, and pagination drifts away from Word — a silent fidelity loss, which is the
-only kind worth wiring up front. The widget JS needs no placeholder — it is a
-static asset and reads its own origin off `import.meta.url`; the HTML shell is
-the artifact that carries `__PUBLIC_ORIGIN__`, and `scripts/build-app.mjs` fails
-the build if the placeholder goes missing.
+A wrong origin does not crash. HarfBuzz fails to load, the shaper falls back,
+and pagination drifts from Word silently. `scripts/build-app.mjs` fails the
+build if the placeholder is missing.
 
 ## Two display modes, one mounted editor
 
-Claude's MCP App design guidelines put document editing in FULLSCREEN. Inline
-apps auto-fit their content and may not scroll internally; on mobile, vertical
-pan gestures inside an inline app go to the conversation, not the app. So:
+Claude's guidelines put document editing in fullscreen. Inline apps must fit
+their content and must not scroll internally.
 
-- **Inline** is a summary card (`src/app/InlineCard.tsx`): name, counts, a
-  pending-suggestions chip, "Open editor" and "Download". At most two actions
-  and a handful of data points, per the guidelines.
-- **Fullscreen** is the editor. "Open editor" calls `requestDisplayMode` and
-  renders from the mode the host REPORTS, not the one that was asked for.
+- Inline is a summary card (`src/app/InlineCard.tsx`) beside a live page-1
+  thumbnail. The thumbnail is the mounted editor, scaled with a CSS transform.
+- Fullscreen is the editor. `requestDisplayMode` asks; render from the mode
+  the host reports, not the mode you asked for.
 
-The editor is mounted in BOTH modes. It holds the document, its tracked changes
-and its undo history; unmounting on collapse would discard all three. Inline,
-`.stage` is `opacity: 0` and inert — do not "simplify" that to a conditional
-render.
+The editor stays mounted in both modes. It holds the document, the tracked
+changes, and the undo history. Inline, the stage is `visibility: hidden` plus
+the `inert` attribute. Do not replace that with a conditional render.
 
-Chrome styling uses the HOST'S tokens (`--color-background-primary`,
-`--font-sans`, …), applied by `useHostStyleVariables`. Safe-area insets arrive
-via `hostContext` and land as `--safe-*` CSS variables. Loading states are
-skeletons shaped like the card, never spinners.
+More rules from verification:
 
-## The resource is a small shell; the app is static assets
+- The `hostcontextchanged` payload is the partial context itself. Re-read the
+  merged `app.getHostContext()` instead of the params.
+- Write `--safe-*` variables only when the context carries `safeAreaInsets`.
+- The engine's `editor.css` sets `html, body { height: 100% }`. Our
+  `styles.css` overrides it with `height: auto`; without that, autoResize
+  cannot measure the card and the host clips it.
+- No `<StrictMode>`. Its dev double-mount closes the SDK `App` mid-handshake,
+  and a host answers `ui/initialize` once.
+- Chrome styling uses the host's tokens (`--color-*`, `--font-*`) through
+  `useHostStyleVariables(app, handshakeContext)`. The second argument carries
+  the initial styles; without it the widget renders in fallback colors.
+- Loading states are skeletons shaped like the card. Never spinners.
+- The document canvas is not themed. Word paints paper white in both themes.
 
-The `ui://` resource is `dist/app/editor.html`: an inline skeleton plus a
-`<link>` and `<script>` pointing at `public/assets/editor-<hash>.{js,css}` on
-`PUBLIC_ORIGIN`, which the resource's CSP names. `scripts/build-app.mjs` emits
-the hashed assets and fails the build if a placeholder survives substitution.
+## Build and assets
 
-Why split: first paint is the skeleton rather than a multi-megabyte parse; the
-hashed names make the server's immutable `/assets` caching correct; and the
-engine is cached by the browser across conversations.
+The `ui://` resource is a small HTML shell. The application is
+`public/assets/editor-<hash>.{js,css}`, served from `PUBLIC_ORIGIN` and cached
+as immutable. Only `/assets` gets immutable caching; the names there carry a
+content hash or the engine version.
 
-`harfbuzz.wasm` ships as `public/assets/harfbuzz-<engine-version>.wasm` — the
-version is in the NAME because `/assets` is cached immutable and the loader
-refuses a binary from a different engine build. esbuild does not rewrite
-`new URL('harfbuzz.wasm', import.meta.url)`, so `src/app/main.tsx` calls
-`setHarfBuzzWasmUrl`. Nothing under `public/assets/` is committed.
-
-## Theme
-
-The widget chrome follows the host, through `useHostStyleVariables`. The document
-canvas does not. Word paints a page on white paper, so the editor does too, in
-both themes. A dark-mode document would be a different document from the one the
-reader downloads.
+`harfbuzz.wasm` ships as `public/assets/harfbuzz-<engine-version>.wasm`. The
+version is in the name because the loader refuses a binary from a different
+engine build. Nothing under `public/assets/` is committed.
 
 ## Verify
 
@@ -173,31 +152,28 @@ bun run test
 bun run build
 ```
 
-For widget behavior, use the host harness: `bun run build:harness`, then open
-`/__harness/host.html` on the running server. It is a real MCP Apps host
-(`AppBridge` + `PostMessageTransport`), so the handshake, tool calls,
-display-mode flips and `ui/download-file` all run the way Claude runs them.
-`src/harness/` is dev-only and `public/__harness/` is gitignored.
-
 - `bun run lint` enforces a 400-line cap per file and the `innerHTML` ban.
   Extract; do not raise the cap.
-- `bun run build` is a real gate, not a formality. It is the only check that runs
-  esbuild over the widget, and the only one that asserts `__PUBLIC_ORIGIN__`
-  survived minification.
+- `bun run build` is the only check that runs esbuild over the widget and
+  asserts the `__PUBLIC_ORIGIN__` placeholder survived.
 - `bun run format` before pushing.
+
+For widget behavior, use the harness: `bun run build:harness`, then open
+`/__harness/host.html` on the running server. It is a real MCP Apps host
+(`AppBridge` + `PostMessageTransport`): handshake, tool calls, display modes,
+and `ui/download-file` run as Claude runs them. `window.__bridge` exposes the
+bridge. `src/harness/` is dev-only; `public/__harness/` is gitignored.
+
+Entry points: `bun run dev` (HTTP), `bun run stdio` (Claude Desktop),
+`bun run dev:tunnel` (public URL), `bun run setup` (install instructions).
+In stdio mode, stdout is the protocol channel; log to stderr only.
 
 ## Conventions
 
-- **PRs** — short factual title (conventional-commit prefix); body is the minimum
-  the diff does not show, often one sentence. No `@`-mentions, file lists,
-  tooling footers or emojis. Write the body in the
-  [Google developer documentation style](https://developers.google.com/style):
-  second person, active voice, present tense, sentence-case headings, American
-  spelling, short sentences, one idea each.
-- **ESM only** — no `require()` outside `scripts/`.
-- **Comments explain why, not what.** The `.docx` pipeline is full of traps that
-  look like ordinary code. A comment that names the trap is worth more than one
-  that restates the line.
-- **Engine bugs belong upstream.** If pagination, parsing or serialization is
-  wrong, fix it in `eigenpal/docx-editor` and bump the dependency. Do not work
-  around it here.
+- PRs: short factual title with a conventional-commit prefix. The body is the
+  minimum the diff does not show. No mentions, file lists, tooling footers, or
+  emojis.
+- ESM only. No `require()` outside `scripts/`.
+- Comments explain why, not what. Name the trap, not the line.
+- Engine bugs belong upstream. Fix pagination, parsing, and serialization in
+  `eigenpal/docx-editor` and bump the dependency. Do not work around them here.
