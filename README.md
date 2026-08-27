@@ -176,10 +176,9 @@ results, calls the widget's tools, and switches display modes.
 [Apache 2.0](LICENSE).
 
 This app depends on `@docx-editor.dev/pro` and `@docx-editor.dev/editor-api`,
-licensed under the EigenPal Pro Evaluation License 1.0: free to evaluate;
-production use requires a commercial agreement —
-**[licensing@eigenpal.com](mailto:licensing@eigenpal.com)**. A public
-deployment of this connector is production use.
+which are licensed under the EigenPal Pro License. You can compare and buy
+license and support levels on the
+[pricing page](https://www.docx-editor.dev/pricing).
 
 ## Commercial support
 
