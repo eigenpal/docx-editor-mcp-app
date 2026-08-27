@@ -49,8 +49,10 @@ export function createMcpServer({ publicOrigin, allowLocalFiles }: McpServerOpti
       instructions:
         'Opens .docx files in a real WYSIWYG Word editor inside the conversation. ' +
         'Call open_document first; it renders the editor. Once the editor is open, ' +
-        'the other tools run inside it. Edits land as Word tracked changes by ' +
-        'default, so the reader accepts or rejects each one.' +
+        'the other tools run inside it. To DRAFT a new document, call open_document ' +
+        'with no arguments and then write_document — never generate the .docx ' +
+        'elsewhere. Edits land as Word tracked changes by default, so the reader ' +
+        'accepts or rejects each one.' +
         (allowLocalFiles
           ? ' This server runs locally: open_document also accepts an absolute ' +
             'file path. When you create or receive a .docx on this machine, open ' +

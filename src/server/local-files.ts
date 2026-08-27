@@ -52,7 +52,13 @@ export function registerLocalFile(
       return { message: `"${rawPath}" is not a file.` };
     }
   } catch {
-    return { message: `"${rawPath}" does not exist or cannot be read.` };
+    return {
+      message:
+        `"${rawPath}" does not exist on the reader's machine. A file created in a ` +
+        'code sandbox lives there, not here. To draft a document, call ' +
+        'open_document with no arguments and then write_document — the reader ' +
+        'watches it appear in the editor.',
+    };
   }
 
   const token = randomUUID();

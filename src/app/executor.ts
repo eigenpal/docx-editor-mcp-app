@@ -24,6 +24,7 @@ import {
   replyComment,
   resolveComment,
 } from './executor-review.js';
+import { writeDocument, type WriteBlock } from './executor-write.js';
 
 /** What a tool call answers. `text` reaches the model verbatim. */
 export interface ToolOutcome {
@@ -345,6 +346,8 @@ const HANDLERS: Record<
   AppToolName,
   (deps: ExecutorDeps, args: Record<string, unknown>) => Promise<ToolOutcome>
 > = {
+  write_document: (deps, args) =>
+    writeDocument(deps, args as { paragraphs: WriteBlock[]; overwrite?: boolean }),
   read_document: (deps, args) => readDocument(deps, args as { offset?: number; limit?: number }),
   find_text: (deps, args) => findText(deps, args as { query: string; matchCase?: boolean }),
   edit_text: (deps, args) =>

@@ -64,6 +64,26 @@ export const FindTextInput = z.object({
   matchCase: z.boolean().optional().describe('Case-sensitive search. Defaults to false.'),
 });
 
+export const WriteDocumentInput = z.object({
+  paragraphs: z
+    .array(
+      z.object({
+        text: z.string().min(1).describe('The paragraph text.'),
+        style: z
+          .enum(['Title', 'Subtitle', 'Heading 1', 'Heading 2', 'Quote', 'Normal'])
+          .optional()
+          .describe('Word paragraph style. Defaults to Normal.'),
+      })
+    )
+    .min(1)
+    .max(300)
+    .describe('The full document body, in order.'),
+  overwrite: z
+    .boolean()
+    .optional()
+    .describe('Confirm replacing a document that already has content. Defaults to false.'),
+});
+
 export const EditTextInput = z.object({
   paragraphId,
   search: searchPhrase,
@@ -106,6 +126,12 @@ export const ExportDocumentInput = z.object({
  * server, and no document bytes leave the browser.
  */
 export const APP_TOOLS = {
+  write_document: {
+    title: 'Write document',
+    description:
+      'Write the body of the OPEN document: an ordered list of paragraphs with Word styles. Use this to draft a document — open an empty document first, then write here, where the reader watches it appear. Do not create .docx files elsewhere and try to open them. Refuses to replace existing content unless overwrite is true.',
+    inputSchema: WriteDocumentInput,
+  },
   read_document: {
     title: 'Read document',
     description:
@@ -170,6 +196,7 @@ export type AppToolName = keyof typeof APP_TOOLS;
  * and the model-context push.
  */
 export const MUTATING_TOOLS: ReadonlySet<string> = new Set([
+  'write_document',
   'edit_text',
   'add_comment',
   'reply_comment',
@@ -179,6 +206,7 @@ export const MUTATING_TOOLS: ReadonlySet<string> = new Set([
 /** Chat-log labels. The raw tool name is a poor thing to show a reader. */
 const TOOL_LABELS: Record<string, string> = {
   open_document: 'Opening the document',
+  write_document: 'Writing the document',
   read_document: 'Reading the document',
   find_text: 'Searching the document',
   edit_text: 'Suggesting an edit',
