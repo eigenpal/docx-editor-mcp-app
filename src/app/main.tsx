@@ -23,7 +23,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { useApp, useHostStyleVariables } from '@modelcontextprotocol/ext-apps/react';
-import type { App, McpUiDisplayMode, McpUiHostContext } from '@modelcontextprotocol/ext-apps';
+import type {
+  App,
+  McpUiDisplayMode,
+  McpUiHostContext,
+  McpUiTheme,
+} from '@modelcontextprotocol/ext-apps';
 import { DocxEditor, type DocxEditorRef } from '@docx-editor.dev/react';
 import { reviewModule } from '@docx-editor.dev/pro';
 import { DocxEditorReview } from '@docx-editor.dev/pro/react';
@@ -103,6 +108,7 @@ function Widget() {
   const [attempt, setAttempt] = useState(0);
   const [editor, setEditor] = useState<DocxEditorInstance | null>(null);
   const [mode, setMode] = useState<McpUiDisplayMode>('inline');
+  const [hostTheme, setHostTheme] = useState<McpUiTheme | null>(null);
   const [fullscreenDenied, setFullscreenDenied] = useState(false);
   const [docRevision, setDocRevision] = useState(0);
   const [handshakeContext, setHandshakeContext] = useState<McpUiHostContext | null>(null);
@@ -123,8 +129,9 @@ function Widget() {
     // getHostContext(), so re-read the merged view rather than the params.
     app.addEventListener('hostcontextchanged', () => {
       applyHostContext(app);
-      const next = app.getHostContext()?.displayMode;
-      if (next) setMode(next);
+      const context = app.getHostContext();
+      if (context?.displayMode) setMode(context.displayMode);
+      if (context?.theme) setHostTheme(context.theme);
     });
   }, []);
 
@@ -156,6 +163,7 @@ function Widget() {
     const context = app.getHostContext();
     // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot handshake sync, see above
     if (context?.displayMode) setMode(context.displayMode);
+    if (context?.theme) setHostTheme(context.theme);
     if (context?.availableDisplayModes && !context.availableDisplayModes.includes('fullscreen')) {
       setFullscreenDenied(true);
     }
@@ -270,6 +278,12 @@ function Widget() {
               // The thumbnail is a picture of the PAGE; the card beside it is
               // the chrome. Toolbar and title bar appear only in fullscreen.
               chrome={isFullscreen}
+              // The editor chrome follows the HOST'S theme, not the OS's: a
+              // light toolbar in a dark host makes the host's own overlaid
+              // composer read as a broken box on top of it. The engine's dark
+              // mode restyles chrome and canvas at render time only; a saved
+              // file is unchanged.
+              colorMode={hostTheme ?? 'system'}
               onChange={onDocChange}
               onSave={() => {
                 if (!app) return;

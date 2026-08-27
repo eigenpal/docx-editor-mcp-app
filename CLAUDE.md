@@ -130,7 +130,13 @@ More rules from verification:
   `useHostStyleVariables(app, handshakeContext)`. The second argument carries
   the initial styles; without it the widget renders in fallback colors.
 - Loading states are skeletons shaped like the card. Never spinners.
-- The document canvas is not themed. Word paints paper white in both themes.
+- The EDITOR follows the host theme: `colorMode={hostTheme ?? 'system'}` on
+  `<DocxEditor>`. A light toolbar in a dark host makes the host's overlaid
+  composer read as a broken box. The engine's dark mode restyles chrome and
+  canvas at render time only; a saved file is unchanged.
+- The bottom safe-area inset goes inside the engine's scroll viewport
+  (`.docx-editor-one-surface__viewport`, not published contract), with an 88px
+  floor for the host's composer.
 
 ## Build and assets
 

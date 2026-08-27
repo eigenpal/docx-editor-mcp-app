@@ -8,9 +8,9 @@
  * fallbacks are Claude's documented light-mode values, for a host that sends
  * nothing.
  *
- * The document canvas is NOT themed. Word paints a page on white paper, so the
- * editor does too, in the host's light theme and its dark one — a "dark mode"
- * document would be a different document from the one the reader downloads.
+ * The editor itself follows the host theme through the `colorMode` prop; the
+ * engine restyles chrome and canvas at render time only, so a saved file is
+ * unchanged.
  */
 
 :root {
@@ -119,13 +119,17 @@ body {
   min-height: 0;
 }
 
-/* `.docx-editor-scroll` is the engine's scroll viewport. It is not published
- * contract — if an engine bump renames it, the symptom is the last page hiding
- * behind the composer, and the fix is this selector (or an upstream
- * viewport-inset variable, which has been suggested). */
-.widget[data-mode='fullscreen'] .docx-editor-scroll {
-  padding-bottom: var(--safe-bottom);
-  scroll-padding-block-end: var(--safe-bottom);
+/* `.docx-editor-one-surface__viewport` is the engine's scroll viewport. It is
+ * not published contract — if an engine bump renames it, the symptom is the
+ * last page hiding behind the composer, and the fix is this selector (or an
+ * upstream viewport-inset variable).
+ *
+ * The 88px floor covers the host's overlaid composer when the host reports no
+ * bottom inset: the composer is always visible in fullscreen, so content must
+ * always be able to scroll clear of it. */
+.widget[data-mode='fullscreen'] .docx-editor-one-surface__viewport {
+  padding-bottom: max(var(--safe-bottom), 88px);
+  scroll-padding-block-end: max(var(--safe-bottom), 88px);
 }
 
 .widget[data-mode='fullscreen'] .card-main {
