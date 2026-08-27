@@ -6,46 +6,59 @@
  *   host  ⟷  App (@modelcontextprotocol/ext-apps)  — tools, model context, files
  *   DOM   ⟷  DocxEditor (@docx-editor.dev/react)   — the document itself
  *
- * `ToolHost` is the wire between them: it registers the catalog with the host
- * and runs each call against the live editor through `executor.ts`.
+ * The user-facing shape follows Claude's MCP App design guidelines, which put
+ * document editing in FULLSCREEN and cap inline apps at auto-fit height with no
+ * nested scrolling (on mobile, vertical pan gestures inside an inline app go to
+ * the conversation, not the app). So:
  *
- * The document bytes never reach the MCP server. Loading pulls them through the
- * server's `/fetch` proxy only because a sandboxed iframe may fetch nothing the
- * resource's CSP did not name; from that point on every read, edit, comment and
- * export happens in this frame.
+ *   inline      → a summary card beside a live page-1 thumbnail. The thumbnail
+ *                 IS the editor, CSS-scaled down — agent edits appear in it as
+ *                 they land.
+ *   fullscreen  → the same editor, full-bleed, toolbar and review rail.
+ *
+ * One mount, both modes: the editor holds the document, its tracked changes and
+ * its undo history, so it is never unmounted on collapse — only restyled.
  */
 
-import { StrictMode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { useApp, useHostStyleVariables } from '@modelcontextprotocol/ext-apps/react';
-import type { App } from '@modelcontextprotocol/ext-apps';
-import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
-import { DocxEditor, type DocxEditorRef, useDocxEditor } from '@docx-editor.dev/react';
+import type { App, McpUiDisplayMode, McpUiHostContext } from '@modelcontextprotocol/ext-apps';
+import { DocxEditor, type DocxEditorRef } from '@docx-editor.dev/react';
 import { reviewModule } from '@docx-editor.dev/pro';
-import { DocxEditorReview, useReviewOf } from '@docx-editor.dev/pro/react';
+import { DocxEditorReview } from '@docx-editor.dev/pro/react';
 import { setHarfBuzzWasmUrl } from '@docx-editor.dev/core/layout';
+import { useDocxEditor } from '@docx-editor.dev/react';
 import type { DocxEditorInstance } from '@docx-editor.dev/core/editor';
-import type { DocxEditorRuntime } from '@docx-editor.dev/editor-api/browser';
-import { APP_TOOLS } from '../shared/catalog.js';
-import { createRuntime, readParagraphs, runTool, type ExecutorDeps } from './executor.js';
+import { InlineCard, InlineSkeleton, type CardState } from './InlineCard.js';
+import { AgentStatus } from './AgentStatus.js';
+import { ReviewPaneController } from './ReviewPaneController.js';
+import { AUTHOR, ToolHost, downloadDocx } from './ToolHost.js';
 import '@docx-editor.dev/core/styles/editor.css';
 import './styles.css';
 
 /**
- * Rewritten by the server when it serves this resource, because the origin is
- * deployment configuration and this bundle is built once.
+ * This bundle is a static asset served from the deployment's own origin, so the
+ * origin needs no baking in: the script knows where it was loaded from. (The
+ * HTML shell the MCP server serves as the resource is the one artifact carrying
+ * a substituted `__PUBLIC_ORIGIN__`.) If a host ever rehosts the assets through
+ * a proxy of its own, this follows them there — which is the behavior we want.
  */
-const ASSET_ORIGIN = '__PUBLIC_ORIGIN__';
+const ASSET_ORIGIN = new URL(import.meta.url).origin;
+
+/** Injected by the build; pins the wasm URL to the engine it was built with. */
+declare const __DOCX_ENGINE_VERSION__: string;
 
 /**
  * esbuild does not rewrite `new URL('harfbuzz.wasm', import.meta.url)`, so the
  * engine's WASM loader has nothing to fetch unless it is told where to look.
  * Without it the shaper falls back and pagination drifts away from Word — a
- * silent fidelity loss, which is the only kind worth wiring up front.
+ * silent fidelity loss. The engine version is in the FILENAME because the
+ * server caches `/assets` as immutable, and the loader refuses a binary from a
+ * different engine build.
  */
-setHarfBuzzWasmUrl(`${ASSET_ORIGIN}/harfbuzz.wasm`);
+setHarfBuzzWasmUrl(`${ASSET_ORIGIN}/assets/harfbuzz-${__DOCX_ENGINE_VERSION__}.wasm`);
 
-const AUTHOR = 'Claude';
 const APP_INFO = { name: 'docx-editor', version: '0.1.0' };
 
 /** Module registration is construction-time, so this array must be stable. */
@@ -56,22 +69,62 @@ interface OpenRequest {
   name: string;
 }
 
+/** Bytes paired with the request that produced them, so a second
+ * `open_document` can never show the previous file under the new title. */
+interface LoadedDoc {
+  request: OpenRequest;
+  bytes: Uint8Array | 'blank';
+}
+
+/**
+ * The host's layout hints, as CSS variables. Insets are written only when the
+ * context actually carries them: `hostcontextchanged` sends PARTIAL contexts,
+ * and a theme-only change must not wipe real insets back to zero.
+ */
+function applyHostContext(app: App): void {
+  const context = app.getHostContext();
+  const root = document.documentElement;
+  const insets = context?.safeAreaInsets;
+  if (insets) {
+    root.style.setProperty('--safe-top', `${insets.top}px`);
+    root.style.setProperty('--safe-right', `${insets.right}px`);
+    root.style.setProperty('--safe-bottom', `${insets.bottom}px`);
+    root.style.setProperty('--safe-left', `${insets.left}px`);
+  }
+  if (context?.deviceCapabilities?.touch !== undefined) {
+    root.dataset.touch = String(context.deviceCapabilities.touch);
+  }
+}
+
 function Widget() {
   const [request, setRequest] = useState<OpenRequest | null>(null);
-  const [fetched, setFetched] = useState<Uint8Array | null>(null);
+  const [loaded, setLoaded] = useState<LoadedDoc | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
   const [editor, setEditor] = useState<DocxEditorInstance | null>(null);
+  const [mode, setMode] = useState<McpUiDisplayMode>('inline');
+  const [fullscreenDenied, setFullscreenDenied] = useState(false);
+  const [docRevision, setDocRevision] = useState(0);
+  const [handshakeContext, setHandshakeContext] = useState<McpUiHostContext | null>(null);
   const editorRef = useRef<DocxEditorRef>(null);
 
   // Registered before `connect()` resolves. `toolresult` is a one-shot event:
   // a handler added after the handshake can miss the notification that carried
-  // the reader's file, and the widget then renders an empty editor for ever.
+  // the reader's file, and the widget then renders an empty card for ever.
   const onAppCreated = useCallback((app: App) => {
+    // The notification's params ARE the CallToolResult (the spec wraps
+    // nothing), so structuredContent sits directly on them.
     app.addEventListener('toolresult', (params) => {
-      const structured = (params.result as { structuredContent?: unknown } | undefined)
-        ?.structuredContent as OpenRequest | undefined;
+      const structured = params.structuredContent as OpenRequest | undefined;
       if (!structured) return;
       setRequest({ url: structured.url ?? null, name: structured.name ?? 'Untitled.docx' });
+    });
+    // The notification payload is a PARTIAL context; the SDK merges it into
+    // getHostContext(), so re-read the merged view rather than the params.
+    app.addEventListener('hostcontextchanged', () => {
+      applyHostContext(app);
+      const next = app.getHostContext()?.displayMode;
+      if (next) setMode(next);
     });
   }, []);
 
@@ -86,65 +139,169 @@ function Widget() {
     onAppCreated,
   });
 
-  // Paints the widget chrome in the host's own theme and accent colours. The
-  // document canvas is NOT themed — it stays Word-faithful, on paper white.
-  useHostStyleVariables(app);
+  // Paints the chrome in the host's own tokens (`--color-*`, `--font-*`). The
+  // hook applies later `hostcontextchanged` styles on its own, but the INITIAL
+  // ones arrive in the handshake result, which only the second argument
+  // reaches — without it the widget renders in its fallback palette until the
+  // host happens to change something. The document canvas is NOT themed — it
+  // stays Word-faithful, on paper white.
+  useHostStyleVariables(app, handshakeContext);
+
+  // The handshake snapshot: insets, touch, and the mode the host started in.
+  // A one-shot sync from the host's initialize result — it runs once per
+  // connection, so the extra render it costs is one, at boot.
+  useEffect(() => {
+    if (!app || !isConnected) return;
+    applyHostContext(app);
+    const context = app.getHostContext();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot handshake sync, see above
+    if (context?.displayMode) setMode(context.displayMode);
+    if (context?.availableDisplayModes && !context.availableDisplayModes.includes('fullscreen')) {
+      setFullscreenDenied(true);
+    }
+    setHandshakeContext(context ?? null);
+  }, [app, isConnected]);
+
+  // The fetch effect below reaches the CURRENT app and mode through refs: its
+  // deps are the request identity, and stale closures over either would revert
+  // the wrong mode on failure.
+  const appRef = useRef(app);
+  const modeRef = useRef(mode);
+  useEffect(() => {
+    appRef.current = app;
+    modeRef.current = mode;
+  }, [app, mode]);
 
   // Fetch the file the tool named. Through the server's proxy, not directly:
   // the iframe's CSP names only this deployment's origin (see `mcp.ts`).
   useEffect(() => {
-    const url = request?.url;
-    if (!url) return;
+    if (!request) return;
     let cancelled = false;
     void (async () => {
       setLoadError(null);
+      if (!request.url) {
+        setLoaded({ request, bytes: 'blank' });
+        return;
+      }
       try {
-        const response = await fetch(`${ASSET_ORIGIN}/fetch?url=${encodeURIComponent(url)}`);
-        if (!response.ok) throw new Error(`the source returned HTTP ${response.status}`);
+        const response = await fetch(
+          `${ASSET_ORIGIN}/fetch?url=${encodeURIComponent(request.url)}`
+        );
+        if (!response.ok) {
+          // The proxy's refusals name the cause; surface them over a bare code.
+          const body = (await response.json().catch(() => null)) as { error?: string } | null;
+          throw new Error(body?.error ?? `the link returned HTTP ${response.status}`);
+        }
         const bytes = new Uint8Array(await response.arrayBuffer());
-        if (!cancelled) setFetched(bytes);
+        if (!cancelled) setLoaded({ request, bytes });
       } catch (cause) {
-        if (!cancelled) {
-          setLoadError(cause instanceof Error ? cause.message : String(cause));
+        if (cancelled) return;
+        setLoadError(cause instanceof Error ? cause.message : String(cause));
+        // An error card marooned in fullscreen looks broken; come back to the
+        // card before showing it.
+        if (modeRef.current === 'fullscreen') {
+          void appRef.current?.requestDisplayMode({ mode: 'inline' }).catch(() => undefined);
+          setMode('inline');
         }
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [request]);
+  }, [request, attempt]);
 
   const onEditor = useCallback((next: DocxEditorInstance | null) => setEditor(next), []);
+  const onDocChange = useMemo(() => debounced(() => setDocRevision((n) => n + 1), 1000), []);
 
-  // Derived, not stored. `open_document` with no URL means an empty document,
-  // which is a fact about the request rather than something to fetch — putting
-  // it in state would mean an effect writing state React can already work out.
-  const document = request === null ? null : request.url === null ? 'blank' : fetched;
+  const openEditor = useCallback(async () => {
+    if (!app) return;
+    try {
+      // Render from the mode the host REPORTS, not the one that was asked for:
+      // a host may decline, and a widget that assumed fullscreen would hide its
+      // card over an editor that never appeared.
+      const { mode: granted } = await app.requestDisplayMode({ mode: 'fullscreen' });
+      setMode(granted);
+      if (granted !== 'fullscreen') setFullscreenDenied(true);
+    } catch {
+      setFullscreenDenied(true);
+    }
+  }, [app]);
 
-  if (error) return <Notice title="Could not connect to the host" detail={error.message} />;
-  if (!isConnected) return <Notice title="Connecting…" />;
-  if (loadError) return <Notice title="Could not open the document" detail={loadError} />;
-  if (!document) return <Notice title="Waiting for a document…" />;
+  const save = useCallback(() => editorRef.current?.save() ?? Promise.resolve(null), []);
+
+  const documentName = request?.name ?? 'document.docx';
+  const title = useMemo(() => documentName.replace(/\.docx$/i, ''), [documentName]);
+  // The document shown is only ever the one the CURRENT request produced.
+  const document = loaded && loaded.request === request ? loaded.bytes : null;
+  const isFullscreen = mode === 'fullscreen';
+
+  if (error) {
+    return <ErrorCard title="Could not connect to the host" detail={error.message} />;
+  }
+  if (!isConnected || !request || (!document && !loadError)) return <InlineSkeleton />;
+
+  const cardState: CardState = loadError
+    ? {
+        phase: 'error',
+        reason: loadError,
+        url: request.url,
+        retry: () => setAttempt((n) => n + 1),
+      }
+    : { phase: 'ready' };
 
   return (
-    <div className="widget">
-      <DocxEditor
-        ref={editorRef}
-        document={document}
-        author={AUTHOR}
-        modules={PRO_MODULES}
-        title={request?.name.replace(/\.docx$/i, '') ?? 'Document'}
-        mode="edit"
-      >
-        <DocxEditorReview />
-        <EditorBridge onEditor={onEditor} />
-      </DocxEditor>
+    <div className="widget" data-mode={isFullscreen ? 'fullscreen' : 'inline'}>
+      {document !== null && (
+        <div className="thumb">
+          {/* `inert` while inline: visibility alone leaves a tabbable
+              contenteditable document behind the card. */}
+          <div className="stage" inert={!isFullscreen}>
+            <DocxEditor
+              ref={editorRef}
+              document={document}
+              author={AUTHOR}
+              modules={PRO_MODULES}
+              title={title}
+              mode="edit"
+              // The thumbnail is a picture of the PAGE; the card beside it is
+              // the chrome. Toolbar and title bar appear only in fullscreen.
+              chrome={isFullscreen}
+              onChange={onDocChange}
+              onSave={() => {
+                if (!app) return;
+                void (async () => {
+                  const bytes = await save();
+                  if (bytes) await downloadDocx(app, new Uint8Array(bytes), documentName);
+                })();
+              }}
+              menu={{ reportIssue: false }}
+              renderTitleBarRight={() => <AgentStatus />}
+            >
+              <DocxEditorReview />
+              <EditorBridge onEditor={onEditor} />
+            </DocxEditor>
+            <ReviewPaneController editor={editor} />
+          </div>
+        </div>
+      )}
+      {app && (
+        <InlineCard
+          app={app}
+          editor={editor}
+          documentName={documentName}
+          state={cardState}
+          fullscreenUnavailable={fullscreenDenied}
+          onOpenEditor={() => void openEditor()}
+          save={save}
+        />
+      )}
       {app && editor && (
         <ToolHost
           app={app}
           editor={editor}
-          save={() => editorRef.current?.save() ?? Promise.resolve(null)}
-          documentName={request?.name ?? 'document.docx'}
+          save={save}
+          documentName={documentName}
+          docRevision={docRevision}
         />
       )}
     </div>
@@ -155,10 +312,9 @@ function Widget() {
  * Lifts the live editor INSTANCE out of the editor's own tree.
  *
  * `useDocxEditor()` reads the editor off React context, so it only answers from
- * inside `<DocxEditor>`. `ToolHost` renders beside it and needs that instance.
- *
- * `<DocxEditor onReady>` is not a substitute: it hands over the narrower
- * `Editor` facade, and editor-api's `createBrowser` does not accept it.
+ * inside `<DocxEditor>`. The card and `ToolHost` render beside it and need that
+ * instance. `<DocxEditor onReady>` is not a substitute: it hands over the
+ * narrower `Editor` facade, and editor-api's `createBrowser` does not accept it.
  */
 function EditorBridge({ onEditor }: { onEditor: (editor: DocxEditorInstance | null) => void }) {
   const editor = useDocxEditor();
@@ -169,174 +325,30 @@ function EditorBridge({ onEditor }: { onEditor: (editor: DocxEditorInstance | nu
   return null;
 }
 
-/**
- * Registers the catalog with the host and runs each call against the editor.
- *
- * Renders nothing. It is a component rather than a hook in `Widget` because it
- * must mount only once the editor instance exists — a tool registered against a
- * null editor would answer, wrongly, that the document is empty.
- */
-function ToolHost({
-  app,
-  editor,
-  save,
-  documentName,
-}: {
-  app: App;
-  editor: DocxEditorInstance;
-  save: () => Promise<ArrayBuffer | null>;
-  documentName: string;
-}) {
-  const review = useReviewOf(editor);
-  const [runtime, setRuntime] = useState<DocxEditorRuntime | null>(null);
-
-  useEffect(() => {
-    // An effect rather than a `useMemo`: the runtime borrows the editor instance
-    // and must be disposed with it, and a memo leaks one under StrictMode's
-    // double render. This runs once per document, not per keystroke, so the
-    // cascading render the rule guards against is one render per file opened.
-    const next = createRuntime(editor, AUTHOR);
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- see above
-    setRuntime(next);
-    return () => {
-      next.dispose();
-      setRuntime(null);
-    };
-  }, [editor]);
-
-  const download = useCallback(
-    async (bytes: Uint8Array, fileName: string) => {
-      await app.downloadFile({
-        contents: [
-          {
-            type: 'resource',
-            resource: {
-              uri: `file:///${fileName}`,
-              mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-              blob: toBase64(bytes),
-            },
-          },
-        ],
-      });
-    },
-    [app]
-  );
-
-  const deps: ExecutorDeps | null = useMemo(
-    () =>
-      runtime
-        ? {
-            runtime,
-            editor,
-            commentOnSelection: review.comment,
-            save,
-            download,
-            author: AUTHOR,
-            documentName,
-          }
-        : null,
-    [runtime, editor, review, save, download, documentName]
-  );
-
-  // The registered handlers are captured once, so they reach the CURRENT deps
-  // through a ref rather than through the closure.
-  const depsRef = useRef(deps);
-  useEffect(() => {
-    depsRef.current = deps;
-  }, [deps]);
-
-  useEffect(() => {
-    const run = async (name: string, args: Record<string, unknown>): Promise<CallToolResult> => {
-      const current = depsRef.current;
-      if (!current) return toolError('The editor is still loading. Try again in a moment.');
-      try {
-        const outcome = await runTool(current, name, args);
-        return outcome.ok
-          ? { content: [{ type: 'text', text: outcome.text }] }
-          : toolError(outcome.text);
-      } catch (cause) {
-        // Surface the refusal to the model rather than killing the turn.
-        // editor-api errors carry a code and a message that name what was
-        // refused, which is usually enough for the model to retry differently.
-        return toolError(cause instanceof Error ? cause.message : String(cause));
-      }
-    };
-
-    const registered = Object.entries(APP_TOOLS).map(([name, config]) =>
-      app.registerTool(
-        name,
-        {
-          title: config.title,
-          description: config.description,
-          inputSchema: config.inputSchema,
-        },
-        (args: unknown) => run(name, (args ?? {}) as Record<string, unknown>)
-      )
-    );
-
-    void app.sendToolListChanged();
-    return () => {
-      for (const tool of registered) tool.remove();
-    };
-  }, [app]);
-
-  // Push the document into the conversation once it is open, and after each
-  // edit. A host that does not call app-registered tools still gets a model that
-  // can READ the document; one that does gets a model that never has to.
-  useEffect(() => {
-    if (!runtime) return;
-    let cancelled = false;
-    void (async () => {
-      try {
-        const paragraphs = await readParagraphs(runtime);
-        if (cancelled) return;
-        await app.updateModelContext({
-          content: [
-            {
-              type: 'text',
-              text: `${documentName} is open in the editor: ${paragraphs.length} non-empty paragraph(s). Call read_document for the text.`,
-            },
-          ],
-          structuredContent: { documentName, paragraphCount: paragraphs.length },
-        });
-      } catch {
-        // Advisory context. A host that refuses it is not an error worth showing.
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [app, runtime, documentName]);
-
-  return null;
-}
-
-function toolError(text: string): CallToolResult {
-  return { content: [{ type: 'text', text }], isError: true };
-}
-
-function Notice({ title, detail }: { title: string; detail?: string }) {
+function ErrorCard({ title, detail }: { title: string; detail?: string }) {
   return (
-    <div className="notice">
-      <p className="notice-title">{title}</p>
-      {detail && <p className="notice-detail">{detail}</p>}
+    <div className="card-main" data-tone="danger">
+      <p className="card-error">
+        <strong>{title}</strong>
+        {detail ? ` — ${detail}` : ''}
+      </p>
     </div>
   );
 }
 
-/** Chunked: `String.fromCharCode(...bytes)` blows the argument limit on a real .docx. */
-function toBase64(bytes: Uint8Array): string {
-  let binary = '';
-  for (let i = 0; i < bytes.length; i += 0x8000) {
-    binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
-  }
-  return btoa(binary);
+function debounced(fn: () => void, waitMs: number): () => void {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  return () => {
+    clearTimeout(timer);
+    timer = setTimeout(fn, waitMs);
+  };
 }
 
 const container = window.document.getElementById('root');
 if (!container) throw new Error('#root is missing from the widget shell');
-createRoot(container).render(
-  <StrictMode>
-    <Widget />
-  </StrictMode>
-);
+// No <StrictMode>: its dev-only double-mount closes the SDK's first App mid
+// handshake, and a host answers `ui/initialize` once — the remount's second
+// handshake hangs and the widget runs on a half-closed transport. Production
+// React compiles StrictMode away, so wrapping it would guard nothing there
+// while breaking every dev-bundle run here.
+createRoot(container).render(<Widget />);

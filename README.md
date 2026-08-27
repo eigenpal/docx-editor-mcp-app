@@ -125,6 +125,16 @@ bun run test
 bun run build
 ```
 
+For the widget itself there is a local host harness — a minimal MCP Apps host
+built on the SDK's own `AppBridge` that runs the real `ui/initialize`
+handshake, delivers `open_document` results, calls the widget's registered
+tools and flips display modes:
+
+```bash
+bun run build && bun run build:harness && bun run start
+# open http://localhost:3000/__harness/host.html
+```
+
 ## License
 
 [Apache 2.0](LICENSE).

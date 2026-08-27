@@ -84,6 +84,15 @@ export const AddCommentInput = z.object({
   comment: z.string().describe('The comment text. Keep it under 40 words.'),
 });
 
+export const ReplyCommentInput = z.object({
+  commentId: z.string().describe("The comment's id, exactly as returned by read_comments."),
+  reply: z.string().describe('The reply text.'),
+});
+
+export const ResolveCommentInput = z.object({
+  commentId: z.string().describe("The comment's id, exactly as returned by read_comments."),
+});
+
 export const ExportDocumentInput = z.object({
   name: z
     .string()
@@ -121,6 +130,30 @@ export const APP_TOOLS = {
       'Leave a Word comment anchored to a phrase inside a paragraph. The comment points at the offending words rather than the whole block, and it survives the save into Word.',
     inputSchema: AddCommentInput,
   },
+  read_comments: {
+    title: 'Read comments',
+    description:
+      'List the comments on the document, with id, text, author, resolved state and the text each one is anchored to. The reader leaves comments in the editor; call this when they mention feedback, or before revising, to see what they asked for.',
+    inputSchema: z.object({}),
+  },
+  reply_comment: {
+    title: 'Reply to comment',
+    description:
+      "Reply to an existing comment thread. Reply to the reader's comment when you act on it, so the thread records what was done and why.",
+    inputSchema: ReplyCommentInput,
+  },
+  resolve_comment: {
+    title: 'Resolve comment',
+    description:
+      'Mark a comment thread resolved. Resolve only after the requested change has actually landed in the document — never to tidy away feedback you did not act on.',
+    inputSchema: ResolveCommentInput,
+  },
+  read_changes: {
+    title: 'Read pending changes',
+    description:
+      "List the pending tracked changes (suggestions), each with id, author, kind and the text it covers. Changes by other authors are the reader's own edits — read them before revising, and treat a suggestion of yours that no longer appears as accepted or rejected by the reader.",
+    inputSchema: z.object({}),
+  },
   export_document: {
     title: 'Export document',
     description:
@@ -131,13 +164,29 @@ export const APP_TOOLS = {
 
 export type AppToolName = keyof typeof APP_TOOLS;
 
+/**
+ * Tools whose success changes the document. The widget bumps its revision
+ * counter after one of these lands, which refreshes the inline card's counts
+ * and the model-context push.
+ */
+export const MUTATING_TOOLS: ReadonlySet<string> = new Set([
+  'edit_text',
+  'add_comment',
+  'reply_comment',
+  'resolve_comment',
+]);
+
 /** Chat-log labels. The raw tool name is a poor thing to show a reader. */
 const TOOL_LABELS: Record<string, string> = {
   open_document: 'Opening the document',
   read_document: 'Reading the document',
   find_text: 'Searching the document',
-  edit_text: 'Editing the document',
+  edit_text: 'Suggesting an edit',
   add_comment: 'Leaving a comment',
+  read_comments: 'Reading comments',
+  reply_comment: 'Replying to a comment',
+  resolve_comment: 'Resolving a comment',
+  read_changes: 'Reading pending changes',
   export_document: 'Exporting the document',
 };
 

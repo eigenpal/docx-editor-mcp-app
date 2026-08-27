@@ -25,6 +25,11 @@ function run(command, args) {
   });
 }
 
+function restartServer() {
+  server?.kill();
+  server = spawn('bun', ['src/server/index.ts'], { cwd: root, stdio: 'inherit', env });
+}
+
 async function rebuild() {
   if (building) {
     queued = true;
@@ -33,8 +38,7 @@ async function rebuild() {
   building = true;
   try {
     await run(process.execPath, [join(root, 'scripts/build-app.mjs')]);
-    server?.kill();
-    server = spawn('bun', ['src/server/index.ts'], { cwd: root, stdio: 'inherit', env });
+    restartServer();
   } catch (error) {
     console.error(error.message);
   } finally {
@@ -49,13 +53,12 @@ async function rebuild() {
 await rebuild();
 
 watch(join(root, 'src'), { recursive: true }, (_event, file) => {
-  if (!file || file.startsWith('server')) return;
+  if (!file) return;
+  if (file.startsWith('server')) {
+    restartServer();
+    return;
+  }
   void rebuild();
-});
-
-watch(join(root, 'src/server'), { recursive: true }, () => {
-  server?.kill();
-  server = spawn('bun', ['src/server/index.ts'], { cwd: root, stdio: 'inherit', env });
 });
 
 process.on('SIGINT', () => {

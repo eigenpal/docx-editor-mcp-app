@@ -59,7 +59,7 @@ export function createMcpServer({ publicOrigin }: McpServerOptions): McpServer {
         'Open a .docx file in an editable Word-faithful editor inside the conversation. Pass a URL to open an existing file, or no arguments to start an empty document. Call this before any other document tool.',
       inputSchema: OpenDocumentInput.shape,
       annotations: { readOnlyHint: true, openWorldHint: true },
-      _meta: { ui: { resourceUri: ui.uri, preferredFrameSize: ['100%', '720px'] } },
+      _meta: { ui: { resourceUri: ui.uri } },
     },
     async ({ url, name }) => {
       // The server never fetches the file. It hands the reference to the widget,
@@ -97,6 +97,10 @@ export function createMcpServer({ publicOrigin }: McpServerOptions): McpServer {
           text: ui.html,
           _meta: {
             ui: {
+              // The inline surface is a summary card; the host's bordered
+              // treatment is what makes it read as one. (Web defaults to
+              // borderless, so the preference has to be explicit.)
+              prefersBorder: true,
               // One origin, for both lists. The engine shapes text with
               // HarfBuzz to match Word's line breaking, so it fetches
               // `harfbuzz.wasm` back off this server; deny that and pagination

@@ -11,9 +11,10 @@ RUN bun install --frozen-lockfile
 COPY tsconfig.json tsconfig.build.json ./
 COPY scripts ./scripts
 COPY src ./src
-# `bun run build` also copies harfbuzz.wasm out of the installed engine into
-# public/. It is never committed: the loader verifies the binary against the
-# engine it was built with, so the copy has to come from this install.
+# `bun run build` emits the widget's hashed JS/CSS and the engine's
+# harfbuzz.wasm into public/assets/. None of it is committed: the wasm loader
+# verifies the binary against the engine it was built with, so the copy has to
+# come from this install.
 RUN bun run build
 
 FROM oven/bun:1-slim

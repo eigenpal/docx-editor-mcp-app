@@ -25,11 +25,11 @@
     "node": ">=22"
   },
   "scripts": {
-    "assets": "node scripts/copy-assets.mjs",
-    "build": "bun run assets && bun run build:app && bun run build:server",
+    "build": "bun run build:app && bun run build:server",
     "build:app": "node scripts/build-app.mjs",
+    "build:harness": "node scripts/build-harness.mjs",
     "build:server": "tsc -p tsconfig.build.json",
-    "dev": "bun run assets && node scripts/dev.mjs",
+    "dev": "node scripts/dev.mjs",
     "format": "prettier --write \"src/**/*.{ts,tsx,css,html}\" \"scripts/**/*.mjs\" \"*.{json,md}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css,html}\" \"scripts/**/*.mjs\" \"*.{json,md}\"",
     "inspect": "bunx @modelcontextprotocol/inspector",
@@ -49,6 +49,7 @@
     "express": "^5.1.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "undici": "^8.10.0",
     "zod": "^4.1.13"
   },
   "devDependencies": {

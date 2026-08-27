@@ -9,19 +9,30 @@
 
 import express from 'express';
 import { randomUUID } from 'node:crypto';
+import { pathToFileURL } from 'node:url';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { createMcpServer } from './mcp.js';
 import { handleFetch } from './fetch-proxy.js';
+import { join } from 'node:path';
 import { PUBLIC_DIR } from './paths.js';
 
 const PORT = Number(process.env.PORT ?? 3000);
 
 /**
- * The origin the widget's CSP allowlist names, so it can fetch `harfbuzz.wasm`
- * back off this server from inside a sandboxed iframe. Set it in production;
- * getting it wrong costs Word-faithful pagination, silently.
+ * The origin the widget's CSP allowlist names, and where it fetches its own
+ * assets and `harfbuzz.wasm` from inside the sandboxed iframe.
+ *
+ * REQUIRED in production, and the server refuses to start without it rather
+ * than defaulting: a localhost origin in a deployed CSP does not error, it
+ * just quietly costs Word-faithful pagination — the worst kind of wrong.
  */
 const PUBLIC_ORIGIN = process.env.PUBLIC_ORIGIN ?? `http://localhost:${PORT}`;
+if (process.env.NODE_ENV === 'production' && !process.env.PUBLIC_ORIGIN) {
+  throw new Error(
+    'PUBLIC_ORIGIN is required in production. It is the one origin the widget CSP ' +
+      'names; without it the sandboxed iframe cannot fetch the editor assets.'
+  );
+}
 
 export function createApp(): express.Express {
   const app = express();
@@ -30,12 +41,26 @@ export function createApp(): express.Express {
   // The widget runs in a sandboxed iframe with an opaque origin, so every asset
   // fetch it makes is cross-origin with `Origin: null`. A wildcard is the only
   // allowlist that matches it, and these are public static files.
+  //
+  // Immutable caching is scoped to `/assets` ONLY: everything in there carries
+  // a content hash or the engine version in its NAME, which is what makes
+  // "immutable" true. Anything served outside it (the dev harness, one day a
+  // favicon) is mutable and must not be pinned for a year.
+  app.use(
+    '/assets',
+    express.static(join(PUBLIC_DIR, 'assets'), {
+      setHeaders: (res) => {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      },
+    })
+  );
   app.use(
     '/',
     express.static(PUBLIC_DIR, {
       setHeaders: (res) => {
         res.setHeader('Access-Control-Allow-Origin', '*');
-        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+        res.setHeader('Cache-Control', 'no-cache');
       },
     })
   );
@@ -85,7 +110,10 @@ export function createApp(): express.Express {
 }
 
 // `node dist/server/server/index.js` starts the server; importing it does not.
-if (process.argv[1] && import.meta.url === `file://${process.argv[1]}`) {
+// `pathToFileURL`, not a hand-built `file://` string: a path with a space or a
+// non-ASCII character percent-encodes in import.meta.url, and the hand-built
+// comparison then fails silently — `npm start` exits 0 having started nothing.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   createApp().listen(PORT, () => {
     // eslint-disable-next-line no-console
     console.log(`docx-editor MCP server on http://localhost:${PORT}/mcp`);

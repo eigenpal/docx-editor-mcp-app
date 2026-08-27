@@ -4,10 +4,14 @@ node_modules/
 # Build outputs
 dist/
 
-# The HarfBuzz binary is copied out of @docx-editor.dev/core at build time
-# (`bun run assets`). Committing it would ship a copy that silently drifts from
-# the installed engine — the loader rejects a mismatched binary by design.
-public/harfbuzz.wasm
+# Build outputs under public/: the widget's hashed JS/CSS and the engine's
+# HarfBuzz binary, all emitted by `bun run build:app`. Committing them would
+# ship copies that silently drift from the installed engine — the wasm loader
+# rejects a mismatched binary by design.
+public/assets/
+
+# Local verification harness (scripts/build-harness.mjs); dev-only, never shipped.
+public/__harness/
 
 # OS files
 .DS_Store
@@ -36,6 +40,9 @@ Thumbs.db
 
 # Vercel
 .vercel/
+
+# Local verification screenshots (chrome-devtools harness runs)
+screenshots-harness/
 
 # npm lock file (using bun.lock)
 package-lock.json

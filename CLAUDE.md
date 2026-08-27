@@ -113,22 +113,49 @@ into the resource URI.
 
 Get it wrong and the engine cannot load HarfBuzz. It does not crash. It falls
 back, and pagination drifts away from Word — a silent fidelity loss, which is the
-only kind worth wiring up front. `scripts/build-app.mjs` fails the build if
-minification folds the placeholder away.
+only kind worth wiring up front. The widget JS needs no placeholder — it is a
+static asset and reads its own origin off `import.meta.url`; the HTML shell is
+the artifact that carries `__PUBLIC_ORIGIN__`, and `scripts/build-app.mjs` fails
+the build if the placeholder goes missing.
 
-## The widget is ONE file
+## Two display modes, one mounted editor
 
-An MCP App resource is one `text/html;profile=mcp-app` document, rendered in a
-sandboxed iframe under a strict CSP. A `<script src>` to anywhere else does not
-load. `scripts/build-app.mjs` inlines the JavaScript and the CSS into
-`src/app/index.html`.
+Claude's MCP App design guidelines put document editing in FULLSCREEN. Inline
+apps auto-fit their content and may not scroll internally; on mobile, vertical
+pan gestures inside an inline app go to the conversation, not the app. So:
 
-The one exception is `harfbuzz.wasm`, which is fetched. esbuild does not rewrite
+- **Inline** is a summary card (`src/app/InlineCard.tsx`): name, counts, a
+  pending-suggestions chip, "Open editor" and "Download". At most two actions
+  and a handful of data points, per the guidelines.
+- **Fullscreen** is the editor. "Open editor" calls `requestDisplayMode` and
+  renders from the mode the host REPORTS, not the one that was asked for.
+
+The editor is mounted in BOTH modes. It holds the document, its tracked changes
+and its undo history; unmounting on collapse would discard all three. Inline,
+`.stage` is `opacity: 0` and inert — do not "simplify" that to a conditional
+render.
+
+Chrome styling uses the HOST'S tokens (`--color-background-primary`,
+`--font-sans`, …), applied by `useHostStyleVariables`. Safe-area insets arrive
+via `hostContext` and land as `--safe-*` CSS variables. Loading states are
+skeletons shaped like the card, never spinners.
+
+## The resource is a small shell; the app is static assets
+
+The `ui://` resource is `dist/app/editor.html`: an inline skeleton plus a
+`<link>` and `<script>` pointing at `public/assets/editor-<hash>.{js,css}` on
+`PUBLIC_ORIGIN`, which the resource's CSP names. `scripts/build-app.mjs` emits
+the hashed assets and fails the build if a placeholder survives substitution.
+
+Why split: first paint is the skeleton rather than a multi-megabyte parse; the
+hashed names make the server's immutable `/assets` caching correct; and the
+engine is cached by the browser across conversations.
+
+`harfbuzz.wasm` ships as `public/assets/harfbuzz-<engine-version>.wasm` — the
+version is in the NAME because `/assets` is cached immutable and the loader
+refuses a binary from a different engine build. esbuild does not rewrite
 `new URL('harfbuzz.wasm', import.meta.url)`, so `src/app/main.tsx` calls
-`setHarfBuzzWasmUrl` to point the loader at this server's copy. The binary is
-COPIED into `public/` by `bun run assets` and never committed: the loader
-verifies it against the engine it was built with, so a checked-in copy would turn
-every `@docx-editor.dev/core` bump into a silent regression.
+`setHarfBuzzWasmUrl`. Nothing under `public/assets/` is committed.
 
 ## Theme
 
@@ -145,6 +172,12 @@ bun run lint
 bun run test
 bun run build
 ```
+
+For widget behavior, use the host harness: `bun run build:harness`, then open
+`/__harness/host.html` on the running server. It is a real MCP Apps host
+(`AppBridge` + `PostMessageTransport`), so the handshake, tool calls,
+display-mode flips and `ui/download-file` all run the way Claude runs them.
+`src/harness/` is dev-only and `public/__harness/` is gitignored.
 
 - `bun run lint` enforces a 400-line cap per file and the `innerHTML` ban.
   Extract; do not raise the cap.

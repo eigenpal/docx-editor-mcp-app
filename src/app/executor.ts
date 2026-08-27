@@ -1,38 +1,43 @@
 /**
- * Every document operation the model can reach, run against the editor the
- * reader is looking at.
+ * Document operations the model can reach, run against the editor the reader is
+ * looking at.
  *
  * `@docx-editor.dev/editor-api/browser` borrows an editor the host already
  * created. `run(context => ...)` is the Office.js batch shape: queue loads,
  * `sync()`, read what came back.
  *
- * Two exceptions worth naming, because both are the reason a tool needs more
- * than editor-api:
- *
- *  - editor-api can read, reply to and resolve comments, but it cannot CREATE
- *    one. `addComment` selects the phrase through editor-api and lands the
- *    comment through pro's review API, which comments on the current selection.
- *    Both halves drive the same editor, so the selection one makes is the
- *    selection the other sees.
- *  - Tracked changes are engine commands (`proposeReplacement`,
- *    `proposeDeletion`), so `editText` selects through editor-api and then execs
- *    on the instance.
+ * Comment and tracked-change operations live in `executor-review.ts`; the
+ * dispatch table at the bottom is typed `Record<AppToolName, …>`, so a tool
+ * added to `src/shared/catalog.ts` without an executor fails `bun run
+ * typecheck` rather than failing at the model's first call.
  */
 
 import { DocxEditor as EditorApi } from '@docx-editor.dev/editor-api/browser';
 import type { DocxEditorRuntime } from '@docx-editor.dev/editor-api/browser';
 import type { DocxEditorInstance } from '@docx-editor.dev/core/editor';
+import type { ReviewItemView } from '@docx-editor.dev/pro/react';
 import type { AppToolName } from '../shared/catalog.js';
+import {
+  addComment,
+  readChanges,
+  readComments,
+  replyComment,
+  resolveComment,
+} from './executor-review.js';
 
 /** What a tool call answers. `text` reaches the model verbatim. */
 export interface ToolOutcome {
   ok: boolean;
   text: string;
-  data?: unknown;
+  data?: Record<string, unknown>;
 }
 
-const ok = (text: string, data?: unknown): ToolOutcome => ({ ok: true, text, data });
-const fail = (text: string): ToolOutcome => ({ ok: false, text });
+export const ok = (text: string, data?: Record<string, unknown>): ToolOutcome => ({
+  ok: true,
+  text,
+  data,
+});
+export const fail = (text: string): ToolOutcome => ({ ok: false, text });
 
 /** Comments on the current selection. Supplied by pro's `useReviewOf` at the call site. */
 export type CommentOnSelection = (text: string, author?: string) => boolean;
@@ -41,6 +46,8 @@ export interface ExecutorDeps {
   runtime: DocxEditorRuntime;
   editor: DocxEditorInstance;
   commentOnSelection: CommentOnSelection;
+  /** The live review items (pro's `useReviewOf(editor).items`), for read_changes. */
+  getReviewItems: () => readonly ReviewItemView[];
   /** Serializes the current document. `DocxEditorRef.save()`. */
   save: () => Promise<ArrayBuffer | null>;
   /** Hands a file to the reader through the host. */
@@ -63,9 +70,9 @@ export interface ParagraphRecord {
  * narrower `Editor` that `<DocxEditor onReady>` hands over. `createBrowser`
  * needs the instance.
  *
- * `revisionTextView: 'original'` matches Word's Original review view, so a
- * later `read_document` sees the text as it stands before the pending tracked
- * changes rather than a mix of both.
+ * `revisionTextView: 'original'` matches Word's Original review view, so
+ * `read_document` sees the text as it stands before the pending tracked
+ * changes rather than a mix of both; `read_changes` reports the deltas.
  */
 export function createRuntime(editor: DocxEditorInstance, author: string): DocxEditorRuntime {
   return EditorApi.createBrowser(editor, { author, revisionTextView: 'original' });
@@ -104,7 +111,7 @@ async function locatePhrase(
   runtime: DocxEditorRuntime,
   phrase: string,
   matchCase: boolean
-): Promise<Array<{ index: number; paragraphId: string; text: string }>> {
+): Promise<Array<{ paragraphId: string; text: string }>> {
   return runtime.run(async (context) => {
     const hits = context.document.body.search(phrase, { matchCase });
     hits.load();
@@ -125,7 +132,6 @@ async function locatePhrase(
     await context.sync();
 
     return hits.items.map((hit, index) => ({
-      index,
       paragraphId: owners[index]?.uniqueLocalId ?? '',
       text: hit.text,
     }));
@@ -133,64 +139,66 @@ async function locatePhrase(
 }
 
 /**
- * Resolve one phrase inside one paragraph to exactly one range, or say why it
- * could not be.
+ * Resolve one phrase inside one paragraph to exactly one range AND select it —
+ * in ONE batch. Locating in one `run()` and selecting in a second re-searches
+ * the document, and an edit landing between the two syncs (the reader typing)
+ * can shift the hit list so the index selects a different occurrence. Inside a
+ * single run the located range object stays live and is the range selected.
  *
  * Case-sensitive on purpose: the model is told to copy the phrase verbatim out
  * of `read_document`, and a case-insensitive match would silently anchor to a
  * different occurrence than the one it meant. Every refusal names what to do
  * differently, because the model is the one that has to fix it.
  */
-async function resolveAnchor(
+export async function selectExactPhrase(
   runtime: DocxEditorRuntime,
   paragraphId: string,
-  search: string
-): Promise<{ index: number; text: string } | ToolOutcome> {
-  const hits = await locatePhrase(runtime, search, true);
-  if (hits.length === 0) {
-    return fail(
-      `The phrase "${search}" was not found. Copy it verbatim from read_document and try again.`
-    );
-  }
-
-  const inParagraph = hits.filter((hit) => hit.paragraphId === paragraphId);
-  if (inParagraph.length === 0) {
-    return fail(
-      `The phrase "${search}" does not occur in paragraph ${paragraphId}. It was found in ${hits.length} other place(s). Use a phrase from that paragraph.`
-    );
-  }
-  if (inParagraph.length > 1) {
-    return fail(
-      `The phrase "${search}" occurs ${inParagraph.length} times in that paragraph, so the anchor would be ambiguous. Use a longer, more distinctive phrase.`
-    );
-  }
-  return { index: inParagraph[0].index, text: inParagraph[0].text };
-}
-
-const isOutcome = (value: unknown): value is ToolOutcome =>
-  typeof value === 'object' && value !== null && 'ok' in value;
-
-/** Puts the reader's selection on a resolved anchor. */
-async function selectAnchor(
-  runtime: DocxEditorRuntime,
   search: string,
-  index: number,
   location: 'Select' | 'End'
-): Promise<void> {
-  await runtime.run(async (context) => {
-    // `load('text')` on the collection is the same InvalidArgument trap as
-    // elsewhere, and `text` is not needed here at all. Materialising the
-    // collection is enough to index into it and select the hit.
-    const ranges = context.document.body.search(search, { matchCase: true });
-    ranges.load();
+): Promise<{ text: string } | ToolOutcome> {
+  return runtime.run(async (context) => {
+    const hits = context.document.body.search(search, { matchCase: true });
+    hits.load();
     await context.sync();
 
-    const range = ranges.items[index];
-    if (!range) throw new Error('the phrase moved before it was selected');
-    range.select(location);
+    if (hits.items.length === 0) {
+      return fail(
+        `The phrase "${search}" was not found. Copy it verbatim from read_document and try again.`
+      );
+    }
+
+    for (const hit of hits.items) hit.load('text');
+    const ownerLists = hits.items.map((hit) => hit.paragraphs);
+    for (const list of ownerLists) list.load();
     await context.sync();
+
+    const owners = ownerLists.map((list) => list.items[0]);
+    for (const owner of owners) owner?.load('uniqueLocalId');
+    await context.sync();
+
+    const inParagraph = hits.items.filter(
+      (_, index) => owners[index]?.uniqueLocalId === paragraphId
+    );
+    if (inParagraph.length === 0) {
+      return fail(
+        `The phrase "${search}" does not occur in paragraph ${paragraphId}. It was found in ${hits.items.length} other place(s). Use a phrase from that paragraph.`
+      );
+    }
+    if (inParagraph.length > 1) {
+      return fail(
+        `The phrase "${search}" occurs ${inParagraph.length} times in that paragraph, so the anchor would be ambiguous. Use a longer, more distinctive phrase.`
+      );
+    }
+
+    const target = inParagraph[0];
+    target.select(location);
+    await context.sync();
+    return { text: target.text };
   });
 }
+
+export const isOutcome = (value: unknown): value is ToolOutcome =>
+  typeof value === 'object' && value !== null && 'ok' in value;
 
 /**
  * How much of the document one `read_document` may hand the model.
@@ -218,14 +226,29 @@ export async function readDocument(
   const slice: ParagraphRecord[] = [];
   let budget = MAX_CHARS;
   for (const paragraph of all.slice(offset)) {
-    if (slice.length >= limit || budget - paragraph.text.length < 0) break;
+    if (slice.length >= limit) break;
+    if (budget - paragraph.text.length < 0) {
+      // The FIRST paragraph of a slice is included even over budget (truncated)
+      // — otherwise a paragraph longer than the whole budget would come back as
+      // an empty slice whose note says to retry the same offset, for ever.
+      if (slice.length === 0) {
+        slice.push({
+          id: paragraph.id,
+          text: `${paragraph.text.slice(0, MAX_CHARS)}… [truncated: paragraph is ${paragraph.text.length} characters]`,
+        });
+      }
+      break;
+    }
     budget -= paragraph.text.length;
     slice.push(paragraph);
   }
 
   const end = offset + slice.length;
   if (offset === 0 && end === all.length) {
-    return ok(JSON.stringify({ paragraphs: slice }), { paragraphs: slice, total: all.length });
+    return ok(JSON.stringify({ paragraphs: slice }), {
+      paragraphs: slice,
+      total: all.length,
+    });
   }
   // Directive, not apologetic: worded as a limit to explain, the model spends
   // its whole turn explaining the limit.
@@ -246,10 +269,7 @@ export async function findText(
   if (!input.query) return fail('query is required.');
   const hits = await locatePhrase(deps.runtime, input.query, Boolean(input.matchCase));
   if (hits.length === 0) return ok(`No match for "${input.query}".`);
-  return ok(
-    JSON.stringify(hits.map(({ paragraphId, text }) => ({ paragraphId, text }))),
-    hits.map(({ paragraphId, text }) => ({ paragraphId, text }))
-  );
+  return ok(JSON.stringify(hits), { hits });
 }
 
 export async function editText(
@@ -259,60 +279,41 @@ export async function editText(
   const { paragraphId, search, replacement } = input;
   if (!paragraphId || !search) return fail('paragraphId and search are both required.');
 
-  const anchor = await resolveAnchor(deps.runtime, paragraphId, search);
+  const anchor = await selectExactPhrase(deps.runtime, paragraphId, search, 'Select');
   if (isOutcome(anchor)) return anchor;
-
-  await selectAnchor(deps.runtime, search, anchor.index, 'Select');
 
   // Tracked by default. An agent editing someone's contract in place, with no
   // record of what it touched, is the failure mode this product exists to avoid.
+  //
+  // `exec` answers with an ExecResult — a refusal VALUE carrying a code and a
+  // reason, not an exception. Both reach the model: the reason is usually
+  // enough for a retry that can work.
   const tracked = input.tracked ?? true;
-  const command =
-    replacement.length === 0
-      ? { type: 'proposeDeletion' as const, author: deps.author }
-      : { type: 'proposeReplacement' as const, replaceWith: replacement, author: deps.author };
+  const deleting = replacement.length === 0;
 
-  // `ExecResult` is a refusal VALUE, not an exception: `ok: false` carries a
-  // code and a reason naming what was refused. Handing that to the model is the
-  // difference between a retry that can work and one that repeats the mistake.
-  if (!tracked) {
-    const result = deps.editor.exec({ type: 'insertText', text: replacement });
-    if (!result.ok) return fail(`The editor refused the edit (${result.code}): ${result.reason}`);
-    return ok(`Replaced "${search}" with "${replacement}".`);
-  }
+  const command = tracked
+    ? deleting
+      ? { type: 'proposeDeletion' as const, author: deps.author }
+      : { type: 'proposeReplacement' as const, replaceWith: replacement, author: deps.author }
+    : deleting
+      ? { type: 'deleteText' as const }
+      : { type: 'replaceText' as const, text: replacement };
 
   const result = deps.editor.exec(command);
   if (!result.ok) {
-    return fail(`The editor refused the tracked change (${result.code}): ${result.reason}`);
+    return fail(`The editor refused the edit (${result.code}): ${result.reason}`);
   }
   if (!result.changed) {
     return fail(`The edit changed nothing. "${search}" may already read that way.`);
   }
-  return replacement.length === 0
+  if (!tracked) {
+    return deleting
+      ? ok(`Deleted "${search}".`)
+      : ok(`Replaced "${search}" with "${replacement}".`);
+  }
+  return deleting
     ? ok(`Proposed deleting "${search}". The reader accepts or rejects it.`)
     : ok(`Proposed replacing "${search}" with "${replacement}". The reader accepts or rejects it.`);
-}
-
-export async function addComment(
-  deps: ExecutorDeps,
-  input: { paragraphId: string; search: string; comment: string }
-): Promise<ToolOutcome> {
-  const { paragraphId, search, comment } = input;
-  if (!paragraphId || !search || !comment) {
-    return fail('paragraphId, search and comment are all required.');
-  }
-
-  const anchor = await resolveAnchor(deps.runtime, paragraphId, search);
-  if (isOutcome(anchor)) return anchor;
-
-  await selectAnchor(deps.runtime, search, anchor.index, 'Select');
-
-  // The selection is now on the phrase, so pro's review API anchors the comment
-  // to it. It REPORTS rather than throws: a document open for viewing refuses
-  // every comment, and the model needs to hear that.
-  const landed = deps.commentOnSelection(comment, deps.author);
-  if (!landed) return fail('The editor refused the comment. The document may be read-only.');
-  return ok(`Commented on "${anchor.text}".`);
 }
 
 export async function exportDocument(
@@ -334,12 +335,11 @@ function ensureDocxExtension(name: string): string {
 /**
  * The dispatch table, typed `Record<AppToolName, …>` so the COMPILER is the
  * drift guard: adding a tool to `src/shared/catalog.ts` without writing its
- * executor fails `bun run typecheck`, rather than failing at the model's first
- * call to a tool the widget advertised and cannot run.
+ * executor fails `bun run typecheck`.
  *
  * Each handler takes `unknown` args. The host validates them against the schema
  * the tool registered, so what arrives is already the shape the catalog names;
- * the casts below say so once, here, instead of at five call sites.
+ * the casts below say so once, here, instead of at nine call sites.
  */
 const HANDLERS: Record<
   AppToolName,
@@ -354,6 +354,10 @@ const HANDLERS: Record<
     ),
   add_comment: (deps, args) =>
     addComment(deps, args as { paragraphId: string; search: string; comment: string }),
+  read_comments: (deps) => readComments(deps),
+  reply_comment: (deps, args) => replyComment(deps, args as { commentId: string; reply: string }),
+  resolve_comment: (deps, args) => resolveComment(deps, args as { commentId: string }),
+  read_changes: (deps) => readChanges(deps),
   export_document: (deps, args) => exportDocument(deps, args as { name?: string }),
 };
 

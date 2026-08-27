@@ -1,70 +1,396 @@
 /*
- * Widget chrome only.
+ * Widget chrome only, in the HOST'S tokens.
  *
- * The document canvas is not themed. Word paints a page on white paper, so the
+ * Claude injects its design tokens as CSS custom properties
+ * (`--color-background-primary`, `--font-sans`, …) through the style variables
+ * the SDK applies in `useHostStyleVariables`. Referencing them is what makes
+ * the chrome read as part of Claude rather than a web page visiting it; the
+ * fallbacks are Claude's documented light-mode values, for a host that sends
+ * nothing.
+ *
+ * The document canvas is NOT themed. Word paints a page on white paper, so the
  * editor does too, in the host's light theme and its dark one — a "dark mode"
  * document would be a different document from the one the reader downloads.
- * Everything below is the frame around it.
- *
- * Colours come from the host through `useHostStyleVariables`, with fallbacks for
- * a host that sends none.
  */
 
 :root {
   color-scheme: light dark;
+  --safe-top: 0px;
+  --safe-right: 0px;
+  --safe-bottom: 0px;
+  --safe-left: 0px;
+  /* The hidden editor's real size, and the thumbnail box it scales into.
+   * 880px wide puts the engine's auto-fit zoom near 100%, so the thumbnail is
+   * a true miniature of the page the reader will see in fullscreen. */
+  --stage-w: 880px;
+  --stage-h: 1140px;
+  --thumb-w: 96px;
+  --thumb-h: 124px;
 }
 
+/* No height chain: the SDK's autoResize watches the document's own size, and
+ * a 100%-tall body always measures exactly the iframe — the host would never
+ * learn the card's real height. Inline sizes to content; fullscreen pins
+ * itself to the viewport with position: fixed instead. */
 html,
 body {
   margin: 0;
   padding: 0;
-  height: 100%;
-  background: var(--mcp-background, #ffffff);
-  color: var(--mcp-text-primary, #1a1a1a);
-  font-family: var(
-    --mcp-font-family,
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    'Segoe UI',
-    sans-serif
-  );
+  /* `auto`, EXPLICITLY: the engine's bundled editor.css sets html/body to
+   * height:100%, and a 100%-tall body always measures exactly the iframe —
+   * the SDK's autoResize would never learn the card's real height and the
+   * host would clip it. This file loads after the engine's, so this wins. */
+  height: auto;
+  background: transparent;
+  color: var(--color-text-primary, #141413);
+  font-family: var(--font-sans, 'Anthropic Sans', ui-sans-serif, system-ui, sans-serif);
+  font-size: var(--font-text-sm-size, 14px);
+  line-height: var(--font-text-sm-line-height, 1.4);
 }
 
-#root,
-.widget {
-  height: 100%;
-  min-height: 480px;
+/* ------------------------------------------------------------------- layout
+ *
+ * One DOM, two arrangements. Inline: a flex row — page thumbnail beside the
+ * summary card, auto-fit height (the guidelines cap inline apps at content
+ * height with no internal scrolling). Fullscreen: the thumbnail box becomes
+ * the whole frame and the card disappears. The editor never unmounts.
+ */
+
+.widget[data-mode='inline'] {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  /* 8px, not 4: the buttons' focus ring (2px outline + 2px offset) must not be
+   * clipped by the iframe edge, and autoResize measures without it. */
+  padding: 8px;
+}
+
+.widget[data-mode='fullscreen'] {
+  position: fixed;
+  inset: 0;
+}
+
+/* -------------------------------------------------------------------- thumb */
+
+.widget[data-mode='inline'] .thumb {
+  flex: none;
+  width: var(--thumb-w);
+  height: var(--thumb-h);
+  overflow: hidden;
+  position: relative;
+  border-radius: var(--border-radius-sm, 6px);
+  border: 1px solid var(--color-border-tertiary, rgba(31, 30, 29, 0.15));
+  /* Word paper, both host themes: the thumbnail is a picture of the page. */
+  background: #ffffff;
+}
+
+.widget[data-mode='inline'] .stage {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--stage-w);
+  height: var(--stage-h);
+  transform: scale(calc(96 / 880));
+  transform-origin: top left;
+  pointer-events: none;
+  /* The stage keeps real layout boxes (the engine's geometry stays valid) but
+   * leaves the a11y tree and hit-testing to the card. `inert` on the element
+   * (set in JSX) covers focus and assistive tech. */
+}
+
+.widget[data-mode='fullscreen'] .thumb {
+  position: absolute;
+  inset: 0;
+}
+
+.widget[data-mode='fullscreen'] .stage {
+  position: absolute;
+  inset: 0;
   display: flex;
   flex-direction: column;
+  /* Top/left/right only: the toolbar must clear the host's overlaid native
+   * header. The BOTTOM inset goes inside the editor's scroll viewport below,
+   * so pages scroll beneath the translucent composer but can scroll clear. */
+  padding: var(--safe-top) var(--safe-right) 0 var(--safe-left);
 }
 
-.widget > * {
+.widget[data-mode='fullscreen'] .stage > * {
   flex: 1;
   min-height: 0;
 }
 
-.notice {
+/* `.docx-editor-scroll` is the engine's scroll viewport. It is not published
+ * contract — if an engine bump renames it, the symptom is the last page hiding
+ * behind the composer, and the fix is this selector (or an upstream
+ * viewport-inset variable, which has been suggested). */
+.widget[data-mode='fullscreen'] .docx-editor-scroll {
+  padding-bottom: var(--safe-bottom);
+  scroll-padding-block-end: var(--safe-bottom);
+}
+
+.widget[data-mode='fullscreen'] .card-main {
+  display: none;
+}
+
+/* Touch: the engine's toolbar is desktop-density; a best-effort bump keeps its
+ * targets usable. The real touch density is an upstream ask. */
+@media (pointer: coarse) {
+  .widget[data-mode='fullscreen'] .docx-toolbar button {
+    min-height: 40px;
+    min-width: 40px;
+  }
+}
+
+/* ---------------------------------------------------------------- inline card
+ *
+ * The inline surface is a COMPACT CARD, not the editor: auto-fit height, at
+ * most two actions, a handful of data points, no internal scrolling.
+ */
+
+.card-main {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
-  align-items: center;
   justify-content: center;
-  height: 100%;
-  min-height: 240px;
-  padding: 2rem;
-  text-align: center;
+  gap: 10px;
 }
 
-.notice-title {
-  margin: 0;
-  font-size: 0.95rem;
-  font-weight: 500;
+.card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
 }
 
-.notice-detail {
+.card-icon {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--border-radius-md, 8px);
+  background: var(--color-background-secondary, #f5f4ed);
+  color: var(--color-text-secondary, #3d3d3a);
+}
+
+.card-icon[data-tone='danger'] {
+  background: var(--color-background-danger, #f7ecec);
+  color: var(--color-text-danger, #7f2c28);
+}
+
+.card-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.card-titles {
+  min-width: 0;
+}
+
+.card-name {
   margin: 0;
-  font-size: 0.85rem;
-  opacity: 0.7;
-  max-width: 48ch;
+  font-size: var(--font-heading-sm-size, 14px);
+  font-weight: var(--font-weight-semibold, 600);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.card-meta {
+  margin: 2px 0 0;
+  font-size: var(--font-text-xs-size, 12px);
+  color: var(--color-text-tertiary, #73726c);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.card-meta[data-busy] {
+  color: var(--color-text-info, #3266ad);
+}
+
+.card-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: var(--border-radius-full, 9999px);
+  font-size: var(--font-text-xs-size, 12px);
+  background: var(--color-background-secondary, #f5f4ed);
+  color: var(--color-text-secondary, #3d3d3a);
+}
+
+.chip[data-tone='info'] {
+  background: var(--color-background-info, #d6e4f6);
+  color: var(--color-text-info, #3266ad);
+}
+
+.card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.card-hint {
+  margin: 0;
+  font-size: var(--font-text-xs-size, 12px);
+  color: var(--color-text-tertiary, #73726c);
+}
+
+.card-error {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: var(--border-radius-sm, 6px);
+  background: var(--color-background-danger, #f7ecec);
+  color: var(--color-text-danger, #7f2c28);
+  font-size: var(--font-text-xs-size, 12px);
+}
+
+/* 44px minimum hit targets on touch — from the media query when it can be
+ * trusted, and from the host's own deviceCapabilities when it says so. */
+.btn {
+  appearance: none;
+  border: none;
+  cursor: pointer;
+  min-height: 36px;
+  padding: 8px 14px;
+  border-radius: var(--border-radius-md, 8px);
+  font-family: inherit;
+  font-size: var(--font-text-sm-size, 14px);
+  font-weight: var(--font-weight-semibold, 600);
+}
+
+@media (pointer: coarse) {
+  .btn {
+    min-height: 44px;
+  }
+}
+
+:root[data-touch='true'] .btn {
+  min-height: 44px;
+}
+
+@media (max-width: 360px) {
+  .btn {
+    flex: 1 1 auto;
+  }
+}
+
+.btn-primary {
+  background: var(--color-background-inverse, #141413);
+  color: var(--color-text-inverse, #ffffff);
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--color-text-primary, #141413);
+  box-shadow: inset 0 0 0 1px var(--color-border-secondary, rgba(31, 30, 29, 0.3));
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--color-ring-primary, rgba(20, 20, 19, 0.7));
+  outline-offset: 2px;
+}
+
+/* --------------------------------------------------------------- agent pill */
+
+.agent-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: var(--border-radius-full, 9999px);
+  font-size: var(--font-text-xs-size, 12px);
+  background: var(--color-background-info, #d6e4f6);
+  color: var(--color-text-info, #3266ad);
+}
+
+.agent-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+.agent-pill[data-live='false'] .agent-dot {
+  animation: none;
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+/* ------------------------------------------------------------------ skeleton
+ *
+ * Shaped like the card it becomes, so the swap does not jump. The same markup
+ * is inlined in `index.html` for the moments before React runs.
+ */
+
+.skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 8px;
+}
+
+.skeleton-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.shimmer {
+  border-radius: var(--border-radius-sm, 6px);
+  background: var(--color-background-secondary, #f5f4ed);
+  animation: shimmer 1.2s ease-in-out infinite;
+}
+
+.shimmer-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--border-radius-md, 8px);
+}
+
+.shimmer-title {
+  width: 40%;
+  height: 14px;
+}
+
+.shimmer-line {
+  width: 65%;
+  height: 10px;
+}
+
+.shimmer-btn {
+  width: 108px;
+  height: 36px;
+  border-radius: var(--border-radius-md, 8px);
+}
+
+@keyframes shimmer {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shimmer,
+  .agent-dot {
+    animation: none;
+  }
 }

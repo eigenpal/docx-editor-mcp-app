@@ -4,14 +4,92 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>DOCX editor</title>
+    <!--
+      This shell is the MCP resource; the application is two static assets
+      fetched from the deployment's own origin (named in the resource's CSP).
+      Keeping the resource tiny makes the first paint the skeleton below rather
+      than a multi-megabyte parse, and the content-hashed asset names make the
+      server's immutable caching correct.
+    -->
     <style>
-      /* __STYLES__ */
+      /* Skeleton for the moments before the external CSS and JS arrive. The
+         classes match styles.css, so React's identical skeleton takes over
+         without a repaint. Colors are Claude's documented light/dark values —
+         the host's live tokens arrive only once the script runs. */
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: transparent;
+      }
+      .skeleton {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        padding: 4px;
+      }
+      .skeleton-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .shimmer {
+        border-radius: 6px;
+        background: #f5f4ed;
+        animation: shimmer 1.2s ease-in-out infinite;
+      }
+      @media (prefers-color-scheme: dark) {
+        .shimmer {
+          background: #262624;
+        }
+      }
+      .shimmer-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+      }
+      .shimmer-title {
+        width: 40%;
+        height: 14px;
+      }
+      .shimmer-line {
+        width: 65%;
+        height: 10px;
+      }
+      .shimmer-btn {
+        width: 108px;
+        height: 36px;
+        border-radius: 8px;
+      }
+      @keyframes shimmer {
+        50% {
+          opacity: 0.45;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .shimmer {
+          animation: none;
+        }
+      }
     </style>
+    <link rel="stylesheet" href="__PUBLIC_ORIGIN__/assets/__CSS_FILE__" />
   </head>
   <body>
-    <div id="root"></div>
-    <script type="module">
-      /* __SCRIPT__ */
-    </script>
+    <div id="root">
+      <div class="skeleton" aria-hidden="true">
+        <div class="skeleton-row">
+          <div class="shimmer shimmer-icon"></div>
+          <div style="flex: 1; display: flex; flex-direction: column; gap: 6px">
+            <div class="shimmer shimmer-title"></div>
+            <div class="shimmer shimmer-line"></div>
+          </div>
+        </div>
+        <div class="skeleton-row">
+          <div class="shimmer shimmer-btn"></div>
+          <div class="shimmer shimmer-btn"></div>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="__PUBLIC_ORIGIN__/assets/__JS_FILE__"></script>
   </body>
 </html>

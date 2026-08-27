@@ -18,19 +18,41 @@ describe('isPrivateAddress', () => {
       '172.31.255.255',
       '192.168.1.1',
       '100.64.0.1', // CGNAT
+      '192.0.0.170', // IETF protocol assignments (192.0.0.0/24)
+      '198.18.0.1', // benchmarking (198.18.0.0/15)
+      '198.19.255.255',
+      '224.0.0.251', // multicast
+      '239.255.255.250',
+      '240.0.0.1', // reserved
+      '255.255.255.255', // broadcast
     ]) {
       expect(isPrivateAddress(address)).toBe(true);
     }
   });
 
   it('allows public IPv4', () => {
-    for (const address of ['8.8.8.8', '1.1.1.1', '172.32.0.1', '100.128.0.1']) {
+    for (const address of [
+      '8.8.8.8',
+      '1.1.1.1',
+      '172.32.0.1',
+      '100.128.0.1',
+      '198.17.255.255', // one below the benchmarking range
+      '198.20.0.1', // one above it
+      '223.255.255.255', // one below multicast
+    ]) {
       expect(isPrivateAddress(address)).toBe(false);
     }
   });
 
-  it('rejects loopback, unique-local and link-local IPv6', () => {
-    for (const address of ['::', '::1', 'fc00::1', 'fd12:3456::1', 'fe80::1']) {
+  it('rejects loopback, unique-local, link-local and NAT64 IPv6', () => {
+    for (const address of [
+      '::',
+      '::1',
+      'fc00::1',
+      'fd12:3456::1',
+      'fe80::1',
+      '64:ff9b::a00:1', // NAT64 embedding 10.0.0.1
+    ]) {
       expect(isPrivateAddress(address)).toBe(true);
     }
   });
