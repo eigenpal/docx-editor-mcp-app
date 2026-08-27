@@ -1,0 +1,71 @@
+name: CI
+
+# `lint` and `test` run in parallel; `build needs: [lint, test]` so the widget
+# can never be bundled before lint has passed.
+#
+# Dependabot PRs are handled by dependabot-lockfile.yml (which refreshes
+# bun.lock first and then runs the same checks inline), so they are skipped
+# here. GitHub treats skipped required checks as passing, so branch protection
+# still works.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Least-privilege default GITHUB_TOKEN: nothing here writes to the repository.
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    if: github.actor != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - run: bun run lint
+      - run: bun run format:check
+      - run: bun run typecheck
+
+  test:
+    if: github.actor != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - run: bun test
+
+  build:
+    if: github.actor != 'dependabot[bot]'
+    needs: [lint, test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+
+      # The only check that runs esbuild over the widget, and the only one that
+      # asserts the __PUBLIC_ORIGIN__ placeholder survived minification.
+      - run: bun run build
+
+      # The server reads the bundle at startup and the resource URI is derived
+      # from its bytes, so a build that produces an unservable resource is worth
+      # catching here rather than in a host.
+      - name: Serve one resources/read
+        run: |
+          bun run start &
+          for _ in $(seq 1 40); do curl -sf http://localhost:3000/health && break; sleep 0.25; done
+          curl -sf -X POST http://localhost:3000/mcp \
+            -H 'Content-Type: application/json' \
+            -H 'Accept: application/json, text/event-stream' \
+            -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' | grep -q open_document

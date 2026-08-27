@@ -1,0 +1,33 @@
+# Supply-chain defense: 7-day cooldown before Dependabot opens an update PR.
+# Compromised packages (stolen maintainer tokens) are almost always yanked
+# within hours, well before this window elapses. The same window is enforced at
+# install time by `.npmrc` and `bunfig.toml`.
+#
+# `@docx-editor.dev/*` is exempt from the install-time cooldown (it is published
+# from this organisation) but not from Dependabot: an engine bump changes what
+# the widget renders, and that is worth a PR either way.
+version: 2
+updates:
+  - package-ecosystem: 'npm'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: 'chore(deps)'
+    groups:
+      dependencies:
+        patterns: ['*']
+        update-types: ['minor', 'patch']
+
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: 'chore(deps)'

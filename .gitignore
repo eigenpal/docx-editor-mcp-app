@@ -1,0 +1,41 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+
+# The HarfBuzz binary is copied out of @docx-editor.dev/core at build time
+# (`bun run assets`). Committing it would ship a copy that silently drifts from
+# the installed engine — the loader rejects a mismatched binary by design.
+public/harfbuzz.wasm
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Claude Code (local-only files)
+.claude/settings.local.json
+.claude/CLAUDE.local.md
+.worktrees/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Logs
+*.log
+
+# Build info
+*.tsbuildinfo
+
+# Vercel
+.vercel/
+
+# npm lock file (using bun.lock)
+package-lock.json

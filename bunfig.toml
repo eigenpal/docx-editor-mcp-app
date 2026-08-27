@@ -1,0 +1,13 @@
+[install]
+# Supply-chain defense: require packages to be at least 7 days old before
+# installation. Compromised packages (stolen maintainer tokens) are almost
+# always yanked within hours, well before this window elapses.
+minimumReleaseAge = 604800
+# Our own scope is exempt. The cooldown exists to outlast a stolen maintainer
+# token on a package we do not control; `@docx-editor.dev/*` is published from
+# this organisation, and holding it a week would only pin this app to an engine
+# a week behind the one it is built against.
+minimumReleaseAgeExcludes = ["@docx-editor.dev/core", "@docx-editor.dev/editor-api", "@docx-editor.dev/pro", "@docx-editor.dev/react", "@docx-editor.dev/i18n", "@docx-editor.dev/fonts"]
+
+[test]
+root = "./src"

@@ -1,0 +1,70 @@
+/*
+ * Widget chrome only.
+ *
+ * The document canvas is not themed. Word paints a page on white paper, so the
+ * editor does too, in the host's light theme and its dark one — a "dark mode"
+ * document would be a different document from the one the reader downloads.
+ * Everything below is the frame around it.
+ *
+ * Colours come from the host through `useHostStyleVariables`, with fallbacks for
+ * a host that sends none.
+ */
+
+:root {
+  color-scheme: light dark;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: var(--mcp-background, #ffffff);
+  color: var(--mcp-text-primary, #1a1a1a);
+  font-family: var(
+    --mcp-font-family,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    sans-serif
+  );
+}
+
+#root,
+.widget {
+  height: 100%;
+  min-height: 480px;
+  display: flex;
+  flex-direction: column;
+}
+
+.widget > * {
+  flex: 1;
+  min-height: 0;
+}
+
+.notice {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 240px;
+  padding: 2rem;
+  text-align: center;
+}
+
+.notice-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.notice-detail {
+  margin: 0;
+  font-size: 0.85rem;
+  opacity: 0.7;
+  max-width: 48ch;
+}

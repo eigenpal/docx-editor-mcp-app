@@ -1,0 +1,47 @@
+name: Dependabot lockfile refresh + CI
+
+# Dependabot does not update Bun lockfiles natively, so dep-bump PRs fail CI's
+# `bun install --frozen-lockfile`. This workflow handles dependabot PRs
+# end-to-end: refresh `bun.lock`, push it back so the PR is mergeable as-is,
+# then run the same checks as ci.yml inline.
+#
+# ci.yml skips dependabot PRs, so nothing double-runs. Pushes from GITHUB_TOKEN
+# do not re-trigger workflows (GitHub's anti-recursion guard), which is why the
+# verification has to live here rather than delegate back to ci.yml.
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  refresh-and-verify:
+    if: github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Refresh lockfile
+        run: bun install
+
+      - name: Commit lockfile
+        run: |
+          if [ -n "$(git status --porcelain bun.lock)" ]; then
+            git config user.name 'github-actions[bot]'
+            git config user.email 'github-actions[bot]@users.noreply.github.com'
+            git commit -m 'chore(deps): refresh bun.lock' bun.lock
+            git push
+          fi
+
+      - run: bun run lint
+      - run: bun run typecheck
+      - run: bun test
+      - run: bun run build
