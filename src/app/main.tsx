@@ -22,7 +22,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { useApp, useHostStyleVariables } from '@modelcontextprotocol/ext-apps/react';
+import { useApp, useHostStyles } from '@modelcontextprotocol/ext-apps/react';
 import type {
   App,
   McpUiDisplayMode,
@@ -36,6 +36,7 @@ import { setHarfBuzzWasmUrl } from '@docx-editor.dev/core/layout';
 import { useDocxEditor } from '@docx-editor.dev/react';
 import type { DocxEditorInstance } from '@docx-editor.dev/core/editor';
 import { InlineCard, InlineSkeleton, type CardState } from './InlineCard.js';
+import { createSupersession } from './supersession.js';
 import { AgentStatus } from './AgentStatus.js';
 import { ReviewPaneController } from './ReviewPaneController.js';
 import { AUTHOR, ToolHost, downloadDocx } from './ToolHost.js';
@@ -74,6 +75,9 @@ interface OpenRequest {
   name: string;
 }
 
+/** One election per widget instance (module scope: one widget per iframe). */
+const supersession = createSupersession(crypto.randomUUID());
+
 /** Bytes paired with the request that produced them, so a second
  * `open_document` can never show the previous file under the new title. */
 interface LoadedDoc {
@@ -111,6 +115,8 @@ function Widget() {
   const [hostTheme, setHostTheme] = useState<McpUiTheme | null>(null);
   const [fullscreenDenied, setFullscreenDenied] = useState(false);
   const [docRevision, setDocRevision] = useState(0);
+  const [superseded, setSuperseded] = useState(supersession.superseded);
+  useEffect(() => supersession.subscribe(() => setSuperseded(supersession.superseded)), []);
   const [handshakeContext, setHandshakeContext] = useState<McpUiHostContext | null>(null);
   const editorRef = useRef<DocxEditorRef>(null);
 
@@ -121,9 +127,15 @@ function Widget() {
     // The notification's params ARE the CallToolResult (the spec wraps
     // nothing), so structuredContent sits directly on them.
     app.addEventListener('toolresult', (params) => {
-      const structured = params.structuredContent as OpenRequest | undefined;
+      const structured = params.structuredContent as
+        (OpenRequest & { createdAt?: number; seq?: number }) | undefined;
       if (!structured) return;
       setRequest({ url: structured.url ?? null, name: structured.name ?? 'Untitled.docx' });
+      // The server-minted election key: the newest open_document wins, and
+      // every older widget instance in the conversation stands down.
+      if (Number.isFinite(structured.createdAt)) {
+        supersession.adoptKey({ createdAt: structured.createdAt!, seq: structured.seq });
+      }
     });
     // The notification payload is a PARTIAL context; the SDK merges it into
     // getHostContext(), so re-read the merged view rather than the params.
@@ -146,13 +158,12 @@ function Widget() {
     onAppCreated,
   });
 
-  // Paints the chrome in the host's own tokens (`--color-*`, `--font-*`). The
-  // hook applies later `hostcontextchanged` styles on its own, but the INITIAL
-  // ones arrive in the handshake result, which only the second argument
-  // reaches — without it the widget renders in its fallback palette until the
-  // host happens to change something. The document canvas is NOT themed — it
-  // stays Word-faithful, on paper white.
-  useHostStyleVariables(app, handshakeContext);
+  // Tokens, theme AND the host's Anthropic Sans font faces. The hook applies
+  // later `hostcontextchanged` styles on its own, but the INITIAL ones arrive
+  // in the handshake result, which only the second argument reaches — without
+  // it the widget renders in its fallback palette until the host happens to
+  // change something.
+  useHostStyles(app, handshakeContext);
 
   // The handshake snapshot: insets, touch, and the mode the host started in.
   // A one-shot sync from the host's initialize result — it runs once per
@@ -262,7 +273,11 @@ function Widget() {
     : { phase: 'ready' };
 
   return (
-    <div className="widget" data-mode={isFullscreen ? 'fullscreen' : 'inline'}>
+    <div
+      className="widget"
+      data-mode={isFullscreen ? 'fullscreen' : 'inline'}
+      data-superseded={superseded || undefined}
+    >
       {document !== null && (
         <div className="thumb">
           {/* `inert` while inline: visibility alone leaves a tabbable
@@ -309,11 +324,12 @@ function Widget() {
           documentName={documentName}
           state={cardState}
           fullscreenUnavailable={fullscreenDenied}
+          superseded={superseded}
           onOpenEditor={() => void openEditor()}
           save={save}
         />
       )}
-      {app && editor && (
+      {app && editor && !superseded && (
         <ToolHost
           app={app}
           editor={editor}

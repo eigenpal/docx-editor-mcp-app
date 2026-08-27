@@ -22,7 +22,7 @@ import {
 } from '@modelcontextprotocol/ext-apps/server';
 import { OpenDocumentInput } from '../shared/catalog.js';
 import { getUiResource } from './ui-resource.js';
-import { looksLikeLocalPath, registerLocalFile } from './local-files.js';
+import { looksLikeLocalPath, registerBytesContent, registerLocalFile } from './local-files.js';
 
 /** Where the widget fetches `harfbuzz.wasm` and any fonts from. */
 export interface McpServerOptions {
@@ -41,6 +41,13 @@ export interface McpServerOptions {
    */
   allowLocalFiles?: boolean;
 }
+
+/**
+ * Election counter for widget supersession: each open_document result carries
+ * `{createdAt, seq}`, and the newest widget instance wins (see
+ * src/app/supersession.ts). Per process; createdAt breaks ties across restarts.
+ */
+let seq = 0;
 
 export function createMcpServer({ publicOrigin, allowLocalFiles }: McpServerOptions): McpServer {
   const server = new McpServer(
@@ -70,7 +77,8 @@ export function createMcpServer({ publicOrigin, allowLocalFiles }: McpServerOpti
       title: 'Open document',
       description:
         'Open a .docx file in an editable Word-faithful editor inside the conversation. ' +
-        'Pass a URL to open an existing file, or no arguments to start an empty document. ' +
+        'Pass a URL to open an existing file, content_base64 for a file you have as bytes ' +
+        '(for example one created in a code sandbox), or no arguments to start an empty document. ' +
         (allowLocalFiles
           ? 'An absolute local file path (for example /Users/me/report.docx) also works. ' +
             'Open every .docx you create or receive, so the reader sees it rendered. '
@@ -80,10 +88,31 @@ export function createMcpServer({ publicOrigin, allowLocalFiles }: McpServerOpti
       annotations: { readOnlyHint: true, openWorldHint: true },
       _meta: { ui: { resourceUri: ui.uri } },
     },
-    async ({ url, name }) => {
+    async ({ url, name, content_base64 }) => {
       // The server never parses the file. It hands a reference to the widget,
-      // which fetches the bytes into the iframe. A local path (stdio mode only)
-      // becomes a tokened /local/ URL on this server; see local-files.ts.
+      // which fetches the bytes into the iframe. Bytes passed in the call, and
+      // local paths (stdio mode only), become tokened /local/ URLs on this
+      // server; see local-files.ts.
+      seq += 1;
+      const election = { seq, createdAt: Date.now() };
+
+      if (content_base64) {
+        const stored = registerBytesContent(content_base64, publicOrigin);
+        if ('message' in stored) {
+          return { content: [{ type: 'text', text: stored.message }], isError: true };
+        }
+        const opened = name ?? 'document.docx';
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Opening ${opened} in the editor. Call read_document to see its text.`,
+            },
+          ],
+          structuredContent: { url: stored.url, name: opened, ...election },
+        };
+      }
+
       if (url && allowLocalFiles && looksLikeLocalPath(url)) {
         const local = registerLocalFile(url, publicOrigin);
         if ('message' in local) {
@@ -96,7 +125,7 @@ export function createMcpServer({ publicOrigin, allowLocalFiles }: McpServerOpti
               text: `Opening ${name ?? local.name} in the editor. Call read_document to see its text.`,
             },
           ],
-          structuredContent: { url: local.url, name: name ?? local.name },
+          structuredContent: { url: local.url, name: name ?? local.name, ...election },
         };
       }
 
@@ -110,7 +139,7 @@ export function createMcpServer({ publicOrigin, allowLocalFiles }: McpServerOpti
               : 'Opened an empty document in the editor.',
           },
         ],
-        structuredContent: { url: url ?? null, name: opened },
+        structuredContent: { url: url ?? null, name: opened, ...election },
       };
     }
   );
@@ -144,7 +173,9 @@ export function createMcpServer({ publicOrigin, allowLocalFiles }: McpServerOpti
               // `open_document` takes an arbitrary URL and no allowlist can be
               // written for "anywhere".
               csp: {
-                resourceDomains: [publicOrigin],
+                // assets.claude.ai serves the host's Anthropic Sans font faces
+                // (applied by useHostStyles); everything else is this origin.
+                resourceDomains: [publicOrigin, 'https://assets.claude.ai'],
                 connectDomains: [publicOrigin],
               },
             },

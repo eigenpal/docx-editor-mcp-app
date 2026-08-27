@@ -3,6 +3,11 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- Without this, the browser paints an opaque canvas backdrop behind the
+         iframe when its color-scheme differs from the host page — the "broken
+         box" failure. It must be in the HTML: it covers the first paint,
+         before any script runs. -->
+    <meta name="color-scheme" content="light dark" />
     <title>DOCX editor</title>
     <!--
       This shell is the MCP resource; the application is two static assets

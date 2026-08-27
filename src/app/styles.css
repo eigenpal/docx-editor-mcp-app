@@ -339,6 +339,13 @@ body {
   }
 }
 
+/* A newer copy of this widget exists further down the conversation: this one
+ * stands down — dimmed, inert, tools unregistered (see supersession.ts). */
+.widget[data-superseded] {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
 /* ------------------------------------------------------------------ skeleton
  *
  * Shaped like the card it becomes, so the swap does not jump. The same markup

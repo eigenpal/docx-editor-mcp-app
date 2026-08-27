@@ -37,6 +37,12 @@ export const OpenDocumentInput = z.object({
     .describe(
       'HTTPS URL of a .docx file to open, reachable without credentials. When the server runs locally (Claude Desktop), an absolute file path also works. Omit to open an empty document.'
     ),
+  content_base64: z
+    .string()
+    .optional()
+    .describe(
+      'Base64 of the .docx file bytes. Use this when the file is not reachable by URL or local path — for example a file you created in a code sandbox. Takes precedence over url.'
+    ),
   name: z
     .string()
     .optional()

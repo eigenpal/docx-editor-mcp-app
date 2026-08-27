@@ -29,6 +29,8 @@ interface CardProps {
   state: CardState;
   /** The host has no fullscreen (declared, or refused when asked). */
   fullscreenUnavailable: boolean;
+  /** A newer copy of this widget exists further down the conversation. */
+  superseded: boolean;
   onOpenEditor: () => void;
   save: () => Promise<ArrayBuffer | null>;
 }
@@ -39,6 +41,7 @@ export function InlineCard({
   documentName,
   state,
   fullscreenUnavailable,
+  superseded,
   onOpenEditor,
   save,
 }: CardProps) {
@@ -93,6 +96,19 @@ export function InlineCard({
               Open link
             </button>
           )}
+        </div>
+      </div>
+    );
+  }
+
+  if (superseded) {
+    return (
+      <div className="card-main" data-superseded="true">
+        <div className="card-head">
+          <div className="card-titles">
+            <p className="card-name">{documentName}</p>
+            <p className="card-meta">Superseded — a newer copy is further down the conversation.</p>
+          </div>
         </div>
       </div>
     );

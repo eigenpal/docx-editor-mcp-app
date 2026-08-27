@@ -18,7 +18,22 @@ import { homedir } from 'node:os';
 import { isAbsolute, resolve } from 'node:path';
 import type { Request, Response } from 'express';
 
-const tokens = new Map<string, string>();
+type Entry = { kind: 'path'; path: string } | { kind: 'bytes'; bytes: Buffer };
+
+const tokens = new Map<string, Entry>();
+
+/** Bytes-backed entries are bounded; the oldest fall out first. */
+const MAX_ENTRIES = 50;
+
+function store(entry: Entry): string {
+  const token = randomUUID();
+  tokens.set(token, entry);
+  if (tokens.size > MAX_ENTRIES) {
+    const oldest = tokens.keys().next().value;
+    if (oldest) tokens.delete(oldest);
+  }
+  return token;
+}
 
 /** True when the string is a local path rather than a URL. */
 export function looksLikeLocalPath(value: string): boolean {
@@ -55,21 +70,56 @@ export function registerLocalFile(
     return {
       message:
         `"${rawPath}" does not exist on the reader's machine. A file created in a ` +
-        'code sandbox lives there, not here. To draft a document, call ' +
-        'open_document with no arguments and then write_document — the reader ' +
-        'watches it appear in the editor.',
+        'code sandbox lives there, not here. Either call open_document again ' +
+        'with content_base64 (base64 of the file bytes), or draft with ' +
+        'open_document + write_document so the reader watches it appear.',
     };
   }
 
-  const token = randomUUID();
-  tokens.set(token, real);
+  const token = store({ kind: 'path', path: real });
   const name = real.split('/').pop() ?? 'document.docx';
   return { url: `${publicOrigin}/local/${token}`, name };
 }
 
+/** A `.docx` starts as a zip: PK\x03\x04. */
+const ZIP_MAGIC = Buffer.from([0x50, 0x4b, 0x03, 0x04]);
+const MAX_CONTENT_BYTES = 15 * 1024 * 1024;
+
+/**
+ * Registers document BYTES passed through a tool call — the handoff for a file
+ * the model created somewhere this server cannot read, such as a code sandbox.
+ * Safe in every mode: the bytes arrive in the call, so nothing reads a disk.
+ */
+export function registerBytesContent(
+  base64: string,
+  publicOrigin: string
+): { url: string } | LocalFileRefusal {
+  let bytes: Buffer;
+  try {
+    bytes = Buffer.from(base64, 'base64');
+  } catch {
+    return { message: 'content_base64 is not valid base64.' };
+  }
+  if (bytes.byteLength === 0) {
+    return { message: 'content_base64 decoded to zero bytes.' };
+  }
+  if (bytes.byteLength > MAX_CONTENT_BYTES) {
+    return { message: `content_base64 decodes to more than ${MAX_CONTENT_BYTES} bytes.` };
+  }
+  if (!bytes.subarray(0, 4).equals(ZIP_MAGIC)) {
+    return {
+      message:
+        'content_base64 is not a .docx file (a .docx is a zip and starts with PK). ' +
+        'Base64-encode the file bytes, not its text.',
+    };
+  }
+  const token = store({ kind: 'bytes', bytes });
+  return { url: `${publicOrigin}/local/${token}` };
+}
+
 export function handleLocalFile(req: Request, res: Response): void {
-  const path = tokens.get(String(req.params.token));
-  if (!path) {
+  const entry = tokens.get(String(req.params.token));
+  if (!entry) {
     res.status(404).json({ error: 'unknown token' });
     return;
   }
@@ -80,5 +130,6 @@ export function handleLocalFile(req: Request, res: Response): void {
   );
   // The reader may re-open after Claude regenerated the file; always re-read.
   res.setHeader('Cache-Control', 'no-store');
-  res.sendFile(path);
+  if (entry.kind === 'bytes') res.end(entry.bytes);
+  else res.sendFile(entry.path);
 }
