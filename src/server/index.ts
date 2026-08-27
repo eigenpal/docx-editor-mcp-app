@@ -13,6 +13,7 @@ import { pathToFileURL } from 'node:url';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { createMcpServer } from './mcp.js';
 import { handleFetch } from './fetch-proxy.js';
+import { handleLocalFile } from './local-files.js';
 import { join } from 'node:path';
 import { PUBLIC_DIR } from './paths.js';
 
@@ -75,6 +76,10 @@ export function createApp(publicOrigin: string): express.Express {
   // The widget's only way to reach a document. See `fetch-proxy.ts` for why the
   // iframe cannot fetch it itself, and for the SSRF boundary this crosses.
   app.get('/fetch', handleFetch);
+
+  // Tokened local files, stdio mode only. Tokens exist only after
+  // open_document accepted a path, so the route serves nothing otherwise.
+  app.get('/local/:token', handleLocalFile);
 
   app.all('/mcp', async (req, res) => {
     // Everything inside the try, `createMcpServer` included: it reads the widget

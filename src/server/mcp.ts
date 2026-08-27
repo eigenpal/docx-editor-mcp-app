@@ -22,6 +22,7 @@ import {
 } from '@modelcontextprotocol/ext-apps/server';
 import { OpenDocumentInput } from '../shared/catalog.js';
 import { getUiResource } from './ui-resource.js';
+import { looksLikeLocalPath, registerLocalFile } from './local-files.js';
 
 /** Where the widget fetches `harfbuzz.wasm` and any fonts from. */
 export interface McpServerOptions {
@@ -33,18 +34,28 @@ export interface McpServerOptions {
    * measurement and pagination drifts away from Word.
    */
   publicOrigin: string;
+  /**
+   * Accept absolute file paths in `open_document`. The stdio (Claude Desktop)
+   * entry sets this; the HTTP deployment never does — a deployed server that
+   * read its own disk on request would be a file-disclosure endpoint.
+   */
+  allowLocalFiles?: boolean;
 }
 
-export function createMcpServer({ publicOrigin }: McpServerOptions): McpServer {
+export function createMcpServer({ publicOrigin, allowLocalFiles }: McpServerOptions): McpServer {
   const server = new McpServer(
     { name: 'docx-editor', version: '0.1.0' },
     {
       instructions:
         'Opens .docx files in a real WYSIWYG Word editor inside the conversation. ' +
         'Call open_document first; it renders the editor. Once the editor is open, ' +
-        'read_document, find_text, edit_text, add_comment and export_document run ' +
-        'inside it. Edits land as Word tracked changes by default, so the reader ' +
-        'accepts or rejects each one.',
+        'the other tools run inside it. Edits land as Word tracked changes by ' +
+        'default, so the reader accepts or rejects each one.' +
+        (allowLocalFiles
+          ? ' This server runs locally: open_document also accepts an absolute ' +
+            'file path. When you create or receive a .docx on this machine, open ' +
+            'it here to show it to the reader.'
+          : ''),
     }
   );
 
@@ -56,15 +67,37 @@ export function createMcpServer({ publicOrigin }: McpServerOptions): McpServer {
     {
       title: 'Open document',
       description:
-        'Open a .docx file in an editable Word-faithful editor inside the conversation. Pass a URL to open an existing file, or no arguments to start an empty document. Call this before any other document tool.',
+        'Open a .docx file in an editable Word-faithful editor inside the conversation. ' +
+        'Pass a URL to open an existing file, or no arguments to start an empty document. ' +
+        (allowLocalFiles
+          ? 'An absolute local file path (for example /Users/me/report.docx) also works. ' +
+            'Open every .docx you create or receive, so the reader sees it rendered. '
+          : '') +
+        'Call this before any other document tool.',
       inputSchema: OpenDocumentInput.shape,
       annotations: { readOnlyHint: true, openWorldHint: true },
       _meta: { ui: { resourceUri: ui.uri } },
     },
     async ({ url, name }) => {
-      // The server never fetches the file. It hands the reference to the widget,
-      // which fetches it into the iframe — so the bytes go browser-to-source and
-      // never through this process.
+      // The server never parses the file. It hands a reference to the widget,
+      // which fetches the bytes into the iframe. A local path (stdio mode only)
+      // becomes a tokened /local/ URL on this server; see local-files.ts.
+      if (url && allowLocalFiles && looksLikeLocalPath(url)) {
+        const local = registerLocalFile(url, publicOrigin);
+        if ('message' in local) {
+          return { content: [{ type: 'text', text: local.message }], isError: true };
+        }
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Opening ${name ?? local.name} in the editor. Call read_document to see its text.`,
+            },
+          ],
+          structuredContent: { url: local.url, name: name ?? local.name },
+        };
+      }
+
       const opened = name ?? (url ? guessFileName(url) : 'Untitled.docx');
       return {
         content: [

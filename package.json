@@ -35,6 +35,7 @@
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css,html}\" \"scripts/**/*.mjs\" \"*.{json,md}\"",
     "inspect": "bunx @modelcontextprotocol/inspector",
     "lint": "eslint src/",
+    "preview": "node scripts/preview.mjs",
     "lint:fix": "eslint src/ --fix",
     "setup": "node scripts/setup.mjs",
     "start": "node dist/server/server/index.js",

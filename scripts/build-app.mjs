@@ -30,8 +30,7 @@ const outFile = join(root, 'dist/app/editor.html');
 
 const engineVersion = require('@docx-editor.dev/core/package.json').version;
 
-const result = await build({
-  entryPoints: [join(root, 'src/app/main.tsx')],
+const sharedOptions = {
   bundle: true,
   format: 'esm',
   target: 'es2022',
@@ -50,11 +49,26 @@ const result = await build({
   outdir: assetsDir,
   write: false,
   metafile: true,
+};
+
+const result = await build({
+  ...sharedOptions,
+  entryPoints: [join(root, 'src/app/main.tsx')],
+});
+
+// The standalone preview page (`/preview.html`) shares the engine but not the
+// MCP wiring; it is what `bun run preview <file>` opens from a terminal.
+const previewResult = await build({
+  ...sharedOptions,
+  entryPoints: [join(root, 'src/preview/main.tsx')],
 });
 
 const js = result.outputFiles.find((file) => file.path.endsWith('.js'));
 const css = result.outputFiles.find((file) => file.path.endsWith('.css'));
 if (!js) throw new Error('esbuild produced no JavaScript output');
+const previewJs = previewResult.outputFiles.find((file) => file.path.endsWith('.js'));
+const previewCss = previewResult.outputFiles.find((file) => file.path.endsWith('.css'));
+if (!previewJs) throw new Error('esbuild produced no preview JavaScript output');
 
 // One hash across both assets: the CSS's class names have to match the JS that
 // sets them, so they version together or the cache can pair a stale one.
@@ -65,6 +79,13 @@ const hash = createHash('sha256')
   .slice(0, 12);
 const jsFile = `editor-${hash}.js`;
 const cssFile = `editor-${hash}.css`;
+const previewHash = createHash('sha256')
+  .update(previewJs.text)
+  .update(previewCss?.text ?? '')
+  .digest('hex')
+  .slice(0, 12);
+const previewJsFile = `preview-${previewHash}.js`;
+const previewCssFile = `preview-${previewHash}.css`;
 const wasmFile = `harfbuzz-${engineVersion}.wasm`;
 
 // Rebuilt from scratch so a redeploy does not accumulate every hash it ever
@@ -74,7 +95,18 @@ await rm(assetsDir, { recursive: true, force: true });
 await mkdir(assetsDir, { recursive: true });
 await writeFile(join(assetsDir, jsFile), js.text, 'utf8');
 if (css) await writeFile(join(assetsDir, cssFile), css.text, 'utf8');
+await writeFile(join(assetsDir, previewJsFile), previewJs.text, 'utf8');
+if (previewCss) await writeFile(join(assetsDir, previewCssFile), previewCss.text, 'utf8');
 await copyFile(require.resolve('@docx-editor.dev/core/harfbuzz.wasm'), join(assetsDir, wasmFile));
+
+const previewShell = await readFile(join(root, 'src/preview/index.html'), 'utf8');
+await writeFile(
+  join(root, 'public/preview.html'),
+  previewShell
+    .replace('__PREVIEW_JS__', () => previewJsFile)
+    .replace('__PREVIEW_CSS__', () => (previewCss ? previewCssFile : '')),
+  'utf8'
+);
 
 const shell = await readFile(join(root, 'src/app/index.html'), 'utf8');
 // Replacement FUNCTIONS, not strings: `$&` and `$'` are substitution patterns

@@ -165,8 +165,16 @@ and `ui/download-file` run as Claude runs them. `window.__bridge` exposes the
 bridge. `src/harness/` is dev-only; `public/__harness/` is gitignored.
 
 Entry points: `bun run dev` (HTTP), `bun run stdio` (Claude Desktop),
-`bun run dev:tunnel` (public URL), `bun run setup` (install instructions).
+`bun run dev:tunnel` (public URL), `bun run setup` (install instructions),
+`bun run preview <file>` (standalone browser page, no host).
 In stdio mode, stdout is the protocol channel; log to stderr only.
+
+Local files: in stdio mode, `open_document` accepts an absolute path.
+`src/server/local-files.ts` maps the path to a random token and serves it at
+`/local/<token>`. Never accept raw paths on the route itself — the asset
+server answers any local page with `Access-Control-Allow-Origin: *`, and a
+path-addressed route would disclose local files to any website. The HTTP
+deployment never enables this.
 
 ## Conventions
 

@@ -12,6 +12,8 @@ public/assets/
 
 # Local verification harness (scripts/build-harness.mjs); dev-only, never shipped.
 public/__harness/
+public/preview.html
+public/preview-files/
 
 # OS files
 .DS_Store

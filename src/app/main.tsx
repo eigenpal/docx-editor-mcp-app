@@ -184,9 +184,13 @@ function Widget() {
         return;
       }
       try {
-        const response = await fetch(
-          `${ASSET_ORIGIN}/fetch?url=${encodeURIComponent(request.url)}`
-        );
+        // A same-origin URL (the server's tokened /local/ files in stdio mode)
+        // is fetched directly; anything else goes through the /fetch proxy,
+        // because the CSP names only this origin.
+        const target = request.url.startsWith(`${ASSET_ORIGIN}/`)
+          ? request.url
+          : `${ASSET_ORIGIN}/fetch?url=${encodeURIComponent(request.url)}`;
+        const response = await fetch(target);
         if (!response.ok) {
           // The proxy's refusals name the cause; surface them over a bare code.
           const body = (await response.json().catch(() => null)) as { error?: string } | null;

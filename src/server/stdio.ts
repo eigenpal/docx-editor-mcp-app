@@ -40,6 +40,6 @@ listener.on('error', (error: NodeJS.ErrnoException) => {
   throw error;
 });
 
-const server = createMcpServer({ publicOrigin: PUBLIC_ORIGIN });
+const server = createMcpServer({ publicOrigin: PUBLIC_ORIGIN, allowLocalFiles: true });
 await server.connect(new StdioServerTransport());
 console.error('[docx-editor] MCP server connected over stdio');

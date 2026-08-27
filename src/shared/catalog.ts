@@ -35,7 +35,7 @@ export const OpenDocumentInput = z.object({
     .string()
     .optional()
     .describe(
-      'HTTPS URL of a .docx file to open. It must be reachable without credentials. Omit to open an empty document.'
+      'HTTPS URL of a .docx file to open, reachable without credentials. When the server runs locally (Claude Desktop), an absolute file path also works. Omit to open an empty document.'
     ),
   name: z
     .string()
