@@ -17,27 +17,20 @@ the widget's chrome, the server, and the deployment story.
 
 ```bash
 bun install
-bun run dev          # http://localhost:3000/mcp
+bun run dev              # http://localhost:3000/mcp, rebuilds on change
 ```
 
-`bun run dev` rebuilds the widget on change and restarts the server with it.
-
-To exercise it against a real host, expose the port and set `PUBLIC_ORIGIN`:
+Three ways to see your change inside a host, cheapest first:
 
 ```bash
-ngrok http 3000
-PUBLIC_ORIGIN=https://<your-subdomain>.ngrok.app bun run dev
+bun run build:harness    # local MCP Apps host at /__harness/host.html —
+                         # real handshake, tool calls, display modes
+bun run setup --write    # install into Claude Desktop (stdio, no tunnel)
+bun run dev:tunnel       # public URL for claude.ai (web) / ChatGPT
 ```
-
-Then add the `/mcp` URL in Claude under **Settings → Connectors → Add custom
-connector**.
 
 For protocol-level work the [MCP Inspector](https://github.com/modelcontextprotocol/inspector)
-is faster than a real host:
-
-```bash
-bun run inspect
-```
+is faster than a real host: `bun run inspect`.
 
 ## Before you open a PR
 

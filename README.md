@@ -52,6 +52,10 @@ comment and export after that happens in the reader's browser.
 | `find_text`       | widget  | Locates a phrase, with the id of the paragraph holding it.                 |
 | `edit_text`       | widget  | Replaces a verbatim phrase. **A tracked change by default.**               |
 | `add_comment`     | widget  | A real Word comment, anchored to the phrase, surviving the save into Word. |
+| `read_comments`   | widget  | The comments, with author and resolved state — how Claude reads feedback.  |
+| `reply_comment`   | widget  | Replies into a thread, recording what was done about it.                   |
+| `resolve_comment` | widget  | Marks a thread resolved, after the requested change actually landed.       |
+| `read_changes`    | widget  | The pending tracked changes, by author — the reader's edits included.      |
 | `export_document` | widget  | Hands the reader the edited `.docx`.                                       |
 
 `edit_text` proposes rather than applies. An agent editing someone's contract in
@@ -59,52 +63,95 @@ place, with no record of what it touched, is the failure mode this exists to
 avoid — so the reader accepts or rejects each change, in the editor, the way
 they would in Word.
 
+**The loop runs both ways.** The reader edits and comments in the editor; the
+model sees it all — `read_comments` and `read_changes` return authorship, and
+the widget keeps the conversation's context line current ("4 unresolved
+comments, 3 by the reader") after every change, the reader's own included. Say
+"I left you comments" and Claude already knows where to look.
+
 The catalog is the allowlist. A model that decides to do something
 [`src/shared/catalog.ts`](src/shared/catalog.ts) does not name has nothing to
 call, rather than merely being told not to.
 
-## Run it
+## Two display modes
+
+Per [Claude's MCP Apps design guidelines](https://claude.com/docs/connectors/building/mcp-apps/design-guidelines),
+document editing belongs in fullscreen, and inline apps auto-fit with no
+internal scrolling. So inline is a **summary card** — a live, scaled-down page-1
+thumbnail (it IS the editor, so agent edits appear in it as they land), counts,
+suggestion/comment chips, Open editor and Download — and fullscreen is the full
+editor: toolbar, ruler, review rail. One mount for both: collapsing back to the
+card keeps every tracked change and the undo history.
+
+## Get it into Claude — two minutes, no deploy
 
 ```bash
 bun install
-bun run dev          # http://localhost:3000/mcp
+bun run setup --write   # builds, then adds the server to Claude Desktop's config
 ```
 
-Point the [MCP Inspector](https://github.com/modelcontextprotocol/inspector) at
-it:
+Restart Claude Desktop and ask Claude to open a `.docx`. That is the whole
+setup: Claude Desktop launches the server locally over stdio, and the widget's
+assets come off `http://localhost:3017` from the same process — nothing leaves
+your machine. `bun run setup` (without `--write`) prints the config snippet
+instead of writing it. After a `git pull`, run `bun run build` again — Desktop
+runs whatever `dist/` holds.
+
+## claude.ai (web/mobile) and ChatGPT — needs a public URL
+
+Both hosts fetch the MCP server from their side, so they need HTTPS they can
+reach. For a quick try, tunnel the dev server:
 
 ```bash
-bun run inspect
+brew install cloudflared   # once; free, no account
+bun run dev:tunnel         # prints the public URL, serves with the CSP set to it
 ```
 
-To try it in Claude, expose the port (`ngrok http 3000`), set `PUBLIC_ORIGIN` to
-the public URL, and add it under **Settings → Connectors → Add custom
-connector**. `PUBLIC_ORIGIN` is not optional in a real deployment: it is the one
-domain the widget's CSP allowlist names, and getting it wrong costs Word-faithful
-pagination, silently.
+Then:
+
+- **Claude** — **Settings → Connectors → Add custom connector**, paste
+  `https://<printed-url>/mcp`.
+- **ChatGPT** — **Settings → Apps → Advanced → Developer mode** (Pro/Plus/
+  Business/Edu, on the web), then **Apps → Create**: name, description, MCP
+  server URL `https://<printed-url>/mcp`, authentication _None_. The app lands
+  under **Drafts**; enable it and ask ChatGPT to open a `.docx`. ChatGPT has
+  adopted the MCP Apps spec, so this is the same build — no `window.openai`,
+  no second bundle. (A few ChatGPT-only APIs like `uploadFile` are not in the
+  spec yet; nothing here needs them.)
+
+## Deploy
+
+Anything that runs a container and gives you HTTPS:
 
 ```bash
-bun run build
-PUBLIC_ORIGIN=https://your-host.example bun run start
+docker build -t docx-editor-mcp .
+docker run -p 3000:3000 -e PUBLIC_ORIGIN=https://your-host.example docx-editor-mcp
 ```
 
-## ChatGPT
+`PUBLIC_ORIGIN` is not optional in production — the server refuses to start
+without it. It is the one domain the widget's CSP allowlist names; wrong, it
+does not error, it silently costs Word-faithful pagination. The server is
+stateless (no document ever reaches it after open), so scale horizontally or
+not at all.
 
-The same build. Since ChatGPT adopted the MCP Apps spec, a widget written against
-[`@modelcontextprotocol/ext-apps`](https://github.com/modelcontextprotocol/ext-apps)
-runs in both hosts — no `window.openai`, no second bundle. Two things to know:
+## When it doesn't work
 
-- **Cache-bust the resource URI.** ChatGPT caches MCP resources hard and keys the
-  cache on the URI, so a fixed URI ships a redeploy to a client that keeps
-  rendering the old build. [`src/server/ui-resource.ts`](src/server/ui-resource.ts)
-  hashes the bytes into the URI, which also means an unchanged build keeps its
-  cache.
-- **A bare `424` is a shape mismatch**, not a network problem: malformed
-  `structuredContent`, or a missing `_meta`.
+| Symptom                                                            | Cause                                                                                                                            |
+| ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
+| Tool listed, widget never renders                                  | The host can't reach the resource — check the `/mcp` URL answers `tools/list` (`bun run inspect`).                               |
+| Widget renders, page is blank / skeleton forever                   | The iframe can't fetch `PUBLIC_ORIGIN/assets/*` — origin wrong, or not HTTPS where the host requires it.                         |
+| Document opens, pagination looks un-Word-like                      | `harfbuzz.wasm` didn't load: `PUBLIC_ORIGIN` mismatch. Check the browser console for a blocked wasm fetch.                       |
+| "could not resolve …" / "resolves to a non-public address" on open | The `/fetch` proxy refused the document URL — it only fetches public HTTPS, no redirects. Use a direct public link.              |
+| ChatGPT shows a bare `424`                                         | Tool response shape — `structuredContent` malformed or `_meta` missing.                                                          |
+| ChatGPT renders an old build                                       | It caches resources by URI; this server hashes the build into the URI, so a stale build means the deploy didn't actually update. |
 
-A few ChatGPT-only capabilities (`uploadFile`, `getFileDownloadUrl`) are not in
-the spec yet. Nothing here needs them; if you add a flow that does, feature-detect
-rather than fork the bundle.
+Poke at the protocol without a host (`bun run inspect`), or exercise the widget
+in a real MCP Apps host locally:
+
+```bash
+bun run build:harness && bun run start
+# open http://localhost:3000/__harness/host.html
+```
 
 ## Layout
 

@@ -26,15 +26,18 @@ const PORT = Number(process.env.PORT ?? 3000);
  * than defaulting: a localhost origin in a deployed CSP does not error, it
  * just quietly costs Word-faithful pagination — the worst kind of wrong.
  */
-const PUBLIC_ORIGIN = process.env.PUBLIC_ORIGIN ?? `http://localhost:${PORT}`;
-if (process.env.NODE_ENV === 'production' && !process.env.PUBLIC_ORIGIN) {
-  throw new Error(
-    'PUBLIC_ORIGIN is required in production. It is the one origin the widget CSP ' +
-      'names; without it the sandboxed iframe cannot fetch the editor assets.'
-  );
+function resolvePublicOrigin(port: number): string {
+  if (process.env.PUBLIC_ORIGIN) return process.env.PUBLIC_ORIGIN;
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error(
+      'PUBLIC_ORIGIN is required in production. It is the one origin the widget CSP ' +
+        'names; without it the sandboxed iframe cannot fetch the editor assets.'
+    );
+  }
+  return `http://localhost:${port}`;
 }
 
-export function createApp(): express.Express {
+export function createApp(publicOrigin: string): express.Express {
   const app = express();
   app.use(express.json({ limit: '4mb' }));
 
@@ -81,7 +84,7 @@ export function createApp(): express.Express {
     let server: ReturnType<typeof createMcpServer> | undefined;
     let transport: StreamableHTTPServerTransport | undefined;
     try {
-      server = createMcpServer({ publicOrigin: PUBLIC_ORIGIN });
+      server = createMcpServer({ publicOrigin });
       transport = new StreamableHTTPServerTransport({
         // Stateless: no session id, no session store, no resumability.
         sessionIdGenerator: undefined,
@@ -114,10 +117,11 @@ export function createApp(): express.Express {
 // non-ASCII character percent-encodes in import.meta.url, and the hand-built
 // comparison then fails silently — `npm start` exits 0 having started nothing.
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  createApp().listen(PORT, () => {
+  const publicOrigin = resolvePublicOrigin(PORT);
+  createApp(publicOrigin).listen(PORT, () => {
     // eslint-disable-next-line no-console
     console.log(`docx-editor MCP server on http://localhost:${PORT}/mcp`);
     // eslint-disable-next-line no-console
-    console.log(`  public origin: ${PUBLIC_ORIGIN}`);
+    console.log(`  public origin: ${publicOrigin}`);
   });
 }
