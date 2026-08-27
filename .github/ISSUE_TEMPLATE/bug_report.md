@@ -1,24 +1,32 @@
 ---
 name: Bug report
-about: Something in the connector or the widget behaves wrongly
+about: Report a problem with the connector or widget
 title: ''
 labels: bug
 ---
 
-**Which host**
-Claude (web / desktop), ChatGPT, MCP Inspector, or something else. Include the
-version if you have it.
+## Host
 
-**What happened**
-What you asked for, what the model called, and what appeared.
+Which host did you use?
+Examples include Claude, ChatGPT, and MCP Inspector.
+Include the host version if available.
 
-**What you expected**
+## Problem
 
-**Is it an engine bug?**
-If the wrong thing is pagination, parsing, tracked changes or comments — that is
-[`eigenpal/docx-editor`](https://github.com/eigenpal/docx-editor/issues), and
-reporting it there gets it fixed for every consumer. Open it here if you are not
-sure; we will move it.
+Describe your request, the tool call, and the result.
 
-**A file that reproduces it**
-A `.docx` helps more than a description. Redact it first if you need to.
+## Expected result
+
+Describe the result you expected.
+
+## Reproduction file
+
+Attach a `.docx` file that reproduces the problem.
+Remove confidential information before you attach it.
+
+## Engine problems
+
+Report pagination, parsing, tracked changes, or comment problems in
+[`eigenpal/docx-editor`](https://github.com/eigenpal/docx-editor/issues).
+
+You can report the problem here if you do not know its source.

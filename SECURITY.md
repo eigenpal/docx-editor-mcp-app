@@ -1,32 +1,38 @@
-# Security Policy
+# Security policy
 
-## Supported Versions
+## Supported version
 
-`main` is the supported version. This app is deployed as a connector, so the
-version that matters is the one running.
+We support the current `main` branch.
+Deployments can run older versions, so confirm the deployed commit.
 
-## Reporting a Vulnerability
+## Report a vulnerability
 
-Report vulnerabilities privately via
+Report vulnerabilities through
 [GitHub Security Advisories](https://github.com/eigenpal/docx-editor-mcp-app/security/advisories/new).
-Please do not open a public issue.
+Do not open a public issue.
 
-We aim to acknowledge reports within 5 business days and will keep you updated on
-the fix and disclosure timeline.
+We aim to acknowledge your report within five business days.
+We will share updates about the fix and disclosure schedule.
 
-## What to look at first
+## Review the security boundaries
 
-Two boundaries carry most of the risk in this repository.
+Start with these security boundaries.
 
-**`src/server/fetch-proxy.ts`.** The URL it fetches arrives from a tool call.
-A document, a web page, or a chat message can steer that call. The proxy
-checks the scheme, pins the resolved address at dial time, refuses redirects,
-and caps the body size while it streams.
+### Document fetches
 
-**Anything that renders `.docx` content.** A `.docx` is a zip of XML that the
-sender fully controls: font names, hyperlink targets, run text. The engine
-sanitizes at its parse boundary. This repository must not route that content
-into an HTML-from-strings sink.
+`src/server/fetch-proxy.ts` receives a URL from a tool call.
+Untrusted document content or chat content can influence that URL.
 
-Engine-level vulnerabilities (OOXML parsing, layout, serialization) belong to
+The proxy checks the scheme and resolved address.
+It also rejects redirects and limits the streamed response size.
+
+### Document content
+
+A `.docx` file contains untrusted XML.
+The sender controls its text, font names, and hyperlink targets.
+
+The engine sanitizes content during parsing.
+Do not insert document content into HTML strings.
+
+Report OOXML parsing, layout, or serialization vulnerabilities to
 [`eigenpal/docx-editor`](https://github.com/eigenpal/docx-editor/security/advisories/new).

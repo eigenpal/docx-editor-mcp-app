@@ -1,39 +1,48 @@
 # Contributing
 
-Thanks for helping. This repository is small on purpose. The document engine
-lives in [`eigenpal/docx-editor`](https://github.com/eigenpal/docx-editor).
-Almost everything here is wiring around it.
+Thank you for contributing.
+This repository connects MCP hosts to the docx-editor.dev engine.
+The engine lives in [`eigenpal/docx-editor`](https://github.com/eigenpal/docx-editor).
 
-## Where a change belongs
+## Choose the correct repository
 
-If pagination, parsing, serialization, tracked changes, or comments behave
-wrongly, that is an engine bug. Fix it in `eigenpal/docx-editor` and bump the
-dependency here. A workaround in this repository hides the bug from every other
-consumer.
+Report these engine problems in `eigenpal/docx-editor`:
 
-Changes that belong here: the tool catalog, how tools are described to a model,
-the widget, the server, and the deployment story.
+- OOXML parsing or serialization
+- Pagination or layout
+- Tracked changes or comments
+- Editor commands
 
-## Setup
+Do not add an engine workaround to this repository.
+Fix the engine, then update its dependency here.
+
+Use this repository for MCP tools, the widget, the server, and deployment.
+
+## Set up the project
 
 ```bash
 bun install
-bun run dev              # http://localhost:3000/mcp, rebuilds on change
+bun run dev
 ```
 
-Three ways to see your change inside a host, cheapest first:
+The MCP endpoint is `http://localhost:3000/mcp`.
+The development server rebuilds changed files.
+
+Choose a test host:
 
 ```bash
-bun run build:harness    # local MCP Apps host at /__harness/host.html
-bun run setup --write    # install into Claude Desktop (stdio, no tunnel)
-bun run dev:tunnel       # public URL for claude.ai (web) or ChatGPT
+bun run build:harness
+bun run setup --write
+bun run dev:tunnel
 ```
 
-For protocol-level work, the
-[MCP Inspector](https://github.com/modelcontextprotocol/inspector) is faster
-than a real host: `bun run inspect`.
+- Use the harness for local widget tests.
+- Use Claude Desktop for local stdio tests.
+- Use the tunnel for Claude or ChatGPT on the web.
 
-## Before you open a PR
+Run `bun run inspect` to test the protocol with the MCP Inspector.
+
+## Verify your change
 
 ```bash
 bun run typecheck
@@ -43,34 +52,32 @@ bun run build
 bun run format
 ```
 
-`bun run build` is a real gate. It is the only check that bundles the widget
-and asserts the `__PUBLIC_ORIGIN__` placeholder survived.
+`bun run build` bundles the widget.
+It also verifies the `__PUBLIC_ORIGIN__` placeholder.
 
-## Adding a tool
+## Add a tool
 
-Two edits; the compiler enforces the second.
+Make two changes:
 
-1. Describe the tool in `src/shared/catalog.ts`. The description is the
-   model's only documentation. Write it for a reader who cannot see the code.
-2. Implement it in `src/app/executor.ts` and add it to `HANDLERS`. That table
-   is typed `Record<AppToolName, …>`, so a missing executor fails
-   `bun run typecheck`.
+1. Define the tool in `src/shared/catalog.ts`.
+2. Add its implementation to `HANDLERS` in `src/app/executor.ts`.
 
-A tool that writes to the document should propose a tracked change, not apply
-an edit, unless it cannot.
+Write tool descriptions for a model that cannot inspect the source.
+The `Record<AppToolName, …>` type makes `bun run typecheck` detect missing handlers.
 
-## Style
+Create tracked changes for document edits when the editor supports them.
 
-- Write documentation and PR bodies in the
-  [Google developer documentation style](https://developers.google.com/style):
-  second person, active voice, present tense, short sentences, one idea each.
+## Follow the style guidelines
+
+- Follow the [Google developer documentation style](https://developers.google.com/style).
+- Use second person, active voice, and present tense.
+- Keep sentences short and focused.
 - Comments explain why, not what. Name the trap.
-- Keep files under 400 lines. Extract; do not raise the cap.
-- PR title: short and factual, with a conventional-commit prefix. Body: the
-  minimum the diff does not show.
+- Keep each source file under 400 lines.
+- Use a short, factual PR title with a conventional commit prefix.
+- Include only necessary context in the PR body.
 
-## CLA
+## Accept the contributor license agreement
 
-By contributing you agree to the
-[CLA](https://github.com/eigenpal/docx-editor/blob/main/CLA.md) that covers
-the docx-editor project.
+Your contribution uses the
+[docx-editor contributor license agreement](https://github.com/eigenpal/docx-editor/blob/main/CLA.md).
