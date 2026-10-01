@@ -1,198 +1,261 @@
 /**
- * The MCP server. It is deliberately almost empty.
+ * The MCP server: one model-facing tool, `open_document`, and the plumbing the
+ * host and the widget call (`visibility: ['app']`).
  *
- * One tool (`open_document`) and one resource (the widget). Every other tool in
- * `src/shared/catalog.ts` is registered by the WIDGET and runs in the browser,
- * against the editor the reader is looking at. That is not a shortcut: the
- * docx-editor engine needs no server-side document service, so the document
- * bytes never reach this process, and the deployment stays a static handler
- * rather than something with a document pipeline to operate.
+ * Agents edit a .docx with their own document skills (Codex: the built-in
+ * Documents skill), never through this app. The preview follows the file
+ * through the engine's refresh API and saves the reader's own edits back.
  *
- * What that costs: a host that does not call app-registered tools gets a
- * read-only view. The widget covers that case by pushing the document text into
- * the conversation with `ui/update-model-context` on load and after every edit,
- * so the model can always READ the document even where it cannot call into it.
+ * Everything the widget needs travels over MCP: the widget is one inline
+ * document, it reads `harfbuzz.wasm` and opened files as resources, and bytes
+ * come in the tool result. Desktop hosts' iframe CSP allows no network origin
+ * of ours, so nothing is fetched.
  */
 
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { readFileSync } from 'node:fs';
+import { basename, join } from 'node:path';
+import { McpServer, ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { z } from 'zod';
 import {
   RESOURCE_MIME_TYPE,
   registerAppResource,
   registerAppTool,
 } from '@modelcontextprotocol/ext-apps/server';
-import { OpenDocumentInput } from '../shared/catalog.js';
-import { getUiResource } from './ui-resource.js';
-import { looksLikeLocalPath, registerBytesContent, registerLocalFile } from './local-files.js';
+import {
+  OpenAIFileEntrypointInputSchema,
+  type OpenAIUiToolMetadata,
+} from '@openai/mcp-extensions/server';
+import {
+  DOCUMENT_META,
+  LOCAL_FILE_VERSION,
+  OpenDocumentInput,
+  VIEW_DOCX_FILE,
+  WRITE_LOCAL_FILE,
+} from '../shared/catalog.js';
+import { decodeBytes, openPath, read, version, write } from './documents.js';
+import { APP_ICONS } from './icons.js';
+import { PACKAGE_VERSION, REPO_ROOT } from './paths.js';
 
-/** Where the widget fetches `harfbuzz.wasm` and any fonts from. */
-export interface McpServerOptions {
-  /**
-   * Public origin this server is reachable at, for example
-   * `https://docx-editor-mcp.example.com`. It ends up in the widget's CSP
-   * allowlist, because the sandboxed iframe may only fetch from domains the
-   * resource declares. Without it the engine falls back to its non-shaped text
-   * measurement and pagination drifts away from Word.
-   */
-  publicOrigin: string;
-  /**
-   * Accept absolute file paths in `open_document`. The stdio (Claude Desktop)
-   * entry sets this; the HTTP deployment never does — a deployed server that
-   * read its own disk on request would be a file-disclosure endpoint.
-   */
-  allowLocalFiles?: boolean;
+const DOCX_MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+const appOnly = { ui: { visibility: ['app' as const] } };
+
+/** The built widget, read once. The URI carries a hash so hosts never serve a stale build. */
+let widget: { uri: string; html: string } | null = null;
+function loadWidget() {
+  if (widget) return widget;
+  const html = readFileSync(join(REPO_ROOT, 'dist/app/editor.html'), 'utf8');
+  const hash = readFileSync(join(REPO_ROOT, 'dist/app/editor.hash'), 'utf8').trim();
+  return (widget = { uri: `ui://docx-editor/editor.html?v=${hash}`, html });
 }
+let wasm: string | null = null;
+const loadWasm = () =>
+  (wasm ??= readFileSync(join(REPO_ROOT, 'dist/app/harfbuzz.wasm')).toString('base64'));
 
-/**
- * Election counter for widget supersession: each open_document result carries
- * `{createdAt, seq}`, and the newest widget instance wins (see
- * src/app/supersession.ts). Per process; createdAt breaks ties across restarts.
- */
+/** The newest preview in a conversation wins; see src/app/supersession.ts. */
 let seq = 0;
 
-export function createMcpServer({ publicOrigin, allowLocalFiles }: McpServerOptions): McpServer {
+interface McpServerOptions {
+  /**
+   * Local (stdio) mode: `open_document` takes file paths and the preview syncs
+   * with the file. The HTTP deployment never sets it: a deployed server that
+   * read its own disk on request would be a file-disclosure endpoint.
+   */
+  local?: boolean;
+  /** The widget; tests pass one instead of the build. */
+  ui?: { uri: string; html: string };
+}
+
+export function createMcpServer({ local = false, ui = loadWidget() }: McpServerOptions = {}) {
   const server = new McpServer(
-    { name: 'docx-editor', version: '0.1.0' },
+    // Hosts fall back to the server icon for entrypoints: the SDK's registerTool
+    // does not carry tool icons.
+    { name: 'docx-editor', title: 'docx-editor', version: PACKAGE_VERSION, icons: APP_ICONS },
     {
       instructions:
-        'Opens .docx files in a real WYSIWYG Word editor inside the conversation. ' +
-        'Call open_document first; it renders the editor. Once the editor is open, ' +
-        'the other tools run inside it. To DRAFT a new document, call open_document ' +
-        'with no arguments and then write_document — never generate the .docx ' +
-        'elsewhere. Edits land as Word tracked changes by default, so the reader ' +
-        'accepts or rejects each one.' +
-        (allowLocalFiles
-          ? ' This server runs locally: open_document also accepts an absolute ' +
-            'file path. When you create or receive a .docx on this machine, open ' +
-            'it here to show it to the reader.'
+        'Shows .docx files in a Word-faithful preview. Call open_document to show a file. ' +
+        'This app has no editing tools: edit the .docx with your own document tools, in ' +
+        'place, so the formatting survives.' +
+        (local
+          ? ' The preview follows a file opened by path and refreshes when it changes. ' +
+            'Do not call open_document again for a file that is already open.'
           : ''),
     }
   );
-
-  const ui = getUiResource(publicOrigin);
 
   registerAppTool(
     server,
     'open_document',
     {
-      title: 'Open document',
+      title: '.docx preview',
       description:
-        'Open a .docx file in an editable Word-faithful editor inside the conversation. ' +
-        'Pass a URL to open an existing file, content_base64 for a file you have as bytes ' +
-        '(for example one created in a code sandbox), or no arguments to start an empty document. ' +
-        (allowLocalFiles
-          ? 'An absolute local file path (for example /Users/me/report.docx) also works. ' +
-            'Open every .docx you create or receive, so the reader sees it rendered. '
-          : '') +
-        'Call this before any other document tool.',
-      inputSchema: OpenDocumentInput.shape,
-      annotations: { readOnlyHint: true, openWorldHint: true },
+        'Show a .docx in a Word-faithful preview. ' +
+        (local ? 'Pass its absolute path; the preview then follows the file. ' : '') +
+        'For a file with no path here, pass content_base64. To change the document, ' +
+        'edit the file with your own document tools.',
+      // Hosted mode reads no disk, so its model never sees a `path` to try.
+      inputSchema: local ? OpenDocumentInput.shape : OpenDocumentInput.omit({ path: true }).shape,
+      annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
       _meta: { ui: { resourceUri: ui.uri } },
     },
-    async ({ url, name, content_base64 }) => {
-      // The server never parses the file. It hands a reference to the widget,
-      // which fetches the bytes into the iframe. Bytes passed in the call, and
-      // local paths (stdio mode only), become tokened /local/ URLs on this
-      // server; see local-files.ts.
-      seq += 1;
-      const election = { seq, createdAt: Date.now() };
-
-      if (content_base64) {
-        const stored = registerBytesContent(content_base64, publicOrigin);
-        if ('message' in stored) {
-          return { content: [{ type: 'text', text: stored.message }], isError: true };
+    async (args) => {
+      const { path, content_base64, name } = args as z.infer<typeof OpenDocumentInput>;
+      const refuse = (text: string) => ({
+        content: [{ type: 'text' as const, text }],
+        isError: true,
+      });
+      const election = { seq: ++seq, createdAt: Date.now() };
+      // A path wins over bytes: only a path gives a preview that follows the
+      // file. A path that does not open here (a sandbox path) falls back to bytes.
+      const opened = local && path ? openPath(path, name) : null;
+      if (!opened || 'message' in opened) {
+        if (!content_base64) {
+          return refuse(
+            opened?.message ?? (local ? 'Pass a path or content_base64.' : 'Pass content_base64.')
+          );
         }
-        const opened = name ?? 'document.docx';
+        const bytes = decodeBytes(content_base64);
+        if ('message' in bytes) {
+          return refuse(opened ? `${opened.message} ${bytes.message}` : bytes.message);
+        }
+        const shown = name ?? (path ? basename(path) : 'document.docx');
+        // The agent must know this preview follows no file, or it waits for updates.
+        const fallback = opened
+          ? ` "${path}" did not open here, so the preview shows content_base64. It does ` +
+            'not follow the file: show the document again after each change.'
+          : '';
         return {
-          content: [
-            {
-              type: 'text',
-              text: `Opening ${opened} in the editor. Call read_document to see its text.`,
-            },
-          ],
-          structuredContent: { url: stored.url, name: opened, ...election },
+          content: [{ type: 'text', text: `Showing ${shown} in the preview.${fallback}` }],
+          structuredContent: { name: shown, ...election },
+          // The bytes ride in `_meta`, which hosts give the widget and not the
+          // model: the server keeps no document state, so any host runs it.
+          // Re-encoded: the widget's `atob` takes only canonical base64.
+          _meta: { [DOCUMENT_META]: bytes.toString('base64') },
         };
       }
-
-      if (url && allowLocalFiles && looksLikeLocalPath(url)) {
-        const local = registerLocalFile(url, publicOrigin);
-        if ('message' in local) {
-          return { content: [{ type: 'text', text: local.message }], isError: true };
-        }
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `Opening ${name ?? local.name} in the editor. Call read_document to see its text.`,
-            },
-          ],
-          structuredContent: { url: local.url, name: name ?? local.name, ...election },
-        };
-      }
-
-      const opened = name ?? (url ? guessFileName(url) : 'Untitled.docx');
       return {
-        content: [
-          {
-            type: 'text',
-            text: url
-              ? `Opening ${opened} in the editor. Call read_document to see its text.`
-              : 'Opened an empty document in the editor.',
-          },
-        ],
-        structuredContent: { url: url ?? null, name: opened, ...election },
+        content: [{ type: 'text', text: `Showing ${opened.name} in the preview.` }],
+        structuredContent: {
+          name: opened.name,
+          resourceUri: `docx-local://${opened.token}`,
+          ...election,
+        },
       };
     }
   );
 
+  // The file viewer: ChatGPT and Codex desktop open every .docx the user opens
+  // in this widget. The host calls this tool and serves the file itself; the
+  // widget reads, watches and writes it through the host (src/app/host-file.ts).
+  registerAppTool(
+    server,
+    VIEW_DOCX_FILE.name,
+    {
+      title: VIEW_DOCX_FILE.title,
+      description: VIEW_DOCX_FILE.description,
+      inputSchema: OpenAIFileEntrypointInputSchema.shape,
+      // The tool changes nothing. The viewer saves the user's own edits through
+      // the host's file API, with the host's write consent.
+      annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
+      _meta: {
+        ui: { resourceUri: ui.uri, visibility: ['app'] },
+        'openai/ui': {
+          entrypoints: [{ type: 'file', extensions: ['.docx'] }],
+        } satisfies OpenAIUiToolMetadata,
+      },
+    },
+    // No election key: a file viewer never supersedes a chat preview, or the reverse.
+    async ({ file }) => ({
+      content: [{ type: 'text', text: `Showing ${file.name}.` }],
+      structuredContent: { file },
+    })
+  );
+
   registerAppResource(
     server,
-    'DOCX editor',
+    'docx-editor',
     ui.uri,
-    {
-      description:
-        'A Word-faithful WYSIWYG .docx editor: pagination, tracked changes and comments, rendered in the conversation.',
-      mimeType: RESOURCE_MIME_TYPE,
-    },
+    { description: 'A Word-faithful .docx preview.', mimeType: RESOURCE_MIME_TYPE },
     async () => ({
       contents: [
         {
           uri: ui.uri,
           mimeType: RESOURCE_MIME_TYPE,
           text: ui.html,
-          _meta: {
-            ui: {
-              // The inline surface is a summary card; the host's bordered
-              // treatment is what makes it read as one. (Web defaults to
-              // borderless, so the preference has to be explicit.)
-              prefersBorder: true,
-              // One origin, for both lists. The engine shapes text with
-              // HarfBuzz to match Word's line breaking, so it fetches
-              // `harfbuzz.wasm` back off this server; deny that and pagination
-              // drifts, silently. Document downloads come through the same
-              // origin's `/fetch` proxy rather than a wildcard, because
-              // `open_document` takes an arbitrary URL and no allowlist can be
-              // written for "anywhere".
-              csp: {
-                // assets.claude.ai serves the host's Anthropic Sans font faces
-                // (applied by useHostStyles); everything else is this origin.
-                resourceDomains: [publicOrigin, 'https://assets.claude.ai'],
-                connectDomains: [publicOrigin],
-              },
-            },
-          },
+          // No CSP domains: the widget fetches nothing.
+          _meta: { ui: { prefersBorder: true } },
         },
       ],
     })
   );
 
-  return server;
-}
+  server.registerResource(
+    'harfbuzz-wasm',
+    'docx-asset://harfbuzz.wasm',
+    { title: 'Text shaper', mimeType: 'application/wasm' },
+    async (uri) => ({
+      contents: [{ uri: uri.href, mimeType: 'application/wasm', blob: loadWasm() }],
+    })
+  );
 
-function guessFileName(url: string): string {
-  try {
-    const last = new URL(url).pathname.split('/').pop();
-    return last && last.length > 0 ? decodeURIComponent(last) : 'document.docx';
-  } catch {
-    return 'document.docx';
+  if (local) {
+    server.registerResource(
+      'document',
+      new ResourceTemplate('docx-local://{token}', { list: undefined }),
+      { title: 'Opened document', mimeType: DOCX_MIME },
+      async (uri, { token }) => {
+        const [bytes, current] = await Promise.all([read(String(token)), version(String(token))]);
+        if (!bytes || !current) throw new Error('This document is no longer open.');
+        return {
+          contents: [
+            {
+              uri: uri.href,
+              mimeType: DOCX_MIME,
+              blob: bytes.toString('base64'),
+              // The OpenAI host's metadata shape, so one sync session handles both kinds of file.
+              _meta: { 'openai/resource': current },
+            },
+          ],
+        };
+      }
+    );
+
+    registerAppTool(
+      server,
+      LOCAL_FILE_VERSION.name,
+      {
+        description: LOCAL_FILE_VERSION.description,
+        inputSchema: LOCAL_FILE_VERSION.input.shape,
+        annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
+        _meta: appOnly,
+      },
+      async ({ token }) => {
+        const current = await version(token);
+        if (!current) return { content: [{ type: 'text', text: 'Unknown file.' }], isError: true };
+        return {
+          content: [{ type: 'text', text: current.etag }],
+          structuredContent: { ...current },
+        };
+      }
+    );
+    registerAppTool(
+      server,
+      WRITE_LOCAL_FILE.name,
+      {
+        description: WRITE_LOCAL_FILE.description,
+        inputSchema: WRITE_LOCAL_FILE.input.shape,
+        annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false },
+        _meta: appOnly,
+      },
+      async ({ token, blob, ifMatch }) => {
+        const result = await write(token, Buffer.from(blob, 'base64'), ifMatch);
+        return {
+          content: [{ type: 'text', text: 'message' in result ? result.message : result.outcome }],
+          structuredContent: { ...result },
+          isError: result.outcome === 'refused',
+        };
+      }
+    );
   }
+
+  return server;
 }

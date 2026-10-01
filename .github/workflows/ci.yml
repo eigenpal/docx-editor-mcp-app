@@ -54,14 +54,22 @@ jobs:
           bun-version: latest
       - run: bun install --frozen-lockfile
 
-      # The only check that runs esbuild over the widget, and the only one that
-      # asserts the __PUBLIC_ORIGIN__ placeholder survived minification.
+      # Builds the inline widget, the CLI bundle, and the third-party notices.
       - run: bun run build
+      # The npm package: the CLI starts, and the tarball holds every file the
+      # plugin needs (npm skips dot-folders unless they are listed by path).
+      - run: node dist/cli.js --version
+      - run: bun run smoke
+      - run: npm pack --dry-run 2>&1 | tee pack.txt
+      - run: |
+          for f in .codex-plugin/plugin.json .agents/plugins/marketplace.json .mcp.json dist/cli.js dist/app/editor.html dist/app/editor.hash dist/app/harfbuzz.wasm THIRD_PARTY_NOTICES.md LICENSE-PLUGIN.md assets/icon.svg skills/docx-editor/SKILL.md; do
+            grep -q " $f$" pack.txt || { echo "missing from the package: $f"; exit 1; }
+          done
 
       # The server reads the bundle at startup and the resource URI is derived
       # from its bytes, so a build that produces an unservable resource is worth
       # catching here rather than in a host.
-      - name: Serve one resources/read
+      - name: Hosted mode answers tools/list
         run: |
           bun run start &
           for _ in $(seq 1 40); do curl -sf http://localhost:3000/health && break; sleep 0.25; done

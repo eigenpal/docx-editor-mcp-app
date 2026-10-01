@@ -1,0 +1,48 @@
+{
+  "positive": [
+    {
+      "description": "Open an attached .docx in the viewer.",
+      "prompt": "Show the attached proposal.docx in docx-editor.",
+      "tools_triggered": "open_document or view_docx_file",
+      "expected_behavior": "The docx-editor preview shows the document with its pages, headings, table, and image."
+    },
+    {
+      "description": "Follow an agent edit in the open viewer. ChatGPT or Codex desktop only. Before the prompt, open proposal.docx from the conversation's files so it shows in the docx-editor viewer.",
+      "prompt": "Shorten the first paragraph of proposal.docx.",
+      "tools_triggered": "None from the prompt. The host calls view_docx_file when the file opens.",
+      "expected_behavior": "The agent edits the file with its document skill. The open viewer updates in place and highlights the changed paragraph. No second preview opens."
+    },
+    {
+      "description": "Show a document the agent creates.",
+      "prompt": "Draft a one-page memo about the office move as a .docx and show it in docx-editor.",
+      "tools_triggered": "open_document",
+      "expected_behavior": "The agent creates the .docx and calls open_document with content_base64. A preview card appears; Open editor shows the full page."
+    },
+    {
+      "description": "Show tracked changes and comments.",
+      "prompt": "Show the attached contract.docx in docx-editor so I can review its tracked changes.",
+      "tools_triggered": "open_document or view_docx_file",
+      "expected_behavior": "The preview shows the insertions, deletions, and comments in the document, and the card shows the comment count."
+    },
+    {
+      "description": "Show the result of an edit to an attached file.",
+      "prompt": "Add a heading named Summary to the top of the attached proposal.docx and show me the result.",
+      "tools_triggered": "open_document or view_docx_file",
+      "expected_behavior": "The agent edits the file with its document skill. The preview shows the new heading with the document's existing heading style."
+    }
+  ],
+  "negative": [
+    {
+      "description": "A PDF is not a Word document.",
+      "prompt": "Summarize the attached report.pdf."
+    },
+    {
+      "description": "A spreadsheet task is out of scope.",
+      "prompt": "Make a spreadsheet of my monthly expenses."
+    },
+    {
+      "description": "A general question needs no preview.",
+      "prompt": "What is the difference between the .doc and .docx formats?"
+    }
+  ]
+}

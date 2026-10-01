@@ -70,17 +70,15 @@
   <body>
     <div class="bar">
       <button id="deliver">1. deliver open_document result</button>
-      <button id="read">read_document</button>
-      <button id="edit">edit_text</button>
-      <button id="comment">add_comment</button>
-      <button id="readchanges">read_changes</button>
-      <button id="readcomments">read_comments</button>
+      <button id="openfile">open as file (file entrypoint)</button>
+      <button id="agentedit">agent edits file</button>
+      <button id="torn">agent edits file (torn write)</button>
     </div>
     <div class="conversation">
       <div class="slot">
         <iframe
           id="frame"
-          src="/__harness/frame.html?v=HARNESS_BUILD"
+          data-src="/__harness/frame.html?v=HARNESS_BUILD"
           sandbox="allow-scripts allow-same-origin"
         ></iframe>
       </div>

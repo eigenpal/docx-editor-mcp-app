@@ -3,17 +3,16 @@
  *
  * Every `open_document` call mounts a NEW widget iframe, and the host never
  * unmounts the old ones. Without an election, a conversation with three opens
- * has three live editors, each answering tools and pushing model context — the
- * model reads a document the reader is not looking at.
+ * has three live previews of one file, each polling it and saving to it.
  *
  * All instances of one connector share a sandbox origin, so a
  * `BroadcastChannel` reaches every sibling in the conversation. The server
  * stamps each tool result with `{createdAt, seq}`; the newest key wins.
  * Superseded instances report it through the returned store, and the widget
- * greys out, unregisters its tools, and stops pushing model context.
+ * greys out and stops syncing its file.
  */
 
-export interface ElectionKey {
+interface ElectionKey {
   createdAt: number;
   seq?: number;
 }
@@ -25,7 +24,7 @@ interface PeerMessage {
   seq?: number;
 }
 
-export interface SupersessionStore {
+interface SupersessionStore {
   /** Call when the tool result delivers the key. */
   adoptKey: (key: ElectionKey) => void;
   readonly superseded: boolean;

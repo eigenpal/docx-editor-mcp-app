@@ -2,12 +2,12 @@
  * Where the repository root is, from wherever this file ended up.
  *
  * The server runs from two layouts — `src/server/` under bun in development,
- * `dist/server/server/` under node in production — and the widget bundle and
- * `public/` sit at the root in both. Counting `..` segments gets one of the two
+ * the npm package's `dist/` in production — and the build output sits at the
+ * root in both. Counting `..` segments gets one of the two
  * wrong, silently, so walk up to the `package.json` instead.
  */
 
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -24,5 +24,8 @@ function findRoot(from: string): string {
 }
 
 export const REPO_ROOT = findRoot(dirname(fileURLToPath(import.meta.url)));
-export const WIDGET_HTML = join(REPO_ROOT, 'dist/app/editor.html');
-export const PUBLIC_DIR = join(REPO_ROOT, 'public');
+
+/** The one version: the server info, `--version`, and the plugin manifest agree with it. */
+export const PACKAGE_VERSION = (
+  JSON.parse(readFileSync(join(REPO_ROOT, 'package.json'), 'utf8')) as { version: string }
+).version;

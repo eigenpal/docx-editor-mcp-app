@@ -1,14 +1,18 @@
 /**
  * A minimal MCP Apps HOST, for local verification only (built into the
  * gitignored `public/__harness/`, never shipped). It renders the built widget
- * shell in an iframe, runs the real `ui/initialize` handshake through the
- * SDK's AppBridge, answers display-mode and download requests the way a host
- * would, and exposes buttons that drive the widget's registered tools.
+ * in an iframe, runs the real `ui/initialize` handshake through the SDK's
+ * AppBridge, and proxies the widget's resource reads and tool calls to this
+ * server's `/mcp` through a real MCP client, the way a host does.
  */
 
 import { AppBridge } from '@modelcontextprotocol/ext-apps/app-bridge';
 import { PostMessageTransport } from '@modelcontextprotocol/ext-apps';
 import type { McpUiStyles } from '@modelcontextprotocol/ext-apps';
+import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
+import { installHostFile } from './host-file.js';
+import { SAMPLE_DOCX } from './sample.js';
 
 const frame = document.getElementById('frame') as HTMLIFrameElement;
 const log = (line: string) => {
@@ -16,10 +20,33 @@ const log = (line: string) => {
   el.textContent = `${line}\n${el.textContent ?? ''}`.slice(0, 6000);
 };
 
+const theme = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+const client = new Client({ name: 'harness', version: '0.0.0' });
+await client.connect(new StreamableHTTPClientTransport(new URL('/mcp', location.href)));
+
 const bridge = new AppBridge(
-  null,
+  client,
   { name: 'harness', version: '0.0.0' },
-  { serverTools: {}, downloadFile: {}, openLinks: {}, logging: {} }
+  {
+    serverTools: {},
+    downloadFile: {},
+    openLinks: {},
+    logging: {},
+    // The OpenAI file resource capability (see host-file.ts).
+    experimental: { 'openai/resource': {} },
+  },
+  {
+    // Initial context in the constructor: a client-backed bridge refuses
+    // `setHostContext` notifications before the app connects.
+    hostContext: {
+      theme,
+      styles: { variables: claudeVariables(theme) },
+      displayMode: 'inline',
+      availableDisplayModes: ['inline', 'fullscreen'],
+      safeAreaInsets: { top: 0, right: 0, bottom: 24, left: 0 },
+      platform: 'web',
+    },
+  }
 );
 
 /** Claude's documented style tokens, per theme — what the real host injects. */
@@ -47,16 +74,6 @@ function claudeVariables(theme: 'light' | 'dark') {
     Object.entries(vars).map(([key, value]) => [`--${key}`, value])
   ) as unknown as McpUiStyles;
 }
-
-const theme = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-bridge.setHostContext({
-  theme,
-  styles: { variables: claudeVariables(theme) },
-  displayMode: 'inline',
-  availableDisplayModes: ['inline', 'fullscreen'],
-  safeAreaInsets: { top: 0, right: 0, bottom: 24, left: 0 },
-  platform: 'web',
-});
 
 bridge.onrequestdisplaymode = async ({ mode }) => {
   log(`ui/request-display-mode → ${mode}`);
@@ -106,65 +123,28 @@ frame.addEventListener('load', () => {
   if (!frame.contentWindow) return;
   // eventTarget = where we post; eventSource = whose messages we accept.
   // Both are the frame's window: the app posts from inside it.
-  void bridge.connect(new PostMessageTransport(frame.contentWindow, frame.contentWindow));
+  // The file emulation goes in AFTER connect: a client-backed bridge installs
+  // its own forwarding handlers when it connects, replacing earlier ones.
+  void bridge
+    .connect(new PostMessageTransport(frame.contentWindow, frame.contentWindow))
+    .then(() => installHostFile(bridge, client, (line) => log(line)));
   log('bridge connecting');
 });
+// Loaded only now: the frame must not finish loading before the listener above
+// exists, which the top-level `await client.connect` would otherwise allow.
+frame.src = frame.dataset.src!;
 
-(document.getElementById('deliver') as HTMLButtonElement).onclick = () => {
-  // The notification's params ARE the CallToolResult — no wrapper. A real
-  // public sample file, delivered by URL, so the widget exercises the whole
-  // `/fetch` proxy path a deployment would (a localhost URL would be refused
-  // by the proxy's own SSRF guard, correctly).
-  void bridge.sendToolResult({
-    content: [{ type: 'text', text: 'Opening sample.docx in the editor.' }],
-    structuredContent: {
-      url: 'https://raw.githubusercontent.com/eigenpal/docx-editor/main/examples/vite/public/sample.docx',
-      name: 'sample.docx',
-    },
-  });
-  log('toolresult delivered (sample.docx by URL)');
-};
-
-async function callAppTool(name: string, args: Record<string, unknown>) {
-  try {
-    const result = await bridge.callTool({ name, arguments: args });
-    log(`${name} → ${JSON.stringify(result).slice(0, 300)}`);
-    return result as { structuredContent?: Record<string, unknown> };
-  } catch (error) {
-    log(`${name} FAILED: ${String(error)}`);
-    return null;
+(document.getElementById('deliver') as HTMLButtonElement).onclick = async () => {
+  // What a host does for the model: call open_document, then hand the result
+  // to the widget. Bytes, not a path: this server runs in hosted mode.
+  const bytes = new Uint8Array(await (await fetch(SAMPLE_DOCX)).arrayBuffer());
+  let binary = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
   }
-}
-
-async function firstParagraph(): Promise<{ id: string; text: string } | null> {
-  const read = await callAppTool('read_document', {});
-  const paragraphs = read?.structuredContent?.paragraphs as
-    { id: string; text: string }[] | undefined;
-  return paragraphs?.[0] ?? null;
-}
-
-(document.getElementById('read') as HTMLButtonElement).onclick = () =>
-  void callAppTool('read_document', {});
-(document.getElementById('edit') as HTMLButtonElement).onclick = async () => {
-  const first = await firstParagraph();
-  if (!first) return log('no paragraph to edit');
-  const word = first.text.split(/\s+/)[0];
-  await callAppTool('edit_text', {
-    paragraphId: first.id,
-    search: word,
-    replacement: `${word} (edited)`,
-  });
+  const args = { content_base64: btoa(binary), name: 'sample.docx' };
+  await bridge.sendToolInput({ arguments: args });
+  const result = await client.callTool({ name: 'open_document', arguments: args });
+  await bridge.sendToolResult(result as Parameters<typeof bridge.sendToolResult>[0]);
+  log('open_document delivered (sample.docx as bytes)');
 };
-(document.getElementById('comment') as HTMLButtonElement).onclick = async () => {
-  const first = await firstParagraph();
-  if (!first) return log('no paragraph to comment on');
-  await callAppTool('add_comment', {
-    paragraphId: first.id,
-    search: first.text.split(/\s+/)[0],
-    comment: 'Harness comment: consider rephrasing this.',
-  });
-};
-(document.getElementById('readchanges') as HTMLButtonElement).onclick = () =>
-  void callAppTool('read_changes', {});
-(document.getElementById('readcomments') as HTMLButtonElement).onclick = () =>
-  void callAppTool('read_comments', {});

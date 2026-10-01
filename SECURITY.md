@@ -18,13 +18,15 @@ We will share updates about the fix and disclosure schedule.
 
 Start with these security boundaries.
 
-### Document fetches
+### File paths
 
-`src/server/fetch-proxy.ts` receives a URL from a tool call.
-Untrusted document content or chat content can influence that URL.
+In local mode, `open_document` takes a file path from a tool call.
+Untrusted document content or chat content can influence that path.
 
-The proxy checks the scheme and resolved address.
-It also rejects redirects and limits the streamed response size.
+`src/server/documents.ts` is the boundary.
+It opens only `.docx` files, checked on the resolved path, so a symlink cannot reach another file.
+It caps the file size, refuses to write read-only files, and keeps the file's permissions on save.
+The app never fetches from the network.
 
 ### Document content
 

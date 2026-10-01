@@ -32,13 +32,13 @@ Choose a test host:
 
 ```bash
 bun run build:harness
-bun run setup --write
-bun run dev:tunnel
+bun run build && node dist/cli.js setup codex
 ```
 
 - Use the harness for local widget tests.
-- Use Claude Desktop for local stdio tests.
-- Use the tunnel for Claude or ChatGPT on the web.
+- Use ChatGPT, Codex, or Claude desktop for local stdio tests
+  (`setup codex` or `setup claude`).
+- For Claude or ChatGPT on the web, expose `bun run dev` with a tunnel.
 
 Run `bun run inspect` to test the protocol with the MCP Inspector.
 
@@ -49,23 +49,19 @@ bun run typecheck
 bun run lint
 bun run test
 bun run build
+bun run smoke
 bun run format
 ```
 
-`bun run build` bundles the widget.
-It also verifies the `__PUBLIC_ORIGIN__` placeholder.
+`bun run build` bundles the widget and the server.
+`bun run smoke` runs the built package over stdio, as desktop hosts do.
 
-## Add a tool
+## Keep it a preview
 
-Make two changes:
-
-1. Define the tool in `src/shared/catalog.ts`.
-2. Add its implementation to `HANDLERS` in `src/app/executor.ts`.
-
-Write tool descriptions for a model that cannot inspect the source.
-The `Record<AppToolName, …>` type makes `bun run typecheck` detect missing handlers.
-
-Create tracked changes for document edits when the editor supports them.
+The model gets one tool, `open_document`. Agents edit documents with their own
+document skills, so do not add model-facing editing tools. Any new tool is
+plumbing for the host or the widget: describe it in `src/shared/catalog.ts`
+and register it with `visibility: ['app']`.
 
 ## Follow the style guidelines
 

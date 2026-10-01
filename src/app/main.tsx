@@ -32,78 +32,32 @@ import type {
 import { DocxEditor, type DocxEditorRef } from '@docx-editor.dev/react';
 import { reviewModule } from '@docx-editor.dev/pro';
 import { DocxEditorReview } from '@docx-editor.dev/pro/react';
-import { setHarfBuzzWasmUrl } from '@docx-editor.dev/core/layout';
 import { useDocxEditor } from '@docx-editor.dev/react';
 import type { DocxEditorInstance } from '@docx-editor.dev/core/editor';
+// First: points the engine's text shaper at its binary before any editor exists.
+import { provideApp } from './assets.js';
+import { message } from './file-sync-support.js';
 import { InlineCard, InlineSkeleton, type CardState } from './InlineCard.js';
 import { createSupersession } from './supersession.js';
-import { AgentStatus } from './AgentStatus.js';
 import { ReviewPaneController } from './ReviewPaneController.js';
-import { AUTHOR, ToolHost, downloadDocx } from './ToolHost.js';
+import { downloadDocx } from './download.js';
+import { FileOpenError, FileSync, type FileActions } from './FileSync.js';
+import { FileEntrypointInput, attachOpenAIExtensions } from './host-file.js';
+import { DOCUMENT_META } from '../shared/catalog.js';
+import { adoptFile, applyHostContext } from './widget-helpers.js';
+import { loadRequest, type LoadedDoc, type OpenRequest } from './load-document.js';
 import '@docx-editor.dev/core/styles/editor.css';
 import './styles.css';
 
-/**
- * This bundle is a static asset served from the deployment's own origin, so the
- * origin needs no baking in: the script knows where it was loaded from. (The
- * HTML shell the MCP server serves as the resource is the one artifact carrying
- * a substituted `__PUBLIC_ORIGIN__`.) If a host ever rehosts the assets through
- * a proxy of its own, this follows them there — which is the behavior we want.
- */
-const ASSET_ORIGIN = new URL(import.meta.url).origin;
-
-/** Injected by the build; pins the wasm URL to the engine it was built with. */
-declare const __DOCX_ENGINE_VERSION__: string;
-
-/**
- * esbuild does not rewrite `new URL('harfbuzz.wasm', import.meta.url)`, so the
- * engine's WASM loader has nothing to fetch unless it is told where to look.
- * Without it the shaper falls back and pagination drifts away from Word — a
- * silent fidelity loss. The engine version is in the FILENAME because the
- * server caches `/assets` as immutable, and the loader refuses a binary from a
- * different engine build.
- */
-setHarfBuzzWasmUrl(`${ASSET_ORIGIN}/assets/harfbuzz-${__DOCX_ENGINE_VERSION__}.wasm`);
-
-const APP_INFO = { name: 'docx-editor', version: '0.1.0' };
+/** Injected by the build from package.json. */
+declare const __APP_VERSION__: string;
+const APP_INFO = { name: 'docx-editor', version: __APP_VERSION__ };
 
 /** Module registration is construction-time, so this array must be stable. */
 const PRO_MODULES = [reviewModule()];
 
-interface OpenRequest {
-  url: string | null;
-  name: string;
-}
-
 /** One election per widget instance (module scope: one widget per iframe). */
 const supersession = createSupersession(crypto.randomUUID());
-
-/** Bytes paired with the request that produced them, so a second
- * `open_document` can never show the previous file under the new title. */
-interface LoadedDoc {
-  request: OpenRequest;
-  bytes: Uint8Array | 'blank';
-}
-
-/**
- * The host's layout hints, as CSS variables. Insets are written only when the
- * context actually carries them: `hostcontextchanged` sends PARTIAL contexts,
- * and a theme-only change must not wipe real insets back to zero.
- */
-function applyHostContext(app: App): void {
-  const context = app.getHostContext();
-  const root = document.documentElement;
-  const insets = context?.safeAreaInsets;
-  if (insets) {
-    root.style.setProperty('--safe-top', `${insets.top}px`);
-    root.style.setProperty('--safe-right', `${insets.right}px`);
-    root.style.setProperty('--safe-bottom', `${insets.bottom}px`);
-    root.style.setProperty('--safe-left', `${insets.left}px`);
-  }
-  if (context?.deviceCapabilities?.touch !== undefined) {
-    root.dataset.touch = String(context.deviceCapabilities.touch);
-  }
-}
 
 function Widget() {
   const [request, setRequest] = useState<OpenRequest | null>(null);
@@ -114,7 +68,6 @@ function Widget() {
   const [mode, setMode] = useState<McpUiDisplayMode>('inline');
   const [hostTheme, setHostTheme] = useState<McpUiTheme | null>(null);
   const [fullscreenDenied, setFullscreenDenied] = useState(false);
-  const [docRevision, setDocRevision] = useState(0);
   const [superseded, setSuperseded] = useState(supersession.superseded);
   useEffect(() => supersession.subscribe(() => setSuperseded(supersession.superseded)), []);
   const [handshakeContext, setHandshakeContext] = useState<McpUiHostContext | null>(null);
@@ -123,14 +76,44 @@ function Widget() {
   // Registered before `connect()` resolves. `toolresult` is a one-shot event:
   // a handler added after the handshake can miss the notification that carried
   // the reader's file, and the widget then renders an empty card for ever.
+  // Set while FileSync owns an opened file: Save writes the file, not a download.
+  const fileActions = useRef<FileActions | null>(null);
+  const onFileActions = useCallback((actions: FileActions | null) => {
+    fileActions.current = actions;
+  }, []);
+
   const onAppCreated = useCallback((app: App) => {
+    // Before connect: the extensions read host capabilities from the handshake.
+    attachOpenAIExtensions(app);
+    provideApp(app);
+    // The host opened a file through the file entrypoint (ChatGPT and Codex
+    // desktop). The arguments name the host's resource for it; see host-file.ts.
+    app.addEventListener('toolinput', (params) => {
+      const input = FileEntrypointInput.safeParse(params.arguments);
+      if (!input.success) return;
+      // Save the open file before a new request can unmount its editor.
+      fileActions.current?.flush();
+      setRequest((current) => adoptFile(current, input.data.file));
+    });
     // The notification's params ARE the CallToolResult (the spec wraps
     // nothing), so structuredContent sits directly on them.
     app.addEventListener('toolresult', (params) => {
       const structured = params.structuredContent as
-        (OpenRequest & { createdAt?: number; seq?: number }) | undefined;
+        { name?: string; resourceUri?: string; createdAt?: number; seq?: number } | undefined;
       if (!structured) return;
-      setRequest({ url: structured.url ?? null, name: structured.name ?? 'Untitled.docx' });
+      fileActions.current?.flush();
+      const opened = FileEntrypointInput.safeParse(structured);
+      if (opened.success) {
+        // A file viewer stays out of the election: it shows the user's file
+        // in its own panel and must not stand down for a chat editor.
+        setRequest((current) => adoptFile(current, opened.data.file));
+        return;
+      }
+      const name = structured.name ?? 'document.docx';
+      const base64 = params._meta?.[DOCUMENT_META];
+      if (typeof base64 === 'string') setRequest({ name, base64 });
+      else if (structured.resourceUri) setRequest({ name, resource: structured.resourceUri });
+      else return;
       // The server-minted election key: the newest open_document wins, and
       // every older widget instance in the conversation stands down.
       if (Number.isFinite(structured.createdAt)) {
@@ -150,15 +133,16 @@ function Widget() {
   const { app, isConnected, error } = useApp({
     appInfo: APP_INFO,
     capabilities: {
-      // The host may call the tools this widget registers. That is the whole
-      // execution model: `src/server/mcp.ts` advertises only `open_document`.
-      tools: { listChanged: true },
+      // No app tools: agents edit the .docx with their own document skills,
+      // and this widget previews the file and follows its changes.
       availableDisplayModes: ['inline', 'fullscreen'],
     },
     onAppCreated,
   });
 
-  // Tokens, theme AND the host's Anthropic Sans font faces. The hook applies
+  // Tokens, theme and the host's font faces. The widget declares no CSP
+  // domains, so a host whose fonts live on another origin falls back to the
+  // system font; the document canvas never uses them. The hook applies
   // later `hostcontextchanged` styles on its own, but the INITIAL ones arrive
   // in the handshake result, which only the second argument reaches — without
   // it the widget renders in its fallback palette until the host happens to
@@ -191,35 +175,19 @@ function Widget() {
     modeRef.current = mode;
   }, [app, mode]);
 
-  // Fetch the file the tool named. Through the server's proxy, not directly:
-  // the iframe's CSP names only this deployment's origin (see `mcp.ts`).
+  // Load the document the request names; see `load-document.ts`.
   useEffect(() => {
-    if (!request) return;
+    const host = appRef.current;
+    if (!request || !host) return;
     let cancelled = false;
     void (async () => {
       setLoadError(null);
-      if (!request.url) {
-        setLoaded({ request, bytes: 'blank' });
-        return;
-      }
       try {
-        // A same-origin URL (the server's tokened /local/ files in stdio mode)
-        // is fetched directly; anything else goes through the /fetch proxy,
-        // because the CSP names only this origin.
-        const target = request.url.startsWith(`${ASSET_ORIGIN}/`)
-          ? request.url
-          : `${ASSET_ORIGIN}/fetch?url=${encodeURIComponent(request.url)}`;
-        const response = await fetch(target);
-        if (!response.ok) {
-          // The proxy's refusals name the cause; surface them over a bare code.
-          const body = (await response.json().catch(() => null)) as { error?: string } | null;
-          throw new Error(body?.error ?? `the link returned HTTP ${response.status}`);
-        }
-        const bytes = new Uint8Array(await response.arrayBuffer());
-        if (!cancelled) setLoaded({ request, bytes });
+        const doc = await loadRequest(host, request);
+        if (!cancelled) setLoaded(doc);
       } catch (cause) {
         if (cancelled) return;
-        setLoadError(cause instanceof Error ? cause.message : String(cause));
+        setLoadError(message(cause));
         // An error card marooned in fullscreen looks broken; come back to the
         // card before showing it.
         if (modeRef.current === 'fullscreen') {
@@ -231,10 +199,10 @@ function Widget() {
     return () => {
       cancelled = true;
     };
-  }, [request, attempt]);
+    // `isConnected`: a file request can arrive before the handshake finishes.
+  }, [request, attempt, isConnected]);
 
   const onEditor = useCallback((next: DocxEditorInstance | null) => setEditor(next), []);
-  const onDocChange = useMemo(() => debounced(() => setDocRevision((n) => n + 1), 1000), []);
 
   const openEditor = useCallback(async () => {
     if (!app) return;
@@ -251,25 +219,37 @@ function Widget() {
   }, [app]);
 
   const save = useCallback(() => editorRef.current?.save() ?? Promise.resolve(null), []);
-
   const documentName = request?.name ?? 'document.docx';
-  const title = useMemo(() => documentName.replace(/\.docx$/i, ''), [documentName]);
   // The document shown is only ever the one the CURRENT request produced.
-  const document = loaded && loaded.request === request ? loaded.bytes : null;
-  const isFullscreen = mode === 'fullscreen';
+  const current = loaded && loaded.request === request ? loaded : null;
+  // A file follows the disk: one the host opened, or one `open_document` opened
+  // by path (it has a version). Bytes passed in a call have no file to follow.
+  const syncedFile = useMemo(
+    () =>
+      request?.file ??
+      (request?.resource && current?.opened.etag
+        ? { name: documentName, resourceUri: request.resource }
+        : null),
+    [request, current, documentName]
+  );
+  const title = useMemo(() => documentName.replace(/\.docx$/i, ''), [documentName]);
+  const document = current?.opened.bytes ?? null;
+  // A file opened by the host shows in the host's side panel: the editor IS
+  // the surface there, so it takes the fullscreen arrangement without a card.
+  const isFileView = request?.file !== undefined;
+  const isFullscreen = mode === 'fullscreen' || isFileView;
 
   if (error) {
     return <ErrorCard title="Could not connect to the host" detail={error.message} />;
   }
   if (!isConnected || !request || (!document && !loadError)) return <InlineSkeleton />;
 
+  if (isFileView && loadError) {
+    return <FileOpenError reason={loadError} retry={() => setAttempt((n) => n + 1)} />;
+  }
+
   const cardState: CardState = loadError
-    ? {
-        phase: 'error',
-        reason: loadError,
-        url: request.url,
-        retry: () => setAttempt((n) => n + 1),
-      }
+    ? { phase: 'error', reason: loadError, retry: () => setAttempt((n) => n + 1) }
     : { phase: 'ready' };
 
   return (
@@ -286,10 +266,11 @@ function Widget() {
             <DocxEditor
               ref={editorRef}
               document={document}
-              author={AUTHOR}
               modules={PRO_MODULES}
               title={title}
-              mode="edit"
+              // A file the host opened read-only can never be saved; do not
+              // invite edits that would be lost.
+              mode={isFileView && current?.opened.writable === false ? 'view' : 'edit'}
               // The thumbnail is a picture of the PAGE; the card beside it is
               // the chrome. Toolbar and title bar appear only in fullscreen.
               chrome={isFullscreen}
@@ -299,25 +280,34 @@ function Widget() {
               // mode restyles chrome and canvas at render time only; a saved
               // file is unchanged.
               colorMode={hostTheme ?? 'system'}
-              onChange={onDocChange}
               onSave={() => {
                 if (!app) return;
                 void (async () => {
+                  // An opened file saves in place; a read-only one downloads.
+                  if (await fileActions.current?.save()) return;
                   const bytes = await save();
                   if (bytes) await downloadDocx(app, new Uint8Array(bytes), documentName);
                 })();
               }}
               menu={{ reportIssue: false }}
-              renderTitleBarRight={() => <AgentStatus />}
             >
               <DocxEditorReview />
               <EditorBridge onEditor={onEditor} />
+              {/* A superseded preview stops syncing: one live preview per file. */}
+              {app && syncedFile && current && !superseded && (
+                <FileSync
+                  app={app}
+                  file={syncedFile}
+                  opened={current.opened}
+                  onActions={onFileActions}
+                />
+              )}
             </DocxEditor>
             <ReviewPaneController editor={editor} />
           </div>
         </div>
       )}
-      {app && (
+      {app && !isFileView && (
         <InlineCard
           app={app}
           editor={editor}
@@ -327,15 +317,7 @@ function Widget() {
           superseded={superseded}
           onOpenEditor={() => void openEditor()}
           save={save}
-        />
-      )}
-      {app && editor && !superseded && (
-        <ToolHost
-          app={app}
-          editor={editor}
-          save={save}
-          documentName={documentName}
-          docRevision={docRevision}
+          live={syncedFile !== null}
         />
       )}
     </div>
@@ -346,7 +328,7 @@ function Widget() {
  * Lifts the live editor INSTANCE out of the editor's own tree.
  *
  * `useDocxEditor()` reads the editor off React context, so it only answers from
- * inside `<DocxEditor>`. The card and `ToolHost` render beside it and need that
+ * inside `<DocxEditor>`. The card and `ReviewPaneController` render beside it and need that
  * instance. `<DocxEditor onReady>` is not a substitute: it hands over the
  * narrower `Editor` facade, and editor-api's `createBrowser` does not accept it.
  */
@@ -368,14 +350,6 @@ function ErrorCard({ title, detail }: { title: string; detail?: string }) {
       </p>
     </div>
   );
-}
-
-function debounced(fn: () => void, waitMs: number): () => void {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  return () => {
-    clearTimeout(timer);
-    timer = setTimeout(fn, waitMs);
-  };
 }
 
 const container = window.document.getElementById('root');

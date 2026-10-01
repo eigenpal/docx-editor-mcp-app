@@ -1,0 +1,156 @@
+/*
+ * The file viewer's status pill, in the host's tokens (see styles.css).
+ *
+ * A compact pill at the bottom center of the side panel, not a full-width
+ * bar: it covers as little of the page as it can. In file view the editor uses
+ * the fullscreen arrangement, whose scroll viewport keeps 88px clear at the
+ * bottom, so the last page can always scroll past it.
+ *
+ * Motion follows how often each change happens. The status text changes on
+ * every save, so it swaps instantly. A conflict or a load error is rare and
+ * asks for a decision, so its controls fade and rise in.
+ */
+
+.file-sync {
+  position: fixed;
+  left: 50%;
+  bottom: max(var(--safe-bottom), 12px);
+  z-index: 10;
+  max-width: min(640px, calc(100vw - 24px));
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 6px 6px 14px;
+  border-radius: var(--border-radius-full, 9999px);
+  border: 1px solid var(--color-border-tertiary, rgba(31, 30, 29, 0.15));
+  background: var(--color-background-primary, #ffffff);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  color: var(--color-text-secondary, #3d3d3a);
+  font-family: var(--font-sans, ui-sans-serif, system-ui, sans-serif);
+  font-size: var(--font-text-xs-size, 12px);
+  line-height: var(--font-text-xs-line-height, 1.4);
+  transition: color 150ms ease;
+}
+
+.file-sync[data-kind='conflict'],
+.file-sync[data-kind='error'] {
+  color: var(--color-text-danger, #7f2c28);
+  border-radius: 14px;
+}
+
+/* A decision or an error must be read in full, so it wraps. */
+.file-sync[data-kind='conflict'] .file-sync-text,
+.file-sync[data-kind='error'] .file-sync-text {
+  white-space: normal;
+}
+
+.file-sync-follow[hidden] {
+  display: none;
+}
+
+.file-sync-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-sync-button {
+  flex: none;
+  min-height: 28px;
+  padding: 4px 12px;
+  border: none;
+  border-radius: var(--border-radius-full, 9999px);
+  background: var(--color-background-secondary, #f5f4ed);
+  color: var(--color-text-primary, #141413);
+  font: inherit;
+  font-weight: var(--font-weight-semibold, 600);
+  cursor: var(--cursor-interaction, pointer);
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    transform 160ms var(--ease-out),
+    opacity 200ms var(--ease-out);
+}
+
+/* Decision controls arrive from just below, never from nothing. */
+@starting-style {
+  .file-sync-button {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+.file-sync-button:active {
+  transform: scale(0.97);
+}
+
+.file-sync-button:focus-visible,
+.file-sync-follow input:focus-visible {
+  outline: 2px solid var(--color-ring-primary, rgba(20, 20, 19, 0.7));
+  outline-offset: 2px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .file-sync-button:hover {
+    background: var(--color-background-tertiary, #e8e6dc);
+  }
+}
+
+.file-sync-follow {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-right: 8px;
+  color: var(--color-text-tertiary, #73726c);
+  cursor: var(--cursor-interaction, pointer);
+}
+
+.file-sync-follow input {
+  margin: 0;
+  accent-color: var(--color-text-info, #3266ad);
+}
+
+/* The load error replaces the editor, so it centers in the panel instead. */
+.file-open-error {
+  top: 50%;
+  bottom: auto;
+  transform: translate(-50%, -50%);
+  opacity: 1;
+  transition: opacity 200ms var(--ease-out);
+}
+
+@starting-style {
+  .file-open-error {
+    opacity: 0;
+  }
+}
+
+@media (pointer: coarse) {
+  .file-sync-button {
+    min-height: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .file-sync-button,
+  .file-open-error {
+    transition-property: opacity;
+  }
+  @starting-style {
+    .file-sync-button {
+      transform: none;
+    }
+  }
+  .file-sync-button:active {
+    transform: none;
+  }
+}
+
+/* The pill belongs to the editor. While only the inline card shows, the sync
+ * keeps running (the thumbnail follows the file) but the pill stays hidden. */
+.widget[data-mode='inline'] .file-sync {
+  display: none;
+}

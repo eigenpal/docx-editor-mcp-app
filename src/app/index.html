@@ -10,14 +10,12 @@
     <meta name="color-scheme" content="light dark" />
     <title>DOCX editor</title>
     <!--
-      This shell is the MCP resource; the application is two static assets
-      fetched from the deployment's own origin (named in the resource's CSP).
-      Keeping the resource tiny makes the first paint the skeleton below rather
-      than a multi-megabyte parse, and the content-hashed asset names make the
-      server's immutable caching correct.
+      This shell is the whole widget: the build inlines the CSS and JavaScript
+      (scripts/build-app.mjs), because desktop hosts' iframe CSP allows no
+      network origin of ours. The skeleton paints while the script parses.
     -->
     <style>
-      /* Skeleton for the moments before the external CSS and JS arrive. The
+      /* Skeleton for the moments before the script runs. The
          classes match styles.css, so React's identical skeleton takes over
          without a repaint. Colors are Claude's documented light/dark values —
          the host's live tokens arrive only once the script runs. */
@@ -77,7 +75,9 @@
         }
       }
     </style>
-    <link rel="stylesheet" href="__PUBLIC_ORIGIN__/assets/__CSS_FILE__" />
+    <style>
+      /*__APP_CSS__*/
+    </style>
   </head>
   <body>
     <div id="root">
@@ -95,6 +95,8 @@
         </div>
       </div>
     </div>
-    <script type="module" src="__PUBLIC_ORIGIN__/assets/__JS_FILE__"></script>
+    <script type="module">
+      /*__APP_JS__*/
+    </script>
   </body>
 </html>

@@ -6,153 +6,90 @@
   <a href="https://www.docx-editor.dev/docs"><img src="https://img.shields.io/badge/Docs-3B5BDB?style=flat-square&logo=readthedocs&logoColor=white" alt="docx-editor.dev documentation" /></a>
 </p>
 
-Open and edit `.docx` files inside Claude or ChatGPT.
+A Word-faithful `.docx` preview for ChatGPT, Codex, and Claude.
 
-The model can read text, suggest tracked changes, and respond to comments.
-You review each change in the [docx-editor.dev](https://docx-editor.dev/) editor.
+The agent edits documents with its own document skills. docx-editor shows the
+file with Word-faithful pages and follows it: each time the file changes, the
+preview updates in place and highlights the changed paragraphs. You can also
+edit in the preview, and your edits save back to the file.
 
 ## How it works
 
-The MCP server provides `open_document` and the editor widget.
-The server keeps no document state.
+The app has one model-facing tool, `open_document`. It has no editing tools.
 
-`@docx-editor.dev/core` parses, lays out, displays, and saves OOXML in the browser.
-The server proxies the initial document download because the widget runs in a sandbox.
-All later document operations run in the browser.
+- **Local mode** runs on your computer, started by the desktop app. The
+  preview opens files by path, watches them, and saves your edits to them.
+- **File viewer** in ChatGPT and Codex desktop: open any `.docx` and it opens
+  in the side panel, with the same live updates.
+- **Hosted mode** serves the app over HTTPS for web hosts. It previews files
+  passed as bytes.
 
-```text
-Claude or ChatGPT
-        |
-        | open_document
-        v
-MCP server ------> editor widget
-        |               |
-        | /fetch        | read, edit, review, export
-        v               v
-document URL       browser editor
+The [docx-editor.dev](https://docx-editor.dev/) engine parses, lays out, and
+saves the document in the browser. When the file changes, the preview applies
+the new version through the engine's refresh API: your scroll position and
+edits are handled, and the changed paragraphs are highlighted.
+
+## Install
+
+Install the npm package, then add it to each desktop app you use. The package
+needs Node.js 22 or later and installs no dependencies.
+
+```bash
+npm install -g @docx-editor.dev/mcp-app
+docx-editor-mcp-app setup codex    # ChatGPT and Codex desktop (macOS, Linux)
+docx-editor-mcp-app setup claude   # Claude Desktop
 ```
 
-The widget provides these tools:
+Restart the desktop app after setup. Then ask the agent to open a `.docx`, or
+open one yourself in ChatGPT or Codex desktop.
 
-- `read_document` returns document paragraphs and their IDs.
-- `find_text` finds text and its paragraph ID.
-- `edit_text` replaces exact text. It creates a tracked change by default.
-- `add_comment` adds a Word comment to exact text.
-- `read_comments` lists comments, authors, and states.
-- `reply_comment` replies to a comment thread.
-- `resolve_comment` resolves a completed comment thread.
-- `read_changes` lists pending tracked changes and authors.
-- `export_document` downloads the edited `.docx` file.
+To remove the plugin from ChatGPT and Codex, run
+`codex plugin remove docx-editor@docx-editor`.
 
-The server provides `open_document`.
-The catalog in [`src/shared/catalog.ts`](src/shared/catalog.ts) defines the complete tool allowlist.
+## Use it
 
-## Requirements
+1. Ask the agent to show a file, for example: "Open ~/report.docx."
+2. Expand the preview to see the full editor.
+3. Ask for changes, for example: "Shorten the executive summary." The agent
+   edits the file with its own tools, and the preview updates.
 
-- [Bun](https://bun.sh/)
-- Node.js 22 or later
+If you edit in the preview while the agent changes the file, the preview asks
+you to reload the file or keep your version.
 
-## Install for Claude Desktop
+Other commands:
 
-Claude Desktop runs the server locally over stdio.
+- `docx-editor-mcp-app stdio` runs the server over stdio. Hosts start it this way.
+- `docx-editor-mcp-app http --port 3000` serves MCP at `http://localhost:3000/mcp`.
+
+## Deploy for web hosts
+
+Web hosts, and OpenAI's plugin directory, need a public HTTPS URL. Run the
+server on any Node.js 22 host behind HTTPS:
+
+```bash
+npx -y @docx-editor.dev/mcp-app http --port "$PORT"
+```
+
+The server keeps no state, so you can run any number of instances. To submit
+to the plugin directory, see [docs/submission](docs/submission/README.md).
+
+- **Claude:** **Settings > Connectors > Add custom connector**, then enter
+  `https://<your-host>/mcp`.
+- **ChatGPT:** **Settings > Apps > Advanced**, enable **Developer mode**, then
+  create an app with `https://<your-host>/mcp` and no authentication.
+
+## Develop
 
 ```bash
 bun install
-bun run setup --write
+bun run dev                 # HTTP server at http://localhost:3000/mcp
+bun run build:harness       # then open /__harness/host.html
 ```
 
-Restart Claude Desktop.
-Then ask Claude to open a `.docx` file.
+The harness is a real MCP Apps host. It emulates the OpenAI file viewer, so
+you can test live updates and conflicts without a desktop app.
 
-The server hosts widget assets at `http://localhost:3017`.
-The document stays on your computer.
-
-Run `bun run setup` without `--write` to print the configuration.
-Run `bun run build` after each `git pull`.
-Claude Desktop runs the files in `dist/`.
-
-## Connect from Claude or ChatGPT on the web
-
-Web hosts need a public HTTPS URL.
-Use Cloudflare Tunnel for local development:
-
-```bash
-brew install cloudflared
-bun run dev:tunnel
-```
-
-The command prints the public URL.
-
-For Claude, open **Settings > Connectors > Add custom connector**.
-Enter `https://<printed-url>/mcp`.
-
-For ChatGPT, open **Settings > Apps > Advanced**.
-Enable **Developer mode**.
-Then create an app with `https://<printed-url>/mcp` and no authentication.
-
-## Develop locally
-
-Install dependencies and start the development server:
-
-```bash
-bun install
-bun run dev
-```
-
-The MCP endpoint is `http://localhost:3000/mcp`.
-
-Use the MCP Inspector for protocol work:
-
-```bash
-bun run inspect
-```
-
-Use the local harness for widget work:
-
-```bash
-bun run build:harness
-bun run start
-```
-
-Open `http://localhost:3000/__harness/host.html`.
-The harness supports tool calls, display modes, and downloads.
-
-## Deploy
-
-Run the container behind a public HTTPS endpoint:
-
-```bash
-docker build -t docx-editor-mcp .
-docker run \
-  -p 3000:3000 \
-  -e PUBLIC_ORIGIN=https://your-host.example \
-  docx-editor-mcp
-```
-
-Set `PUBLIC_ORIGIN` to the exact public origin.
-The server uses it for the CSP, widget assets, and `harfbuzz.wasm`.
-An incorrect value causes pagination differences without a startup error.
-
-The server keeps no state, so you can run multiple instances.
-
-## Troubleshoot
-
-- Widget does not render: Check that `/mcp` returns `tools/list` with `bun run inspect`.
-- Skeleton does not finish: Check access to `PUBLIC_ORIGIN/assets/*`.
-- Pagination differs from Word: Check that the browser loaded `harfbuzz.wasm`.
-- Open fails for a private address: Use a public HTTPS URL without redirects.
-- ChatGPT returns `424`: Check `structuredContent` and `_meta` in the tool response.
-- ChatGPT shows an old build: Confirm that your deployment includes the current asset hashes.
-
-## Project structure
-
-- `src/shared/catalog.ts` defines the tool catalog.
-- `src/server/mcp.ts` provides `open_document` and the UI resource.
-- `src/server/fetch-proxy.ts` validates and fetches document URLs.
-- `src/app/main.tsx` connects the widget, host, and editor.
-- `src/app/executor.ts` runs document operations through editor-api.
-
-## Verify changes
+Before you push, run:
 
 ```bash
 bun run typecheck
@@ -161,14 +98,27 @@ bun run test
 bun run build
 ```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
-See [SECURITY.md](SECURITY.md) to report a vulnerability.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines and
+[SECURITY.md](SECURITY.md) to report a vulnerability.
+
+## Troubleshoot
+
+- **The preview stays on its loading skeleton.** Reinstall with `setup codex`
+  or `setup claude`, then quit and reopen the desktop app.
+- **The plugin is missing in ChatGPT.** Run `codex plugin list` and check for
+  `docx-editor@docx-editor`. Then quit ChatGPT fully and open it again.
+- **Pagination differs from Word.** Check that the preview loaded `harfbuzz.wasm`.
+- **A file does not open.** `open_document` takes `.docx` files up to 15 MB.
 
 ## License
 
-This project uses the [Apache 2.0 license](LICENSE).
+The source code in this repository uses the [Apache 2.0 license](LICENSE).
 
-`@docx-editor.dev/pro` and `@docx-editor.dev/editor-api` use the EigenPal Pro License.
-See [pricing and support options](https://www.docx-editor.dev/pricing).
+The built plugin bundles EigenPal components, including `@docx-editor.dev/pro`.
+You can use them free of charge, including for business use, only as part of
+this plugin: see [LICENSE-PLUGIN.md](LICENSE-PLUGIN.md). To build with the
+docx-editor SDK in your own software, see
+[pricing](https://www.docx-editor.dev/pricing). `THIRD_PARTY_NOTICES.md` in the
+package lists every bundled package and its license.
 
 For commercial support, email [docx-editor@eigenpal.com](mailto:docx-editor@eigenpal.com).

@@ -1,9 +1,8 @@
 /**
  * Development loop: rebuild the widget on change, restart the server with it.
  *
- * The server reads `dist/app/editor.html` once and caches it by origin, so a
- * widget rebuild has to restart the server to be seen. That is cheap — the
- * server holds no state — and it is one fewer cache to be wrong about.
+ * The server reads `dist/app/editor.html` once, so a widget rebuild restarts
+ * it. `DOCX_HARNESS=1` serves the dev harness at `/__harness/`.
  */
 
 import { spawn } from 'node:child_process';
@@ -12,7 +11,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const env = { ...process.env, NODE_ENV: 'development' };
+const env = { ...process.env, NODE_ENV: 'development', DOCX_HARNESS: '1' };
 
 let server;
 let building = false;
@@ -27,7 +26,7 @@ function run(command, args) {
 
 function restartServer() {
   server?.kill();
-  server = spawn('bun', ['src/server/index.ts'], { cwd: root, stdio: 'inherit', env });
+  server = spawn('bun', ['src/server/cli.ts', 'http'], { cwd: root, stdio: 'inherit', env });
 }
 
 async function rebuild() {

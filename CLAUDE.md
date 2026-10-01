@@ -17,7 +17,7 @@ Write all replies in ASD-STE100 Simplified Technical English.
 - Keep paragraphs to 6 sentences or fewer.
 
 Keep technical items exact. File paths, function names, flags, and numbers do
-not change. For example, write `src/server/fetch-proxy.ts` and `PUBLIC_ORIGIN`
+not change. For example, write `src/server/documents.ts` and `MAX_CONTENT_BYTES`
 in full.
 
 Write all documentation — `README.md`, `CONTRIBUTING.md`, code comments, PR
@@ -28,79 +28,63 @@ spelling, short sentences, one idea each. Use code font for identifiers and
 file names. Use bold for UI elements only. Apply the STE rules above to
 documentation too.
 
-## The split: server declares, widget executes
+## A preview, not an editing API
 
-| Half   | File                | Answers                                   |
-| ------ | ------------------- | ----------------------------------------- |
-| Server | `src/server/mcp.ts` | `open_document` and the one HTML resource |
-| Widget | `src/app/main.tsx`  | Every other tool, against the live editor |
+The model gets one tool, `open_document`. Agents edit a `.docx` with their own
+document skills (Codex: the built-in Documents skill), never through this app.
+The widget previews the file, follows its changes with the engine's refresh
+API (capture, then apply), and lets a person edit it. Do not add model-facing
+editing tools.
 
-The widget registers its tools with `App.registerTool` and declares
-`capabilities: { tools: { listChanged: true } }`. The host proxies each model
-call into the iframe. This works because `@docx-editor.dev/core` parses, lays
-out, paints, and serializes OOXML in the browser. The server holds no document
-state.
+| Half   | File                      | Answers                                             |
+| ------ | ------------------------- | --------------------------------------------------- |
+| Server | `src/server/mcp.ts`       | Every tool and resource                             |
+| Server | `src/server/documents.ts` | Opened documents behind tokens: read, version, save |
+| Widget | `src/app/main.tsx`        | The editor, the inline card, and file sync          |
 
-A host that does not call app-registered tools gets a read-only view. The
-widget covers that case: it pushes document text and review counts through
-`ui/update-model-context` on load and after every change. Do not remove that
-push.
+`src/shared/catalog.ts` is the allowlist. The tools other than `open_document`
+are `visibility: ['app']` plumbing that the host or the widget calls.
 
-## The catalog is the allowlist
+## Nothing is fetched
 
-`src/shared/catalog.ts` is the only place that describes a tool. Both halves
-import it. To add a tool, make two edits: describe it in the catalog, and
-implement it in `HANDLERS` in `src/app/executor.ts`. `HANDLERS` is typed
-`Record<AppToolName, …>`, so a missing executor fails `bun run typecheck`.
+Desktop hosts' iframe CSP allows no network origin of ours, ignores declared
+domains, and blocks `blob:` images. So the widget is one inline document
+(`scripts/build-app.mjs`), and everything else travels over MCP: the wasm as
+`docx-asset://harfbuzz.wasm`, documents as `docx-local://<token>`
+(`src/app/assets.ts`, `src/app/load-document.ts`). Images become `data:` URLs.
+Never make the widget fetch anything.
 
-## Document work goes through editor-api
+Two transports, one server: `stdio` (local mode: `open_document` takes paths,
+and the preview syncs with the file) and `http` (web hosts and OpenAI's plugin
+directory: no paths; bytes return in the result `_meta`, so the server keeps
+no state). Submission material is in `docs/submission/`; `bun run
+build:directory` packages the hosted plugin.
 
-`@docx-editor.dev/editor-api/browser` borrows the editor the reader has open.
-`run(context => ...)` is the Office.js batch shape. Known traps:
+## File sync
 
-- Load in two phases. `text` and `uniqueLocalId` are properties of a
-  `Paragraph`, not of the collection. Load the collection, `sync`, load each
-  item, `sync` again. A load on the collection throws `InvalidArgument`.
-- `hit.paragraphs.getFirst()` fails with `InvalidObjectPath` inside a batch.
-  Materialize `hit.paragraphs` instead.
-- `Paragraph` has no `search`. Search the `Body` and filter by owner.
-- editor-api cannot create a comment. Select the phrase through editor-api,
-  then create the comment through `useReviewOf` from
-  `@docx-editor.dev/pro/react`.
-- Tracked changes are engine commands. Select through editor-api, then
-  `editor.exec({ type: 'proposeReplacement' | 'proposeDeletion' })`.
-- `exec` returns an `ExecResult` value with a `code` and a `reason`. It does
-  not throw. Give the reason to the model.
-- Locate and select a phrase in ONE `run()` batch (`selectExactPhrase`). Two
-  batches race the reader's typing and can select the wrong occurrence.
+Two kinds of document follow the disk: a file the host opened through the
+`view_docx_file` entrypoint (`src/app/host-file.ts`, via
+`@openai/mcp-extensions/app`), and a file `open_document` opened by path
+(`src/app/local-file.ts`, polled through `local_file_version`).
+`src/app/file-sync-session.ts` owns the rules; keep its tests passing.
 
-The runtime issues `uniqueLocalId` for every paragraph. Anchors match
-case-sensitively on purpose: the model copies phrases verbatim from
-`read_document`. Each refusal names what to do differently.
+- A file viewer never takes part in the supersession election.
+- Never replace the editor's document while it has unsaved edits. Hold the
+  newer version and let the reader choose.
+- Every write carries the last etag. Without etags, compare content hashes.
+- Flush before anything unmounts the editor: the engine detaches it before
+  `FileSync`'s cleanup runs, so a flush there finds no document.
 
 ## Untrusted input
 
 Every value from a `.docx` is attacker-controlled. The engine sanitizes at its
-parse boundary. Do not undo that here; `eslint.config.js` bans `innerHTML` for
-this reason.
+parse boundary. Do not undo that here; `eslint.config.js` bans `innerHTML`.
 
-The URL in `open_document` is attacker-controlled too. `src/server/fetch-proxy.ts`
-is the boundary: it checks scheme, pins the resolved address at dial time,
-refuses redirects, and caps the body size while streaming. Read it before you
-change it, and keep `src/server/__tests__/fetch-proxy.test.ts` passing. Do not
-widen `connectDomains` to avoid the proxy.
-
-## PUBLIC_ORIGIN
-
-One origin, used in three places: the CSP allowlist, the widget's
-`harfbuzz.wasm` URL, and the `/fetch` proxy. The HTML shell carries a
-`__PUBLIC_ORIGIN__` placeholder; `src/server/ui-resource.ts` substitutes it per
-deployment and hashes the result into the resource URI. The widget JS reads its
-own origin from `import.meta.url`.
-
-A wrong origin does not crash. HarfBuzz fails to load, the shaper falls back,
-and pagination drifts from Word silently. `scripts/build-app.mjs` fails the
-build if the placeholder is missing.
+Paths are attacker-controlled too. `src/server/documents.ts` is the boundary:
+it resolves the REAL path and checks `.docx` on it (a symlink must not open),
+caps the size, and saves through a same-directory temporary file that keeps
+the original's mode. Nothing accepts a raw path except `open_document` in
+local mode. Keep `src/server/__tests__/documents.test.ts` passing.
 
 ## Two display modes, one mounted editor
 
@@ -138,16 +122,13 @@ More rules from verification:
   (`.docx-editor-one-surface__viewport`, not published contract), with an 88px
   floor for the host's composer.
 
-## Build and assets
+## Build
 
-The `ui://` resource is a small HTML shell. The application is
-`public/assets/editor-<hash>.{js,css}`, served from `PUBLIC_ORIGIN` and cached
-as immutable. Only `/assets` gets immutable caching; the names there carry a
-content hash or the engine version.
-
-`harfbuzz.wasm` ships as `public/assets/harfbuzz-<engine-version>.wasm`. The
-version is in the name because the loader refuses a binary from a different
-engine build. Nothing under `public/assets/` is committed.
+`bun run build` writes `dist/app/` (the inline widget, its hash, and
+`harfbuzz.wasm` from the installed engine; the loader refuses a binary from a
+different build), `dist/cli.js` (the server with every dependency inlined; run
+it with Node 22, not Bun), and `THIRD_PARTY_NOTICES.md`. All dependencies are
+`devDependencies`: the npm package installs nothing.
 
 ## Verify
 
@@ -156,31 +137,22 @@ bun run typecheck
 bun run lint
 bun run test
 bun run build
+bun run smoke
 ```
 
 - `bun run lint` enforces a 400-line cap per file and the `innerHTML` ban.
   Extract; do not raise the cap.
-- `bun run build` is the only check that runs esbuild over the widget and
-  asserts the `__PUBLIC_ORIGIN__` placeholder survived.
+- `bun run smoke` runs the built package over stdio, as desktop hosts do.
 - `bun run format` before pushing.
 
 For widget behavior, use the harness: `bun run build:harness`, then open
-`/__harness/host.html` on the running server. It is a real MCP Apps host
-(`AppBridge` + `PostMessageTransport`): handshake, tool calls, display modes,
-and `ui/download-file` run as Claude runs them. `window.__bridge` exposes the
-bridge. `src/harness/` is dev-only; `public/__harness/` is gitignored.
+`/__harness/host.html` on `bun run dev`. It is a real MCP Apps host
+(`AppBridge` with an MCP client to `/mcp`) and emulates the OpenAI file viewer.
+`src/harness/` is dev-only; `public/__harness/` is gitignored.
 
-Entry points: `bun run dev` (HTTP), `bun run stdio` (Claude Desktop),
-`bun run dev:tunnel` (public URL), `bun run setup` (install instructions),
-`bun run preview <file>` (standalone browser page, no host).
-In stdio mode, stdout is the protocol channel; log to stderr only.
-
-Local files: in stdio mode, `open_document` accepts an absolute path.
-`src/server/local-files.ts` maps the path to a random token and serves it at
-`/local/<token>`. Never accept raw paths on the route itself — the asset
-server answers any local page with `Access-Control-Allow-Origin: *`, and a
-path-addressed route would disclose local files to any website. The HTTP
-deployment never enables this.
+Entry points: `dist/cli.js` (`stdio`, `http`, `setup codex|claude`; the npm
+`bin`) and `bun run dev`. In stdio mode, stdout is the protocol channel; log
+to stderr only.
 
 ## Conventions
 

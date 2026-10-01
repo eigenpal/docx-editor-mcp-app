@@ -7,7 +7,9 @@ minimumReleaseAge = 604800
 # token on a package we do not control; `@docx-editor.dev/*` is published from
 # this organisation, and holding it a week would only pin this app to an engine
 # a week behind the one it is built against.
-minimumReleaseAgeExcludes = ["@docx-editor.dev/core", "@docx-editor.dev/editor-api", "@docx-editor.dev/pro", "@docx-editor.dev/react", "@docx-editor.dev/i18n", "@docx-editor.dev/fonts"]
+# `@openai/mcp-extensions` is exempt by owner decision (2026-10-01): it is the
+# reference SDK for the host file APIs and shipped at DevDay, inside the window.
+minimumReleaseAgeExcludes = ["@openai/mcp-extensions", "@docx-editor.dev/core", "@docx-editor.dev/editor-api", "@docx-editor.dev/pro", "@docx-editor.dev/react", "@docx-editor.dev/i18n", "@docx-editor.dev/fonts"]
 
 [test]
 root = "./src"
