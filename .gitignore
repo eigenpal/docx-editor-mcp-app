@@ -3,6 +3,7 @@ node_modules/
 
 # Build outputs
 dist/
+*.tgz
 
 
 # Local verification harness (scripts/build-harness.mjs); dev-only, never shipped.

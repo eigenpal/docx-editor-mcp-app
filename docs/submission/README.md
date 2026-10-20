@@ -1,76 +1,146 @@
-# Plugin directory submission
+# Local directory submissions
 
-Use this checklist to submit docx-editor to OpenAI's plugin directory. The
-directory accepts only a hosted MCP server.
+Use these packages to submit docx-editor to the ChatGPT and Claude desktop directories.
+Both packages run the MCP server and editor locally.
+You do not deploy an editor or MCP endpoint.
 
-## Before you begin
+See [release.md](release.md) for editor updates and bug-fix releases.
+Use [openai-approval-request.md](openai-approval-request.md) when you contact your OpenAI representative.
 
-- A verified OpenAI publisher identity for EigenPal, Inc.
-- A public HTTPS host for the server, for example `https://mcp.docx-editor.dev`.
-- The privacy policy, terms of use, and support page published at the URLs in
-  `.codex-plugin/plugin.json` (drafts: [privacy.md](privacy.md),
-  [terms.md](terms.md)). Get legal review first. The support page can list
-  the support email address.
-- A demo video, uploaded to a public HTTPS URL.
-- Legal review of [LICENSE-PLUGIN.md](../../LICENSE-PLUGIN.md).
+Use [listing.md](listing.md) for listing copy and the support page draft.
+Use [demo.md](demo.md) and `fixtures/` for the review demonstration.
 
-## Deploy and verify the domain
-
-1. Run the server on any Node.js 22 host behind HTTPS. It keeps no state, so
-   you can run any number of instances:
-
-   ```bash
-   npx -y @docx-editor.dev/mcp-app http --port "$PORT"
-   ```
-
-2. In the submission portal, copy the domain-verification token. Set it as
-   `OPENAI_APPS_CHALLENGE` on the server. The server then answers
-   `GET /.well-known/openai-apps-challenge` with the token as plain text.
-
-## Build the package
+## Build both packages
 
 ```bash
-bun run build
-MCP_URL=https://mcp.docx-editor.dev/mcp DEMO_URL=https://... bun run build:directory
+bun install --frozen-lockfile
+bun run build:local
+bun run smoke:packages
 ```
 
-The build fails without `DEMO_URL`. To check the package before you record the
-demo, add `-- --draft`.
+The build writes these files:
 
-Upload `dist/directory-plugin/`. It holds `plugin.json` (with the listing and
-the review block), `mcp.json`, the `docx-editor` skill, the icons, and
-`LICENSE`. It carries no engine code, so it is licensed under Apache-2.0.
+| Host    | Archive                                             | Extracted contents             |
+| ------- | --------------------------------------------------- | ------------------------------ |
+| ChatGPT | `dist/local-packages/docx-editor-chatgpt-0.1.2.zip` | `dist/local-packages/chatgpt/` |
+| Claude  | `dist/local-packages/docx-editor-claude-0.1.2.mcpb` | `dist/local-packages/claude/`  |
+
+The version comes from `package.json` and `.codex-plugin/plugin.json`.
+Use `bun run release:version <major.minor.patch>` to update both versions.
+Each archive has a `.sha256` checksum file beside it.
+The archive root contains the host manifest, not an enclosing directory.
+
+Both packages include the server, inline editor, matching WebAssembly file, icons, and license notices.
+The server dependencies are bundled into `dist/cli.js`.
+The packages contain no `node_modules`, repository files, local documents, or host credentials.
+The ChatGPT package also includes the document preview skill.
+Claude desktop extensions do not install that skill.
+
+To rebuild one package after `bun run build`, use `bun run build:directory` or `bun run build:claude`.
+
+## Verify the archives
+
+`bun run smoke:packages` extracts both archives into temporary folders with spaces in their paths.
+It starts each configured server from an unrelated working directory.
+It checks these operations:
+
+- List tools and expose only `open_document` to the model.
+- Offer local paths through `open_document`.
+- Read the inline editor and bundled WebAssembly through MCP.
+- Open a local document and read its bytes through MCP.
+- Save changed content through the version check and verify the saved bytes.
+- Refuse a stale save without overwriting the document.
+- Refuse a missing document and keep the connection open.
+- Check archive checksums and exclude development files.
+
+The test writes runtime details and archive hashes to `dist/local-packages/verification.json`.
+
+Run the official Claude validator before submission:
+
+```bash
+npx --yes @anthropic-ai/mcpb@2.1.2 validate dist/local-packages/claude/manifest.json
+npx --yes @anthropic-ai/mcpb@2.1.2 info dist/local-packages/docx-editor-claude-0.1.2.mcpb
+```
+
+The generated `.mcpb` is an unsigned ZIP bundle.
+Directory review and signing are separate from package creation.
+Do not treat schema validation as directory approval.
+
+## Submit to ChatGPT
+
+Follow OpenAI's [desktop-only submission instructions](https://developers.openai.com/plugins/deploy/desktop-only).
+Local MCP submissions require an approved organization.
+Ask your OpenAI representative to approve your organization before submission.
+Complete publisher identity verification and confirm your submission permissions.
+
+1. Record the desktop review cases in [review.json](review.json).
+2. Publish the demo recording at an HTTPS URL.
+3. Rebuild the packages with the recording URL:
+
+   ```bash
+   DEMO_URL=https://your-domain.example/demo.mp4 bun run build:local
+   bun run smoke:packages
+   ```
+
+4. In the submission portal, select **Create plugin > Skills only > Upload ZIP**.
+5. Upload `dist/local-packages/docx-editor-chatgpt-0.1.2.zip`.
+6. Complete the remaining review requirements and submit for review.
+
+The build includes review cases without a demo when you omit `DEMO_URL`.
+It reports the missing recording instead of inventing a URL.
+The package sets `requires_local_executor` and declares a stdio MCP server.
+The host must provide Node.js 22 or later for the `node` launch command.
+No shell launcher, global npm package, or local HTTP port is required.
+
+OpenAI hosts support `view_docx_file` for their file viewer.
+The model uses `open_document`; the host or widget uses the other tools.
+
+## Submit to Claude
+
+Follow Claude's [desktop extension instructions](https://support.claude.com/en/articles/10949351-getting-started-with-local-mcp-servers-on-claude-desktop).
+Use the desktop extension submission form linked from that page.
+Submit the `.mcpb` package through that route, not the remote connector route.
+
+The manifest uses the `node` server type and requires Node.js 22 or later.
+Claude Desktop supplies the Node.js runtime.
+The package supports macOS and Windows without a shell command.
+Confirm both platforms through clean desktop installation tests before you claim release support.
+
+For local review, open **Settings > Extensions > Advanced settings > Install Extension**.
+Select `dist/local-packages/docx-editor-claude-0.1.2.mcpb`.
+Use `open_document` with an absolute path.
+Claude does not use the OpenAI file viewer entrypoint.
+
+## Complete desktop review
+
+Archive smoke tests verify the server protocol and bundled files.
+They do not prove that either directory installs the package or renders the editor correctly.
+Before submission, test a clean installation in each desktop host:
+
+1. Confirm that installation needs no terminal, account, API key, or manually started server.
+2. Open a local `.docx` by path and expand the preview.
+3. Change the file with the agent's document tools and check the preview update.
+4. Edit in the preview and verify the saved document.
+5. Test comments, tracked changes, and simultaneous file edits.
+6. For ChatGPT, test its file viewer entrypoint.
+7. Test Windows and macOS launches with paths that contain spaces.
+8. Record the results and demo without private documents or account details.
+
+## Complete listing requirements
+
+Publish the support, privacy, and terms pages at the URLs in `.codex-plugin/plugin.json`.
+The policy drafts are [privacy.md](privacy.md) and [terms.md](terms.md).
+Set their effective dates and obtain legal review before publication.
+Review `LICENSE-PLUGIN.md` for the bundled Eigenpal components.
+The local packages carry that license and `THIRD_PARTY_NOTICES.md`.
+
+The plugin does not send documents to Eigenpal servers.
+The desktop host and model provider can process document data under their own policies.
+Do not claim that local installation prevents all document transmission.
 
 ## Content security policy
 
-The widget fetches nothing: it is one inline document, and it reads its
-WebAssembly and documents through MCP. The server declares no connect or
-resource domains.
-
-## Tool annotations
-
-| Tool             | Seen by                | `readOnlyHint` | `destructiveHint` | `openWorldHint` |
-| ---------------- | ---------------------- | -------------- | ----------------- | --------------- |
-| `open_document`  | Model                  | `true`         | `false`           | `false`         |
-| `view_docx_file` | Host (file entrypoint) | `true`         | `false`           | `false`         |
-
-The hosted server registers no other tools. It needs no authentication and no
-reviewer credentials.
-
-Neither tool writes. In the desktop file viewer, the user can type in the
-document, and the viewer saves those edits through the host's file API
-(`openai/resources/write`). The host controls that write.
-
-## Test cases
-
-[review.json](review.json) holds five positive and three negative cases.
-The build adds them to `plugin.json`. Before you submit, run each case on the
-hosted server in ChatGPT, and attach the files that the prompts name.
-
-The file viewer (`view_docx_file`) works in the desktop apps only. On the web
-and on mobile, a preview shows the document but does not follow a file.
-
-## Demo video
-
-Record one take of positive cases 1 to 3: open a `.docx` in the side panel,
-ask for an edit, and show the highlighted update.
+The widget reads its editor assets and documents through MCP.
+It does not fetch assets from an editor website.
+The server declares no widget connect or resource domains.
+The local process exposes no HTTP listener when the host starts it with `stdio`.

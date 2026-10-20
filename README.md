@@ -61,22 +61,26 @@ Other commands:
 - `docx-editor-mcp-app stdio` runs the server over stdio. Hosts start it this way.
 - `docx-editor-mcp-app http --port 3000` serves MCP at `http://localhost:3000/mcp`.
 
-## Deploy for web hosts
+## Build local directory packages
 
-Web hosts, and OpenAI's plugin directory, need a public HTTPS URL. Run the
-server on any Node.js 22 host behind HTTPS:
+Prepare the ChatGPT plugin ZIP and Claude desktop extension from the same local build:
 
 ```bash
-npx -y @docx-editor.dev/mcp-app http --port "$PORT"
+bun run build:local
+bun run smoke:packages
 ```
 
-The server keeps no state, so you can run any number of instances. To submit
-to the plugin directory, see [docs/submission](docs/submission/README.md).
+The archives appear in `dist/local-packages/`.
+Both include the server, editor assets, WebAssembly file, and license notices.
+The host starts the server over stdio.
+You do not host the editor or run a public endpoint.
 
-- **Claude:** **Settings > Connectors > Add custom connector**, then enter
-  `https://<your-host>/mcp`.
-- **ChatGPT:** **Settings > Apps > Advanced**, enable **Developer mode**, then
-  create an app with `https://<your-host>/mcp` and no authentication.
+See [docs/submission](docs/submission/README.md) for installation tests and directory submission requirements.
+OpenAI requires approval for local MCP submissions.
+Claude reviews desktop extensions through its extension submission process.
+
+You can still use `http` for a separate deployment that needs a remote MCP endpoint.
+The local directory packages do not use that mode.
 
 ## Develop
 

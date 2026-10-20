@@ -153,7 +153,9 @@ export function InlineCard({
           </button>
         )}
       </div>
-      {fullscreenUnavailable && <p className="card-hint">Download the file to open it in Word.</p>}
+      {fullscreenUnavailable && canDownload && (
+        <p className="card-hint">Download the file to open it in Word.</p>
+      )}
     </div>
   );
 }

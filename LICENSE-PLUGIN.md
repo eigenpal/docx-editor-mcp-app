@@ -2,7 +2,7 @@
 
 > **Draft for legal review.** Do not publish until counsel approves this text.
 
-Copyright (c) 2026 EigenPal, Inc.
+Copyright (c) 2026 Eigenpal, Inc.
 
 This license covers the EigenPal components that the docx-editor plugin bundles
 in its built files (`dist/`), including code from `@docx-editor.dev/pro`. The
@@ -11,7 +11,7 @@ Other bundled third-party code keeps its own license (`THIRD_PARTY_NOTICES.md`).
 
 ## 1. Grant
 
-EigenPal, Inc. grants you a free, non-exclusive, non-transferable license to
+Eigenpal, Inc. grants you a free, non-exclusive, non-transferable license to
 install and use the bundled EigenPal components, including for production use,
 only as part of this plugin, unmodified, inside an MCP host such as ChatGPT,
 Codex, or Claude.
@@ -38,7 +38,7 @@ To use the docx-editor SDK in your own software, including
 ## 4. No warranty
 
 The bundled components are provided "as is", without warranty of any kind. To
-the extent permitted by law, EigenPal, Inc. is not liable for any damages
+the extent permitted by law, Eigenpal, Inc. is not liable for any damages
 arising from their use.
 
 ## 5. Termination

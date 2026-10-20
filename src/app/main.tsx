@@ -29,9 +29,7 @@ import type {
   McpUiHostContext,
   McpUiTheme,
 } from '@modelcontextprotocol/ext-apps';
-import { DocxEditor, type DocxEditorRef } from '@docx-editor.dev/react';
 import { reviewModule } from '@docx-editor.dev/pro';
-import { DocxEditorReview } from '@docx-editor.dev/pro/react';
 import { useDocxEditor } from '@docx-editor.dev/react';
 import type { DocxEditorInstance } from '@docx-editor.dev/core/editor';
 // First: points the engine's text shaper at its binary before any editor exists.
@@ -39,13 +37,13 @@ import { provideApp } from './assets.js';
 import { message } from './file-sync-support.js';
 import { InlineCard, InlineSkeleton, type CardState } from './InlineCard.js';
 import { createSupersession } from './supersession.js';
-import { ReviewPaneController } from './ReviewPaneController.js';
 import { downloadDocx } from './download.js';
 import { FileOpenError, FileSync, type FileActions } from './FileSync.js';
 import { FileEntrypointInput, attachOpenAIExtensions } from './host-file.js';
 import { DOCUMENT_META } from '../shared/catalog.js';
 import { adoptFile, applyHostContext } from './widget-helpers.js';
 import { loadRequest, type LoadedDoc, type OpenRequest } from './load-document.js';
+import { EditorFrame } from './EditorFrame.js';
 import '@docx-editor.dev/core/styles/editor.css';
 import './styles.css';
 
@@ -71,7 +69,6 @@ function Widget() {
   const [superseded, setSuperseded] = useState(supersession.superseded);
   useEffect(() => supersession.subscribe(() => setSuperseded(supersession.superseded)), []);
   const [handshakeContext, setHandshakeContext] = useState<McpUiHostContext | null>(null);
-  const editorRef = useRef<DocxEditorRef>(null);
 
   // Registered before `connect()` resolves. `toolresult` is a one-shot event:
   // a handler added after the handshake can miss the notification that carried
@@ -218,7 +215,7 @@ function Widget() {
     }
   }, [app]);
 
-  const save = useCallback(() => editorRef.current?.save() ?? Promise.resolve(null), []);
+  const save = useCallback(() => editor?.save() ?? Promise.resolve(null), [editor]);
   const documentName = request?.name ?? 'document.docx';
   // The document shown is only ever the one the CURRENT request produced.
   const current = loaded && loaded.request === request ? loaded : null;
@@ -263,8 +260,7 @@ function Widget() {
           {/* `inert` while inline: visibility alone leaves a tabbable
               contenteditable document behind the card. */}
           <div className="stage" inert={!isFullscreen}>
-            <DocxEditor
-              ref={editorRef}
+            <EditorFrame
               document={document}
               modules={PRO_MODULES}
               title={title}
@@ -289,9 +285,7 @@ function Widget() {
                   if (bytes) await downloadDocx(app, new Uint8Array(bytes), documentName);
                 })();
               }}
-              menu={{ reportIssue: false }}
             >
-              <DocxEditorReview />
               <EditorBridge onEditor={onEditor} />
               {/* A superseded preview stops syncing: one live preview per file. */}
               {app && syncedFile && current && !superseded && (
@@ -302,8 +296,7 @@ function Widget() {
                   onActions={onFileActions}
                 />
               )}
-            </DocxEditor>
-            <ReviewPaneController editor={editor} />
+            </EditorFrame>
           </div>
         </div>
       )}
@@ -328,7 +321,7 @@ function Widget() {
  * Lifts the live editor INSTANCE out of the editor's own tree.
  *
  * `useDocxEditor()` reads the editor off React context, so it only answers from
- * inside `<DocxEditor>`. The card and `ReviewPaneController` render beside it and need that
+ * inside `<DocxEditor>`. The card renders beside it and needs that
  * instance. `<DocxEditor onReady>` is not a substitute: it hands over the
  * narrower `Editor` facade, and editor-api's `createBrowser` does not accept it.
  */

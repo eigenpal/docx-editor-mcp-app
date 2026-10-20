@@ -4,10 +4,10 @@
 
 Effective date: _to be set_
 
-These terms govern your use of the docx-editor plugin from EigenPal, Inc.
+These terms govern your use of the docx-editor plugin from Eigenpal, Inc.
 
 1. **Use.** You may use the plugin free of charge, including for business
-   use, inside ChatGPT, Codex, and other MCP hosts. The bundled EigenPal
+   use, inside ChatGPT, Codex, and other MCP hosts. The bundled Eigenpal
    components are licensed under the EigenPal Plugin License
    (`LICENSE-PLUGIN.md`); the plugin's source code is licensed under the Apache
    License 2.0.
@@ -17,7 +17,7 @@ These terms govern your use of the docx-editor plugin from EigenPal, Inc.
    responsible for the documents you open and the changes you save.
 4. **No warranty.** The plugin is provided "as is". Check important documents
    in Microsoft Word before you rely on them.
-5. **Liability.** To the extent the law permits, EigenPal, Inc. is not liable
+5. **Liability.** To the extent the law permits, Eigenpal, Inc. is not liable
    for indirect or consequential damages, or for lost data.
 6. **Changes.** We may update these terms. We will post the new effective date.
 

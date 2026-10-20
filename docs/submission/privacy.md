@@ -1,43 +1,48 @@
 # docx-editor privacy policy
 
-> **Draft for legal review.** Publish at https://www.docx-editor.dev/privacy.
+> Draft for legal review. Publish at https://www.docx-editor.dev/privacy.
 
 Effective date: _to be set_
 
-EigenPal, Inc. ("we") makes the docx-editor plugin for ChatGPT, Codex, and
-other MCP hosts. This policy explains what the plugin does with your data.
+Eigenpal, Inc. provides the docx-editor local plugin for ChatGPT, Codex, and Claude Desktop.
+This policy describes the local plugin.
+It does not cover a separately deployed HTTP server.
 
-## What the plugin processes
+## Documents and local files
 
-- **Documents you open in the viewer.** Your MCP host gives the viewer the
-  file. The viewer shows and saves it on your device. The file does not pass
-  through our servers.
-- **Documents an agent sends as bytes.** When an agent shows a document with
-  `open_document`, the document passes through our server once, in that
-  request, and goes back to your viewer.
-- **Technical data.** Our hosting provider, _to be named_, logs request
-  metadata, such as time and IP address, for security and operations. Our
-  server logs errors, without document content. We keep these logs for
-  _a period to be set_, then delete them.
+Your desktop host starts the plugin's MCP server on your computer.
+You or your agent select documents for the preview.
+The server reads local files you open and saves your preview edits to those files.
+The viewer processes document contents inside your desktop host.
+The package includes its editor assets and WebAssembly file.
+It does not load an editor from an Eigenpal website.
 
-## What we do not do
+The plugin does not send your documents to Eigenpal servers.
+Your desktop host and model provider can process document contents under their own policies.
+Local installation does not change those policies.
 
-- We do not store your documents. The server keeps no document state.
-- We do not use your documents to train models.
-- We do not sell or share your data, and we do not track you across sites.
-- The viewer sets no cookies and loads nothing from other sites.
+## Local settings
+
+The viewer stores your suggestion author name in the host's local storage.
+It uses this name for comments and tracked changes.
+The server keeps document tokens and file versions in process memory while it runs.
+It does not create an Eigenpal account for you.
+The local plugin includes no analytics service.
+Your host can keep its own diagnostic logs.
+
+## Support and websites
+
+If you email support, you choose which information to send.
+Do not send private documents unless you intend to share them with support.
+Our website and directory providers can process information under their own policies.
+This package does not include an automatic document upload to support.
 
 ## Your choices
 
-- Close the preview, or disable the plugin in your host's settings, at any
-  time.
-- To ask about or delete data related to you, email the contact address
-  below. We answer within _a period to be set_.
-
-## Local installs
-
-If you install the plugin from npm and run it on your computer, documents
-never leave your computer.
+Close the preview or disable the plugin in your desktop host.
+Uninstall the plugin through the host's settings.
+Your saved documents remain under your control.
+Ask your host provider how to remove its stored conversations and local application data.
 
 ## Contact
 

@@ -20,7 +20,7 @@ const log = (line: string) => {
   el.textContent = `${line}\n${el.textContent ?? ''}`.slice(0, 6000);
 };
 
-const theme = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+let theme: 'light' | 'dark' = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 const client = new Client({ name: 'harness', version: '0.0.0' });
 await client.connect(new StreamableHTTPClientTransport(new URL('/mcp', location.href)));
 
@@ -84,6 +84,20 @@ bridge.onrequestdisplaymode = async ({ mode }) => {
   bridge.setHostContext({ displayMode: mode });
   void bridge.sendHostContextChange({ hostContext: { displayMode: mode } });
   return { mode };
+};
+
+(document.getElementById('collapse') as HTMLButtonElement).onclick = () => {
+  document.body.dataset.mode = 'inline';
+  frame.style.height = '160px';
+  bridge.setHostContext({ displayMode: 'inline' });
+  void bridge.sendHostContextChange({ hostContext: { displayMode: 'inline' } });
+};
+
+(document.getElementById('theme') as HTMLButtonElement).onclick = () => {
+  theme = theme === 'light' ? 'dark' : 'light';
+  const context = { theme, styles: { variables: claudeVariables(theme) } };
+  bridge.setHostContext(context);
+  void bridge.sendHostContextChange({ hostContext: context });
 };
 
 bridge.ondownloadfile = async ({ contents }) => {

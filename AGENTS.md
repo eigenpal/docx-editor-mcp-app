@@ -55,10 +55,10 @@ domains, and blocks `blob:` images. So the widget is one inline document
 Never make the widget fetch anything.
 
 Two transports, one server: `stdio` (local mode: `open_document` takes paths,
-and the preview syncs with the file) and `http` (web hosts and OpenAI's plugin
-directory: no paths; bytes return in the result `_meta`, so the server keeps
+and the preview syncs with the file) and `http` (web hosts and remote integrations: no paths; bytes return in the result `_meta`, so the server keeps
 no state). Submission material is in `docs/submission/`; `bun run
-build:directory` packages the hosted plugin.
+build:directory` packages the local OpenAI plugin.
+`bun run build:local` packages both local directory submissions.
 
 ## File sync
 
@@ -110,9 +110,17 @@ More rules from verification:
   cannot measure the card and the host clips it.
 - No `<StrictMode>`. Its dev double-mount closes the SDK `App` mid-handshake,
   and a host answers `ui/initialize` once.
-- Chrome styling uses the host's tokens (`--color-*`, `--font-*`) through
+- The inline card uses the host's tokens (`--color-*`, `--font-*`) through
   `useHostStyleVariables(app, handshakeContext)`. The second argument carries
   the initial styles; without it the widget renders in fallback colors.
+- The fullscreen editor uses the docx-editor.dev demo palette: the `--mcp-*`
+  tokens on `.mcp-editor` in `src/app/editor-frame.css`, light and dark.
+- Comments and tracked changes work as in the demo (`/editor`, source in
+  `eigenpal/docx-editor.dev`, `src/components/editor/studio/`). The rail
+  (`CommentRail.tsx`) shows comments only, as initials badges that open
+  cards. A tracked change opens a balloon (`ReviewBalloons.tsx`). The
+  Changes panel (`ChangesPanel.tsx`) lists both. Port demo changes there;
+  keep the class names `mcp-*` for the demo's `st-*`.
 - Loading states are skeletons shaped like the card. Never spinners.
 - The EDITOR follows the host theme: `colorMode={hostTheme ?? 'system'}` on
   `<DocxEditor>`. A light toolbar in a dark host makes the host's overlaid

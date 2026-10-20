@@ -1,0 +1,67 @@
+.mcp-editor .mcp-navigation .docx-nav__panel-shell {
+  box-sizing: border-box;
+  inset-block-start: var(--mcp-card-top);
+  inset-block-end: max(var(--safe-bottom, 0px), 16px);
+  padding: 12px;
+  border: 1px solid var(--doc-border-light);
+  border-radius: 14px;
+  background: var(--doc-surface);
+}
+
+.mcp-editor .mcp-navigation .docx-nav__header {
+  gap: 4px;
+  padding: 0 0 8px;
+}
+
+.mcp-editor .mcp-navigation .docx-nav__title {
+  font-size: 15px;
+}
+
+.mcp-editor .mcp-navigation .docx-nav__close {
+  width: 32px;
+  height: 32px;
+}
+
+.mcp-editor .mcp-navigation .docx-nav__tabs {
+  gap: 2px;
+  padding: 2px;
+  margin-block-end: 10px;
+  border: 1px solid var(--doc-border-light);
+  border-radius: 8px;
+  background: var(--doc-bg-hover);
+}
+
+.mcp-editor .mcp-navigation .docx-nav__tab {
+  flex: 1;
+  min-height: 30px;
+  padding: 5px 8px;
+  margin: 0;
+  border: 1px solid transparent;
+  border-radius: 6px;
+}
+
+.mcp-editor .mcp-navigation .docx-nav__tab--selected {
+  border-color: var(--doc-border-light);
+  background: var(--doc-surface);
+  color: var(--doc-text);
+}
+
+.mcp-editor .mcp-navigation .docx-nav__panel {
+  padding-inline: 0;
+}
+
+.mcp-editor .mcp-navigation .docx-nav__searchbox {
+  box-sizing: border-box;
+  min-height: 34px;
+  border-radius: 8px;
+  background: var(--doc-surface);
+}
+
+.mcp-editor .mcp-navigation .docx-nav__searchbox:focus-within {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--doc-primary) 35%, transparent);
+}
+
+.mcp-navigation .docx-nav__list {
+  scrollbar-width: thin;
+  scrollbar-color: var(--doc-border-input) transparent;
+}

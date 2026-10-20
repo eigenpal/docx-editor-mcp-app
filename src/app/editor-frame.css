@@ -1,0 +1,378 @@
+/*
+ * The fullscreen editor in the docx-editor.dev studio palette: warm neutral chrome around a
+ * Word-faithful page. The tokens live on `.mcp-editor`, and `.mcp-editor.dark` swaps them.
+ * The `--doc-*` overrides re-voice the packaged editor chrome (toolbar parts, menus,
+ * dialogs) in the same palette. The page itself is never themed.
+ */
+.docx-editor.mcp-editor {
+  --mcp-bg: #f4f3f0;
+  --mcp-surface: #ffffff;
+  --mcp-surface-2: #faf9f7;
+  --mcp-raised: #ffffff;
+  --mcp-ink: #1b1a19;
+  --mcp-ink-2: #44413d;
+  --mcp-ink-3: #75716b;
+  --mcp-ink-4: #a29e97;
+  --mcp-line: #e7e4df;
+  --mcp-line-2: #d9d5ce;
+  --mcp-hover: rgba(27, 26, 25, 0.05);
+  --mcp-press: rgba(27, 26, 25, 0.09);
+  --mcp-primary: #1b1a19;
+  --mcp-primary-ink: #ffffff;
+  --mcp-accent: #2f5d8a;
+  --mcp-ins: #2f5d8a;
+  --mcp-del: #a8432a;
+  --mcp-focus: rgba(47, 93, 138, 0.45);
+  --mcp-shadow-1: 0 1px 2px rgba(27, 26, 25, 0.05), 0 0 0 1px var(--mcp-line);
+  --mcp-shadow-2:
+    0 0 0 1px rgba(27, 26, 25, 0.06), 0 2px 4px rgba(27, 26, 25, 0.04),
+    0 16px 36px -12px rgba(27, 26, 25, 0.22);
+  --mcp-page-shadow:
+    0 0 0 1px rgba(27, 26, 25, 0.04), 0 1px 2px rgba(27, 26, 25, 0.05),
+    0 10px 28px -6px rgba(27, 26, 25, 0.1);
+  --mcp-sans: var(--font-sans, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
+  --mcp-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --mcp-r-sm: 6px;
+  --mcp-r: 8px;
+  --mcp-r-lg: 12px;
+  --mcp-panel-w: 384px;
+
+  /* Packaged chrome in this palette. */
+  --doc-surface: var(--mcp-surface);
+  --doc-bg: var(--mcp-bg);
+  --doc-bg-subtle: var(--mcp-surface-2);
+  --doc-bg-hover: var(--mcp-hover);
+  --doc-bg-input: var(--mcp-surface);
+  --doc-primary: var(--mcp-ink);
+  --doc-primary-hover: #000;
+  --doc-primary-light: var(--mcp-hover);
+  --doc-accent: var(--mcp-ink);
+  --doc-accent-bg: var(--mcp-press);
+  --doc-toggle-active-bg: var(--mcp-press);
+  --doc-toggle-active-fg: var(--mcp-ink);
+  --doc-text: var(--mcp-ink);
+  --doc-text-muted: var(--mcp-ink-3);
+  --doc-text-subtle: var(--mcp-ink-4);
+  --doc-border: var(--mcp-line);
+  --doc-border-light: var(--mcp-line);
+  --doc-border-dark: var(--mcp-line-2);
+  --doc-focus-ring: var(--mcp-focus);
+  --doc-card-shadow: var(--mcp-shadow-1);
+  --doc-card-shadow-strong: var(--mcp-shadow-2);
+  --doc-shadow-lg: var(--mcp-shadow-2);
+  --doc-page-gap: 24px;
+
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  background: var(--mcp-bg);
+  color: var(--mcp-ink);
+  font-family: var(--mcp-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+.docx-editor.mcp-editor.dark {
+  --mcp-bg: #141413;
+  --mcp-surface: #1c1c1b;
+  --mcp-surface-2: #222220;
+  --mcp-raised: #262624;
+  --mcp-ink: #f1efec;
+  --mcp-ink-2: #d2cfca;
+  --mcp-ink-3: #9c9891;
+  --mcp-ink-4: #6d6a64;
+  --mcp-line: #2d2c2a;
+  --mcp-line-2: #3b3a37;
+  --mcp-hover: rgba(255, 255, 255, 0.06);
+  --mcp-press: rgba(255, 255, 255, 0.11);
+  --mcp-primary: #f1efec;
+  --mcp-primary-ink: #141413;
+  --mcp-accent: #7fa7cf;
+  --mcp-focus: rgba(127, 167, 207, 0.5);
+  --mcp-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.3), 0 0 0 1px var(--mcp-line);
+  --mcp-shadow-2:
+    0 0 0 1px rgba(255, 255, 255, 0.06), 0 2px 4px rgba(0, 0, 0, 0.3),
+    0 18px 40px -12px rgba(0, 0, 0, 0.6);
+  --mcp-page-shadow: 0 0 0 1px rgba(255, 255, 255, 0.04), 0 12px 32px -6px rgba(0, 0, 0, 0.55);
+  --doc-primary-hover: #fff;
+}
+
+.mcp-editor :focus-visible {
+  outline: 2px solid var(--mcp-focus);
+  outline-offset: 1px;
+}
+
+/* Per page, on the engine's own contained page box: a filter on the whole stack would
+   rasterize every page as one layer. */
+.mcp-editor .docx-paginated-surface .docx-page {
+  box-shadow: var(--mcp-page-shadow);
+}
+
+.mcp-chrome {
+  flex: none;
+  position: relative;
+  z-index: var(--doc-z-overlay, 50);
+}
+
+.mcp-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+  padding: 12px 20px 4px;
+  font-size: 13px;
+}
+
+.mcp-document-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  max-width: 30%;
+}
+
+.mcp-document-name svg {
+  flex: none;
+}
+
+.mcp-file-label {
+  display: flex;
+  align-items: baseline;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.mcp-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.mcp-extension {
+  flex: none;
+  color: var(--mcp-ink-4);
+  font-size: 13px;
+}
+
+.mcp-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+}
+
+.mcp-editor .mcp-editing-mode {
+  margin: 0;
+  padding: 0;
+  min-height: 0;
+  background: transparent;
+}
+
+.mcp-editor .mcp-formatting {
+  box-sizing: border-box;
+  margin: 8px 20px 12px;
+  padding: 6px 10px;
+  min-height: 44px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--mcp-surface);
+  box-shadow:
+    0 0 0 1px var(--mcp-line),
+    0 1px 2px rgba(27, 26, 25, 0.04),
+    0 8px 20px -14px rgba(27, 26, 25, 0.28);
+}
+
+.mcp-editor.dark .mcp-formatting {
+  box-shadow:
+    0 0 0 1px var(--mcp-line),
+    0 10px 24px -14px rgba(0, 0, 0, 0.7);
+}
+
+/* The demo adds these control styles outside the engine's shared stylesheet. */
+.mcp-editor .mcp-formatting .docx-toolbar__style-trigger,
+.mcp-editor .mcp-formatting .docx-toolbar__font-family-trigger,
+.mcp-editor .mcp-formatting .docx-toolbar__font-size-input {
+  height: 30px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: var(--mcp-hover);
+  color: var(--mcp-ink);
+  font-size: 13px;
+  transition: background-color 0.15s;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .mcp-editor .mcp-formatting .docx-toolbar__style-trigger:hover:not(:disabled),
+  .mcp-editor .mcp-formatting .docx-toolbar__font-family-trigger:hover:not(:disabled) {
+    background: var(--mcp-press);
+  }
+}
+
+.mcp-formatting .docx-toolbar__group:empty,
+.mcp-formatting .docx-toolbar__group:empty + .docx-toolbar__separator {
+  display: none;
+}
+
+.mcp-font-notice {
+  flex: none;
+}
+
+.mcp-workspace {
+  --mcp-card-top: 24px;
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+}
+
+/* The page column: navigation, pages, zoom, and page number. Balloons stack inside it, so
+   toolbar menus and the panel sheet stay on top of them. */
+.mcp-docpane {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+.mcp-editor:has(.docx-hyperlink-popup) .mcp-workspace {
+  z-index: var(--doc-z-overlay, 50);
+}
+
+.mcp-editor .docx-hyperlink-popup {
+  box-sizing: border-box;
+  min-width: min(280px, calc(100vw - 16px));
+  max-width: min(420px, calc(100vw - 16px));
+}
+
+.mcp-editor .docx-hyperlink-popup__fields,
+.mcp-editor .docx-hyperlink-popup__input {
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.mcp-editor .docx-toolbar__more-panel .docx-toolbar__line-spacing-menu {
+  position: fixed;
+  box-sizing: border-box;
+  inset: auto;
+  top: var(--mcp-menu-top, 0px);
+  left: var(--mcp-menu-left, 0px);
+  right: auto;
+  bottom: auto;
+  max-height: var(--mcp-menu-height, 280px);
+  overflow-y: auto;
+  margin: 0;
+}
+
+.mcp-editor .mcp-viewport {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  background: var(--mcp-bg);
+  overflow-anchor: none;
+}
+
+.mcp-editor .mcp-zoom {
+  position: absolute;
+  right: 20px;
+  bottom: max(var(--safe-bottom), 16px);
+  z-index: 20;
+  margin: 0;
+  padding: 3px;
+  min-height: 28px;
+  border-radius: 9999px;
+  background: var(--mcp-surface);
+  box-shadow: var(--mcp-shadow-2);
+}
+
+.mcp-editor .mcp-zoom .docx-toolbar__button {
+  border-radius: 999px;
+  color: var(--mcp-ink-2);
+}
+
+.mcp-editor .mcp-page-number {
+  border-radius: 999px;
+  background: var(--mcp-raised);
+  box-shadow: var(--mcp-shadow-1);
+  color: var(--mcp-ink-2);
+}
+
+/* The thumbnail keeps the same Content mount without interactive controls. */
+.mcp-editor[data-chrome='false'] .mcp-chrome,
+.mcp-editor[data-chrome='false'] .mcp-font-notice,
+.mcp-editor[data-chrome='false'] .mcp-zoom,
+.mcp-editor[data-chrome='false'] .mcp-navigation,
+.mcp-editor[data-chrome='false'] .mcp-navigation-toggle,
+.mcp-editor[data-chrome='false'] .mcp-page-number,
+.mcp-editor[data-chrome='false'] .docx-review,
+.mcp-editor[data-chrome='false'] .mcp-balloon {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  .mcp-header {
+    flex-wrap: wrap;
+    gap: 6px 12px;
+    padding: 10px 12px 2px;
+  }
+
+  .mcp-document-name {
+    max-width: calc(100% - 220px);
+  }
+
+  .mcp-header > .docx-menubar {
+    order: 3;
+    width: 100%;
+  }
+
+  .mcp-editor .mcp-formatting {
+    margin: 6px 12px 10px;
+  }
+
+  .mcp-editor .mcp-zoom {
+    right: 12px;
+  }
+}
+
+@media print {
+  .mcp-chrome,
+  .mcp-font-notice,
+  .mcp-navigation,
+  .mcp-navigation-toggle,
+  .mcp-page-number,
+  .mcp-zoom {
+    display: none !important;
+  }
+
+  .mcp-editor,
+  .mcp-workspace,
+  .mcp-viewport {
+    height: auto !important;
+    overflow: visible !important;
+    background: white !important;
+  }
+}
+
+@media (max-width: 420px) {
+  .mcp-extension,
+  .mcp-document-name svg {
+    display: none;
+  }
+
+  .mcp-header-actions {
+    gap: 6px;
+  }
+
+  .mcp-document-name {
+    max-width: calc(100% - 200px);
+  }
+
+  .widget[data-mode='fullscreen'] .file-sync {
+    bottom: max(calc(var(--safe-bottom) + 44px), 56px);
+  }
+}

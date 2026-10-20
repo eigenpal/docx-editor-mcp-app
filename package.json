@@ -1,8 +1,8 @@
 {
   "name": "@docx-editor.dev/mcp-app",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "Word-faithful .docx viewer and editor for ChatGPT, Codex, and Claude, as an MCP App with OpenAI plugin extensions.",
-  "author": "EigenPal",
+  "author": "Eigenpal",
   "license": "SEE LICENSE IN LICENSE-PLUGIN.md",
   "homepage": "https://docx-editor.dev/",
   "repository": {
@@ -62,12 +62,19 @@
     "build:notices": "node scripts/build-notices.mjs",
     "prepublishOnly": "bun run typecheck && bun run lint && bun run test",
     "smoke": "node scripts/smoke-stdio.mjs",
-    "build:directory": "node scripts/build-directory-plugin.mjs"
+    "build:directory": "node scripts/build-directory-plugin.mjs",
+    "build:local": "bun run build && node scripts/build-local-packages.mjs",
+    "build:claude": "node scripts/build-local-packages.mjs claude",
+    "smoke:packages": "node scripts/smoke-local-packages.mjs",
+    "engine:check": "node scripts/check-engine.mjs",
+    "engine:update": "node scripts/check-engine.mjs --update",
+    "release:version": "node scripts/release-version.mjs",
+    "release:verify": "bun run typecheck && bun run lint && bun run test && bun run build:local && bun run smoke && bun run smoke:packages"
   },
   "devDependencies": {
-    "@docx-editor.dev/core": "^2.24.0",
-    "@docx-editor.dev/pro": "^2.24.0",
-    "@docx-editor.dev/react": "^2.24.0",
+    "@docx-editor.dev/core": "2.31.0",
+    "@docx-editor.dev/pro": "2.31.0",
+    "@docx-editor.dev/react": "2.31.0",
     "@modelcontextprotocol/ext-apps": "^1.7.5",
     "@modelcontextprotocol/sdk": "^1.30.0",
     "@openai/mcp-extensions": "^0.1.0",

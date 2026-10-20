@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.1.2
+
+- Pin the editor packages to the latest verified release, `2.31.0`.
+- Add commands to check editor updates and change both plugin versions.
+- Record editor versions in packages and reject outdated editor builds.
+- Add release checks, a package workflow, and official listing preparation files.
+
+## 0.1.1
+
+- Build local ChatGPT plugin ZIP and Claude `.mcpb` submission packages.
+- Include the server, editor assets, WebAssembly file, icons, and license notices in both packages.
+- Test extracted packages without repository dependencies.
+- Use a plain heading for changes and comments.
+- Keep comment badges in the right panel when that panel is open.
+
 ## 0.1.0
 
 - A Word-faithful `.docx` preview for ChatGPT, Codex, and Claude, shipped as

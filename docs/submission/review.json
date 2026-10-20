@@ -16,7 +16,7 @@
       "description": "Show a document the agent creates.",
       "prompt": "Draft a one-page memo about the office move as a .docx and show it in docx-editor.",
       "tools_triggered": "open_document",
-      "expected_behavior": "The agent creates the .docx and calls open_document with content_base64. A preview card appears; Open editor shows the full page."
+      "expected_behavior": "The agent creates a local .docx and calls open_document with its absolute path. A preview card appears; Open editor shows the full page."
     },
     {
       "description": "Show tracked changes and comments.",
