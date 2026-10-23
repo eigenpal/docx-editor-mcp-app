@@ -28,7 +28,7 @@ If a newer file conflicts with unsaved edits, choose which version to keep in th
 ## Update the plugin
 
 Use your host's directory update process when available.
-For a direct installation, install the new package from the official release page.
+For a direct installation, install the new package from the [official release page](https://github.com/eigenpal/docx-editor-mcp-app/releases).
 Restart your desktop app after your running tasks finish if the installation requires it.
 An engine update does not update your installed plugin until you install a plugin release containing that engine.
 
@@ -40,6 +40,6 @@ The official plugin includes separate permission for its bundled proprietary Pro
 That permission covers use in ChatGPT, Codex, and Claude, including business documents.
 It does not permit extracting Pro code for another product or service.
 
-Read the plugin privacy policy and terms of use before installation.
+Read the [plugin privacy policy](https://www.docx-editor.dev/mcp-app/privacy) and [terms of use](https://www.docx-editor.dev/mcp-app/terms) before installation.
 The plugin does not send your documents to Eigenpal servers.
 Your host and model provider can process document data under their own policies.

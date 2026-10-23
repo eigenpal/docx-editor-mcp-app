@@ -7,7 +7,7 @@
     "email": "docx-editor@eigenpal.com",
     "url": "https://www.docx-editor.dev"
   },
-  "homepage": "https://www.docx-editor.dev",
+  "homepage": "https://www.docx-editor.dev/mcp-app",
   "license": "SEE LICENSE IN LICENSE-PLUGIN.md",
   "keywords": ["docx", "word", "document", "preview", "editor"],
   "skills": "./skills/",
@@ -19,10 +19,10 @@
     "developerName": "Eigenpal",
     "category": "Productivity",
     "capabilities": ["Interactive", "Read", "Write"],
-    "websiteURL": "https://www.docx-editor.dev",
-    "supportURL": "https://www.docx-editor.dev/support",
-    "privacyPolicyURL": "https://www.docx-editor.dev/privacy",
-    "termsOfServiceURL": "https://www.docx-editor.dev/terms",
+    "websiteURL": "https://www.docx-editor.dev/mcp-app",
+    "supportURL": "https://www.docx-editor.dev/mcp-app/support",
+    "privacyPolicyURL": "https://www.docx-editor.dev/mcp-app/privacy",
+    "termsOfServiceURL": "https://www.docx-editor.dev/mcp-app/terms",
     "defaultPrompt": [
       "Show the attached .docx in docx-editor.",
       "Tighten the summary in the attached .docx and show me the result.",

@@ -37,8 +37,13 @@ Your desktop-only submission documentation requires approval for local MCP submi
 Who handles eligibility and organization approval for companies without an existing OpenAI representative?
 Please route this request to the relevant team and tell us what information they need.
 
-Product: https://www.docx-editor.dev
+Product: https://www.docx-editor.dev/mcp-app
 Repository: https://github.com/eigenpal/docx-editor-mcp-app
+Contact: docx-editor@eigenpal.com
+
+The MCP source and open-source editor components use Apache-2.0.
+Bundled proprietary Pro components have separate permission for free personal and business use inside the official plugin.
+That permission does not allow Pro reuse in other products or services.
 
 ## Product details
 
@@ -50,11 +55,22 @@ Public publisher name: Eigenpal.
 
 Match this name to the business identity approved by OpenAI.
 
-Website: https://www.docx-editor.dev
+Website: https://www.docx-editor.dev/mcp-app
 
 Repository: https://github.com/eigenpal/docx-editor-mcp-app
 
 Support: docx-editor@eigenpal.com
+
+## Public review links
+
+- Support: https://www.docx-editor.dev/mcp-app/support
+- Privacy: https://www.docx-editor.dev/mcp-app/privacy
+- Terms: https://www.docx-editor.dev/mcp-app/terms
+- License: https://www.docx-editor.dev/mcp-app/licence
+
+The website PR has working previews for these pages.
+Publish and verify the production pages before final submission.
+You can request organization eligibility while the website review continues.
 
 ## Request
 

@@ -39,7 +39,13 @@ These results do not establish Claude installation, Windows support, or director
 7. Submit the Claude extension with its complete license disclosure.
 8. Obtain OpenAI local-MCP submission access before uploading its directory package.
 
-The support, privacy, and terms URLs each returned `404` during this check.
+The website preview includes the product, support, license, privacy, and terms pages.
+Website commit `c0e8ab4a968249080afe95a2efef315ec8137b0c` keeps these routes under `/mcp-app`.
+All five preview URLs returned `200` on October 23, 2026.
+Their production URLs returned `404` before the website merge.
+The owner will merge [website pull request 211](https://github.com/eigenpal/docx-editor.dev/pull/211) after review.
+Use the production URLs from `listing.md` in the final manifests.
+Do not submit until those URLs work without authentication.
 Use `support.md`, `privacy.md`, and `terms.md` as the page content drafts.
 Keep the support URL and policy URLs in the package synchronized with the published pages.
 
