@@ -12,7 +12,7 @@ const metadata = {
   version: pkg.version,
   tag: `v${pkg.version}`,
   engine: built.engine,
-  sourceLicense: 'MIT',
+  sourceLicense: 'Apache-2.0',
   bundledProLicense: 'LICENSE-PLUGIN.md',
   updates: 'host-managed with an in-app release notice fallback',
 };

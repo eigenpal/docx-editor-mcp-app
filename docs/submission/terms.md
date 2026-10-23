@@ -7,7 +7,7 @@ These terms cover the docx-editor MCP plugin from Eigenpal, Inc.
 ## Plugin use
 
 You may use the official plugin in ChatGPT, Codex, and Claude, including for personal and business documents.
-The MCP app source uses MIT under `LICENSE`.
+The MCP app source uses Apache-2.0 under `LICENSE`.
 The proprietary bundled Pro components have additional plugin permission under `LICENSE-PLUGIN.md`.
 Open-source editor components and other dependencies retain their own licenses.
 
@@ -16,8 +16,8 @@ Obtain a separate EigenPal Pro License for that use.
 See [DOCX Editor licensing](https://www.docx-editor.dev/commercial-license).
 This restriction does not remove rights granted by the independent open-source licenses.
 You may embed the Apache 2.0 editor components in commercial products under their own licenses.
-You may reuse the MIT-licensed MCP app source under its license.
-The complete bundled plugin does not use a single MIT license.
+You may reuse the Apache-2.0-licensed MCP app source under its license.
+The complete bundled plugin does not use a single open-source license.
 
 ## Your documents
 

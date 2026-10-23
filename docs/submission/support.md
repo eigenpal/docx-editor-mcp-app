@@ -34,7 +34,7 @@ An engine update does not update your installed plugin until you install a plugi
 
 ## Licenses and privacy
 
-The MCP app source uses MIT.
+The MCP app source uses Apache-2.0.
 The Apache 2.0 editor components retain their own commercial reuse rights.
 The official plugin includes separate permission for its bundled proprietary Pro code.
 That permission covers use in ChatGPT, Codex, and Claude, including business documents.

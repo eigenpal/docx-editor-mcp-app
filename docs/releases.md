@@ -12,7 +12,7 @@ Do not replace files or restart an editor while a document is open.
 
 The public source repository is https://github.com/eigenpal/docx-editor-mcp-app.
 The stable release page is https://github.com/eigenpal/docx-editor-mcp-app/releases/latest.
-The MCP app source uses MIT.
+The MCP app source uses Apache-2.0.
 The proprietary bundled Pro components have the host permission in `LICENSE-PLUGIN.md`.
 Open-source dependencies retain their own licenses.
 

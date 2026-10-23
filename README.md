@@ -2,7 +2,7 @@
 
 <p align="center">
   <a href="https://modelcontextprotocol.io/"><img src="https://img.shields.io/badge/MCP_Apps-SEP--1865-3B5BDB?style=flat-square" alt="MCP Apps" /></a>
-  <a href="https://github.com/eigenpal/docx-editor-mcp-app/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square&color=3B5BDB" alt="MIT source license" /></a>
+  <a href="https://github.com/eigenpal/docx-editor-mcp-app/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue.svg?style=flat-square&color=3B5BDB" alt="Apache-2.0 source license" /></a>
   <a href="https://www.docx-editor.dev/docs"><img src="https://img.shields.io/badge/Docs-3B5BDB?style=flat-square&logo=readthedocs&logoColor=white" alt="docx-editor.dev documentation" /></a>
 </p>
 
@@ -134,15 +134,17 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines and
 
 ## License
 
-The source code in this repository uses the [MIT source license](LICENSE).
+The MCP app source uses [Apache-2.0](LICENSE).
+This license excludes proprietary Pro components, including Pro code inside combined bundles.
 
 The proprietary bundled Pro components have additional host permission in [LICENSE-PLUGIN.md](LICENSE-PLUGIN.md).
-You may use the official plugin in ChatGPT, Codex, and Claude, including for business documents.
+You may use the official plugin free in ChatGPT, Codex, and Claude, including for business documents.
+You need no separate Pro subscription for this use.
 You may not reuse those Pro components in another product without a separate EigenPal Pro License.
 Your documents remain yours.
 Open-source editor components retain their Apache 2.0 terms.
 You may embed those components in commercial products under their own licenses.
-The complete bundled plugin does not use a single MIT license.
+The complete bundled plugin does not use a single open-source license.
 The built package lists dependency terms in `THIRD_PARTY_NOTICES.md`.
 
 For commercial support, email [docx-editor@eigenpal.com](mailto:docx-editor@eigenpal.com).

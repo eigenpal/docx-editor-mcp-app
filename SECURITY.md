@@ -38,7 +38,7 @@ Use `docs/submission/fixtures/` only for synthetic review documents.
 The secret scan checks all fetched Git history in CI.
 Check archive contents and document metadata before changing repository visibility.
 
-The MCP app source uses MIT.
+The MCP app source uses Apache-2.0.
 Bundled engine dependencies retain their own licenses.
 Keep the proprietary Pro notice and its separate plugin permission with every release package.
 

@@ -27,9 +27,9 @@ It never replaces a running editor.
 
 ## Licenses
 
-The MCP app source uses MIT.
+The MCP app source uses Apache-2.0.
 The bundled Pro components permit plugin use inside ChatGPT, Codex, and Claude.
 Reusing those Pro components in another product requires a separate EigenPal Pro License.
 Open-source dependencies retain their own licenses.
 The Apache 2.0 editor components remain available for commercial embedding under their own licenses.
-The complete bundled package does not use a single MIT license.
+The complete bundled package does not use a single open-source license.

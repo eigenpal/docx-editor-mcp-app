@@ -6,7 +6,7 @@
 - Add a release update notice with no package replacement during document editing.
 - Build versioned ChatGPT, Codex marketplace, Claude, and npm packages from one release.
 - Publish release artifacts through a draft GitHub release and promote the stable marketplace after publication.
-- License the MCP app source under MIT and define the bundled Pro permission for ChatGPT, Codex, and Claude.
+- License the MCP app source under Apache-2.0 and define the bundled Pro permission for ChatGPT, Codex, and Claude.
 - Show full active comments and keep nested menus inside the window.
 
 ## 0.1.2

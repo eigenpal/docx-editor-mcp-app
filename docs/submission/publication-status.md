@@ -11,7 +11,7 @@ Keep this record with the candidate packages until publication.
 - Repository visibility: public, with `main` as the default branch.
 - Release preparation: merged through [pull request 11](https://github.com/eigenpal/docx-editor-mcp-app/pull/11).
 - Published GitHub releases: none returned during the check.
-- Source license: MIT.
+- Source license: Apache-2.0.
 - Pro permission: `LICENSE-PLUGIN.md`.
 - Directory contact email: `docx-editor@eigenpal.com`, confirmed by the owner.
 

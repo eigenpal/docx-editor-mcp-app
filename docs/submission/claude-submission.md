@@ -36,12 +36,13 @@ The form links an older terms page that points to the current [Anthropic Softwar
 - Author profile: https://github.com/eigenpal.
 - GitHub repository: https://github.com/eigenpal/docx-editor-mcp-app.
 - Repository visibility: public, verified on October 23, 2026.
-- Source license: MIT.
+- Source license: Apache-2.0.
 - Bundled proprietary Pro permission: `LICENSE-PLUGIN.md`, limited to ChatGPT, Codex, and Claude.
 - Open-source editor components retain their own Apache 2.0 terms.
 
-The owner selected a public repository and MIT for the MCP app source.
-The form's MIT preference does not establish directory approval for bundled Pro components.
+The owner selected a public repository and Apache-2.0 for the MCP app source.
+The form's MIT preference differs from the source license.
+It does not establish approval for bundled Pro components.
 Disclose both licenses and request confirmation if you retain them.
 Do not describe the bundled package as MIT licensed.
 
@@ -66,14 +67,14 @@ The initial form includes an optional feedback field where you can explain the l
 
 ## License disclosure for the reviewer
 
-The MCP app source uses MIT.
+The MCP app source uses Apache-2.0.
 The package also includes the Apache 2.0 editor core and React adapter.
 It bundles proprietary code from `@docx-editor.dev/pro` for comments and tracked changes.
 Eigenpal grants separate permission for free personal and business use inside ChatGPT, Codex, and Claude.
 This permission also covers directory distribution of the official plugin.
 It does not permit extracting Pro code for another product or service.
 The open-source licenses retain their independent commercial reuse rights.
-The complete package does not use a single MIT license.
+The complete package does not use a single open-source license.
 Please confirm whether the directory accepts this license combination.
 
 See `LICENSE`, `LICENSE-PLUGIN.md`, and `THIRD_PARTY_NOTICES.md` in the attached package.
