@@ -35,7 +35,7 @@ The form links an older terms page that points to the current [Anthropic Softwar
 - Local server: Node.js over stdio.
 - Author profile: https://github.com/eigenpal.
 - GitHub repository: https://github.com/eigenpal/docx-editor-mcp-app.
-- Repository visibility: private, verified on October 23, 2026.
+- Repository visibility: public, verified on October 23, 2026.
 - Source license: MIT.
 - Bundled proprietary Pro permission: `LICENSE-PLUGIN.md`, limited to ChatGPT, Codex, and Claude.
 - Open-source editor components retain their own Apache 2.0 terms.
@@ -54,12 +54,11 @@ The editor runs locally and needs no Eigenpal account or API key.
 
 ## Remaining work
 
-1. Publish the prepared MIT source repository when you approve the public release.
-2. Disclose the host-specific Pro permission in the submission.
-3. Test the `.mcpb` in Claude Desktop, including local file access and an agent edit.
-4. Publish the support, privacy, and terms pages after review.
-5. Confirm the primary contact name.
-6. Attach the final `.mcpb` and submit after reviewing the directory terms.
+1. Disclose the host-specific Pro permission in the submission.
+2. Test the `.mcpb` in Claude Desktop, including local file access and an agent edit.
+3. Publish the support, privacy, and terms pages after review.
+4. Confirm the primary contact name.
+5. Attach the final `.mcpb` and submit after reviewing the directory terms.
 
 Keep screenshots and a short demonstration ready for reviewer follow-up.
 The initial form does not include a dedicated demonstration URL field.

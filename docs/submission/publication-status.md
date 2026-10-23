@@ -8,7 +8,8 @@ Keep this record with the candidate packages until publication.
 - Plugin version: `1.0.0`.
 - Editor packages: `2.32.0`, pinned in `package.json` and `bun.lock`.
 - Source repository: `https://github.com/eigenpal/docx-editor-mcp-app`.
-- Source publication: requested by the owner; tracked through the release preparation pull request.
+- Repository visibility: public, with `main` as the default branch.
+- Release preparation: merged through [pull request 11](https://github.com/eigenpal/docx-editor-mcp-app/pull/11).
 - Published GitHub releases: none returned during the check.
 - Source license: MIT.
 - Pro permission: `LICENSE-PLUGIN.md`.
@@ -56,6 +57,8 @@ Do not push local snapshot references with `git push --mirror`.
 
 The source imports published engine packages instead of copying private engine implementation files.
 The packages retain their original licenses and the separate Pro plugin permission.
+GitHub's secret scan, lint, tests, and build passed before the merge into `main`.
+The source publication preserves the existing Git history; no history replacement was necessary.
 These checks reduce publication risk; they do not prove that an automated scan detects every possible secret.
 
 ## Host-specific requirements
