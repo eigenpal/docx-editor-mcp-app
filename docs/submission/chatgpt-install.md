@@ -26,6 +26,18 @@ The viewer loads its editor and WebAssembly assets through MCP.
 The plugin does not send documents to Eigenpal servers.
 Your host and model provider process data under their own policies.
 
+## Updates
+
+Use the host directory update process when available.
+The preview shows **Get update** when it finds a newer stable release.
+Select that button for release instructions and packages.
+Select **Later** to continue your document work.
+The check sends only release request information to GitHub, not your document or file path.
+Set `DOCX_EDITOR_UPDATE_CHECK=0` in the server environment to disable it.
+The server caches the result for 24 hours while it runs.
+The plugin never replaces an open editor with downloaded code.
+See `docs/releases.md` in this package for the complete release policy.
+
 ## Support
 
 Visit https://www.docx-editor.dev/support or email docx-editor@eigenpal.com.

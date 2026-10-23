@@ -1,21 +1,34 @@
 name: Release packages
 
 on:
+  push:
+    tags: ['v*']
   workflow_dispatch:
     inputs:
       demo_url:
         description: Public HTTPS URL for the review demonstration
         required: false
         type: string
+  release:
+    types: [published]
 
 permissions:
   contents: read
 
+concurrency:
+  group: release-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: false
+
 jobs:
   packages:
+    if: github.event_name != 'release'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -23,17 +36,81 @@ jobs:
         with:
           bun-version: '1.3.5'
       - run: bun install --frozen-lockfile
-      - run: bun run engine:check
+      - run: npm install --global @openai/codex@0.163.0-alpha.11
+      - name: Verify release version
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: node -e 'if (process.env.RELEASE_TAG !== "v" + require("./package.json").version) process.exit(1)'
       - run: bun run release:verify
         env:
           DEMO_URL: ${{ inputs.demo_url }}
+          DOCX_EDITOR_UPDATE_CHECK: '0'
       - run: npx --yes @anthropic-ai/mcpb@2.1.2 validate dist/local-packages/claude/manifest.json
+      - run: npm pack --ignore-scripts --pack-destination dist/local-packages
+      - run: node scripts/prepare-release.mjs
       - uses: actions/upload-artifact@v4
         with:
-          name: official-listing-packages
+          name: docx-editor-release
           path: |
             dist/local-packages/*.zip
             dist/local-packages/*.mcpb
+            dist/local-packages/*.tgz
             dist/local-packages/*.sha256
-            dist/local-packages/verification.json
+            dist/local-packages/*.json
+            dist/local-packages/SHA256SUMS
           if-no-files-found: error
+      - name: Create draft release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "$RELEASE_TAG" --draft --verify-tag --title "$RELEASE_TAG" \
+            --notes-file docs/release-notes.md \
+            dist/local-packages/*.zip dist/local-packages/*.mcpb \
+            dist/local-packages/*.tgz dist/local-packages/*.sha256 \
+            dist/local-packages/*.json dist/local-packages/SHA256SUMS
+
+  marketplace:
+    if: github.event_name == 'release' && !github.event.release.prerelease
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.release.tag_name }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Download the published marketplace package
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          test "$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name)" = "$RELEASE_TAG"
+          mkdir -p /tmp/docx-release
+          gh release download "$RELEASE_TAG" --dir /tmp/docx-release \
+            --pattern 'docx-editor-codex-*.zip' --pattern SHA256SUMS
+          cd /tmp/docx-release
+          sha256sum --check --ignore-missing SHA256SUMS
+          unzip -q docx-editor-codex-*.zip -d /tmp/docx-marketplace
+      - name: Promote the built stable marketplace
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if git ls-remote --exit-code --heads origin stable; then
+            git fetch origin stable:refs/remotes/origin/stable
+            git worktree add --detach /tmp/docx-publish origin/stable
+          else
+            git worktree add --detach /tmp/docx-publish HEAD
+            git -C /tmp/docx-publish checkout --orphan stable
+          fi
+          git -C /tmp/docx-publish rm -r -f --ignore-unmatch .
+          cp -R /tmp/docx-marketplace/. /tmp/docx-publish/
+          git -C /tmp/docx-publish add --all
+          git -C /tmp/docx-publish diff --cached --quiet && exit 0
+          git -C /tmp/docx-publish commit -m 'chore: update stable plugin marketplace'
+          git -C /tmp/docx-publish push origin HEAD:refs/heads/stable

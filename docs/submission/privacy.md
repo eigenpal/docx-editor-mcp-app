@@ -1,8 +1,6 @@
 # docx-editor privacy policy
 
-> Draft for legal review. Publish at https://www.docx-editor.dev/privacy.
-
-Effective date: _to be set_
+Effective date: October 22, 2026
 
 Eigenpal, Inc. provides the docx-editor local plugin for ChatGPT, Codex, and Claude Desktop.
 This policy describes the local plugin.
@@ -29,6 +27,16 @@ The server keeps document tokens and file versions in process memory while it ru
 It does not create an Eigenpal account for you.
 The local plugin includes no analytics service.
 Your host can keep its own diagnostic logs.
+
+## Update checks
+
+The local server requests public release metadata from GitHub to identify newer stable plugin versions.
+GitHub receives your IP address and the installed plugin version through the request.
+The request includes no document text, document names, local file paths, or account credentials.
+The running server caches success and failure results for 24 hours.
+The plugin does not download or run replacement code.
+Set `DOCX_EDITOR_UPDATE_CHECK=0` in the server environment to disable these checks.
+A failed or disabled check does not stop document editing.
 
 ## Support and websites
 

@@ -16,6 +16,8 @@ import {
   UnsubscribeRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import { SAMPLE_DOCX as SAMPLE } from './sample.js';
+import { UPDATE_RESOURCE } from '../shared/updates.js';
+import pkg from '../../package.json';
 import { strFromU8, strToU8, unzipSync, zipSync } from 'fflate';
 import { z } from 'zod';
 
@@ -60,6 +62,22 @@ export function installHostFile(
 
   // The host serves its own file; every other resource is the server's.
   bridge.onreadresource = async (params) => {
+    // Exercise the notice without publishing a fake public release.
+    if (params.uri === UPDATE_RESOURCE && new URLSearchParams(location.search).has('update')) {
+      const [major, minor, patch] = pkg.version.split('.').map(Number);
+      return {
+        contents: [
+          {
+            uri: UPDATE_RESOURCE,
+            mimeType: 'application/json',
+            text: JSON.stringify({
+              current: pkg.version,
+              latest: `${major}.${minor}.${patch + 1}`,
+            }),
+          },
+        ],
+      };
+    }
     if (params.uri !== URI) return client.readResource(params);
     if (!bytes) throw new Error('no file is open');
     log(`resources/read ${URI} (${etag()}, ${bytes.length} bytes)`);

@@ -1,74 +1,45 @@
 # Release and update docx-editor
 
-You distribute a complete local package for each release.
-You do not update installed files from an Eigenpal server.
-The host manages installation and updates.
-Keep the plugin name `docx-editor` for every release.
+Use [the release guide](../releases.md) for versioning, package preparation, publication, updates, and recovery.
+Use [publication status](publication-status.md) for the current candidate checks and remaining work.
+Use [license scope](licensing.md) when you describe the source and bundled editor components.
 
-## Check the editor
+## Prepare the candidate
 
-Run `bun run engine:check` with npm registry access.
-The command compares the declared, installed, and latest published versions of all three editor packages.
-It fails if the packages need an update or use different release versions.
+1. Pin all editor packages to the same tested release.
+2. Run `bun run release:version <version>` when you need a version above the current candidate.
+3. Update `CHANGELOG.md` and run `bun install --lockfile-only`.
+4. Run `bun run format` and review your changes.
+5. Run `bun run release:verify`.
+6. Run the official Claude validator listed in `README.md` in this folder.
+7. Record clean host installation, file updates, manual edits, conflicts, and upgrade results.
 
-Run `bun run engine:update` to install the latest matching release.
-This command updates `package.json` and `bun.lock` with exact versions.
-Review the upstream changes before you release the plugin.
-You must rebuild the editor and its matching `harfbuzz.wasm` together.
-An engine publication alone does not update an installed plugin.
+The current candidate is `1.0.0` with editor `2.32.0`.
+The engine fix keeps clicks and typing available after file updates.
+Retest those actions after an engine change.
+A successful text refresh alone does not prove that pointer input works.
 
-## Prepare a bug fix
+## Build the review artifacts
 
-1. Apply the fix or update the engine.
-2. Run `bun run release:version 0.1.3` for the next patch release.
-   Choose a higher version when `0.1.3` is already in use.
-3. Run `bun install --lockfile-only` to update the root lockfile metadata.
-4. Add the release notes to `CHANGELOG.md`.
-5. Run `bun run format` and review the changes.
-6. Run `DEMO_URL=https://your-domain.example/demo.mp4 bun run release:verify` with your actual recording URL.
-7. Run the official Claude validator from `README.md` in this folder.
-8. Test installation, document edits, file conflicts, and an upgrade from the previous release on each supported desktop host.
+Use the **Release packages** workflow on the reviewed commit or version tag.
+Supply a public demonstration URL when you have the recording.
+The workflow runs package verification with Node.js 22 and validates the Claude manifest.
+It uploads the `docx-editor-release` artifact.
+A version tag also creates a draft GitHub release.
+Neither action publishes a public release or submits a host listing.
 
-The version command updates `package.json` and `.codex-plugin/plugin.json` together.
-Both generated host manifests use that version.
-The server and editor also use the package version.
-Never reuse a published version for changed bytes.
+Publishing the reviewed stable GitHub release promotes its Codex archive to the `stable` marketplace branch.
+Keep the version, source commit, package checksums, host versions, and test results together.
+Never replace assets for a published version.
 
-## Build review artifacts in GitHub
+## Update the host listings
 
-Run the **Release packages** workflow against the reviewed commit.
-Supply the public demonstration URL.
-Download the `official-listing-packages` artifact and keep its checksums with your release records.
-The workflow checks the latest editor version and runs package verification with Node.js 22.
-It validates the Claude manifest with `@anthropic-ai/mcpb@2.1.2`.
-It does not publish to GitHub, npm, or either directory.
-Record the commit, checksums, host versions, and desktop results before submission.
+Submit the new package through each host's publisher process.
+OpenAI requires local-MCP submission access before its local ZIP upload.
+Claude's extension directory uses the `.mcpb` submission route.
+Disclose the proprietary Pro permission with the source and dependency licenses.
 
-## Update the OpenAI listing
-
-Upload the complete new ZIP to the existing plugin in the submission portal.
-Complete the applicable checks and review, then publish the approved package version.
-See [OpenAI's update instructions](https://developers.openai.com/plugins/deploy/submission).
-
-The hosted MCP daily scan does not distribute our bundled local code.
-Confirm installed-client update timing and rollback support with your OpenAI representative.
-Do not promise immediate updates to existing installations.
-
-## Update the Claude listing
-
-Submit the new `.mcpb` through the directory's publisher update process.
-Confirm that process with the reviewer during initial approval.
-Claude supports directory extension updates, but its public guide does not specify every publisher step.
-See [Claude's extension guide](https://support.claude.com/en/articles/10949351-getting-started-with-local-mcp-servers-on-claude-desktop).
-
-For directly distributed extensions, give users the new `.mcpb` for manual installation.
-For custom team extensions, use **Upload new version** and keep the extension name unchanged.
-See [Claude's team update instructions](https://support.claude.com/en/articles/12592343-enabling-and-using-the-desktop-extension-allowlist).
-
-## Recover from a faulty release
-
-Keep each approved archive and its checksum.
-Disable publication of a faulty release through the host's available controls.
-Prepare a higher patch version with the previous working code when the host does not support rollback.
-Repeat verification and review before publication.
-Do not replace an archive under an existing version.
+Directory approval and client update timing remain host decisions.
+Do not promise automatic updates for direct `.mcpb` or personal Git marketplace installations.
+Keep earlier releases available for recovery.
+Use a higher patch version for a replacement release.

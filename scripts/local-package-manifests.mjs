@@ -39,7 +39,7 @@ export function claudeManifest(legacy, pkg) {
       'Open a local .docx file by path. The preview follows file changes and saves your edits. ' +
       'Your agent edits files with its own document tools. ' +
       'The server and editor run locally. You need no account or API key for this extension.',
-    author: legacy.author,
+    author: { ...legacy.author, url: 'https://github.com/eigenpal' },
     homepage: legacy.homepage,
     repository: pkg.repository,
     support: legacy.interface.supportURL,

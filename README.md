@@ -2,7 +2,7 @@
 
 <p align="center">
   <a href="https://modelcontextprotocol.io/"><img src="https://img.shields.io/badge/MCP_Apps-SEP--1865-3B5BDB?style=flat-square" alt="MCP Apps" /></a>
-  <a href="https://github.com/eigenpal/docx-editor-mcp-app/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Apache_2.0-blue.svg?style=flat-square&color=3B5BDB" alt="Apache 2.0 license" /></a>
+  <a href="https://github.com/eigenpal/docx-editor-mcp-app/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square&color=3B5BDB" alt="MIT source license" /></a>
   <a href="https://www.docx-editor.dev/docs"><img src="https://img.shields.io/badge/Docs-3B5BDB?style=flat-square&logo=readthedocs&logoColor=white" alt="docx-editor.dev documentation" /></a>
 </p>
 
@@ -29,22 +29,40 @@ saves the document in the browser. When the file changes, the preview applies
 the new version through the engine's refresh API: your scroll position and
 edits are handled, and the changed paragraphs are highlighted.
 
-## Install
+## Install and receive updates
 
-Install the npm package, then add it to each desktop app you use. The package
-needs Node.js 22 or later and installs no dependencies.
+Use the approved desktop directory listing for ChatGPT, Codex, or Claude when available.
+Select **Install** in your host.
+OpenAI requires partner approval for local MCP listings.
+Claude requires desktop extension review.
+The source repository does not create an approved public listing.
+
+For installation before directory approval, use the packages on the
+[stable release page](https://github.com/eigenpal/docx-editor-mcp-app/releases/latest).
+Claude uses the `.mcpb` package.
+Codex supports the built Git marketplace on the `stable` branch.
+The ChatGPT ZIP is the public local-directory submission package.
+See [installation and updates](docs/releases.md) for exact steps and verified host differences.
+
+Claude directory extensions update automatically by default.
+For other installations, the preview shows **Get update** when a newer stable release is available.
+The local server checks GitHub release metadata without sending documents or file paths.
+It caches each result for 24 hours while it runs.
+Set `DOCX_EDITOR_UPDATE_CHECK=0` to disable checks.
+An update never replaces your running editor or its unsaved document.
+
+### Developer installation
+
+Use Node.js 22 or later for the npm fallback:
 
 ```bash
 npm install -g @docx-editor.dev/mcp-app
-docx-editor-mcp-app setup codex    # ChatGPT and Codex desktop (macOS, Linux)
-docx-editor-mcp-app setup claude   # Claude Desktop
+docx-editor-mcp-app setup codex
+docx-editor-mcp-app setup claude
 ```
 
-Restart the desktop app after setup. Then ask the agent to open a `.docx`, or
-open one yourself in ChatGPT or Codex desktop.
-
-To remove the plugin from ChatGPT and Codex, run
-`codex plugin remove docx-editor@docx-editor`.
+Restart the desktop app after setup.
+This developer route is separate from directory installation.
 
 ## Use it
 
@@ -116,13 +134,15 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines and
 
 ## License
 
-The source code in this repository uses the [Apache 2.0 license](LICENSE).
+The source code in this repository uses the [MIT source license](LICENSE).
 
-The built plugin bundles EigenPal components, including `@docx-editor.dev/pro`.
-You can use them free of charge, including for business use, only as part of
-this plugin: see [LICENSE-PLUGIN.md](LICENSE-PLUGIN.md). To build with the
-docx-editor SDK in your own software, see
-[pricing](https://www.docx-editor.dev/pricing). `THIRD_PARTY_NOTICES.md` in the
-package lists every bundled package and its license.
+The proprietary bundled Pro components have additional host permission in [LICENSE-PLUGIN.md](LICENSE-PLUGIN.md).
+You may use the official plugin in ChatGPT, Codex, and Claude, including for business documents.
+You may not reuse those Pro components in another product without a separate EigenPal Pro License.
+Your documents remain yours.
+Open-source editor components retain their Apache 2.0 terms.
+You may embed those components in commercial products under their own licenses.
+The complete bundled plugin does not use a single MIT license.
+The built package lists dependency terms in `THIRD_PARTY_NOTICES.md`.
 
 For commercial support, email [docx-editor@eigenpal.com](mailto:docx-editor@eigenpal.com).

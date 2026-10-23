@@ -1,47 +1,62 @@
-# EigenPal Plugin License 1.0
+# EigenPal Pro permission for the MCP plugin
 
-> **Draft for legal review.** Do not publish until counsel approves this text.
+Copyright (c) 2026 Eigenpal, Inc. All rights reserved.
 
-Copyright (c) 2026 Eigenpal, Inc.
+## Scope
 
-This license covers the EigenPal components that the docx-editor plugin bundles
-in its built files (`dist/`), including code from `@docx-editor.dev/pro`. The
-plugin's own source code is licensed under the Apache License 2.0 (`LICENSE`).
-Other bundled third-party code keeps its own license (`THIRD_PARTY_NOTICES.md`).
+Eigenpal, Inc. grants the permission below for its proprietary Pro code in official docx-editor MCP plugin releases.
+Covered Pro code means the code from `@docx-editor.dev/pro` included in those releases, including code inside combined bundles.
+`dist/app/build.json` records its version, and `THIRD_PARTY_NOTICES.md` contains its original license notices.
+Official releases mean packages that Eigenpal publishes or supplies through the ChatGPT, Codex, or Claude distribution channels.
 
-## 1. Grant
+This file grants separate permission for the plugin use described below.
+For that use, this permission overrides conflicting evaluation-only, production-use, and distribution restrictions in the EigenPal Pro Evaluation License.
+Other uses require their own applicable license.
+This permission does not grant rights to Pro packages absent from the official plugin.
 
-Eigenpal, Inc. grants you a free, non-exclusive, non-transferable license to
-install and use the bundled EigenPal components, including for production use,
-only as part of this plugin, unmodified, inside an MCP host such as ChatGPT,
-Codex, or Claude.
+The plugin's own source code uses the MIT License in `LICENSE`.
+Open-source editor components retain their Apache 2.0 terms.
+Other dependencies retain the terms in `THIRD_PARTY_NOTICES.md`.
+This permission does not restrict rights granted by those open-source licenses.
+You may reuse the open-source editor components in commercial products under their own licenses.
+You may reuse the MIT-licensed MCP app source under `LICENSE`.
+These rights do not depend on using an official plugin package.
 
-## 2. Restrictions
+## Permitted use
 
-You may not:
+You receive worldwide, nonexclusive, royalty-free permission to install and use the covered Pro code within the official plugin.
+You may use that plugin in ChatGPT, Codex, and Claude.
+This permission includes personal use and ordinary business use of the plugin within those hosts.
+You may open, edit, review, and save your documents through the plugin.
+You need no separate Pro subscription for this permitted plugin use.
+You may distribute unmodified official plugin packages with their complete license notices.
+Official plugin updates receive the same permission.
+Directory operators may copy, scan, package, sign, distribute, and update the official plugin for these hosts.
+They must preserve the covered Pro code and all applicable license notices.
 
-1. extract, separate, or call the bundled EigenPal components outside this
-   plugin;
-2. modify, decompile, or reverse engineer them, except as applicable law
-   expressly permits;
-3. redistribute them, except as part of an unmodified copy of this plugin; or
-4. use them to build, embed, or offer a document editor, viewer, or document
-   automation product or service.
+Your documents remain yours.
+You may use the documents you create or edit in your business, services, and products.
 
-## 3. The SDK
+## Restrictions on the Pro components
 
-To use the docx-editor SDK in your own software, including
-`@docx-editor.dev/pro`, `@docx-editor.dev/editor-api`, and
-`@docx-editor.dev/docx-to-pdf`, get a license at
-<https://www.docx-editor.dev/pricing>.
+You may not extract or reuse the covered Pro code in your own product, application, SDK, or hosted service.
+You may not provide these components as a standalone editor or document automation service.
+You may not modify or redistribute the proprietary Pro components separately under this permission.
+The MIT license for the plugin's own code does not grant these Pro rights.
+Modifying that source does not grant permission to include Pro code in another product or unofficial distribution.
 
-## 4. No warranty
+For Pro use outside the permitted plugin, obtain a separate EigenPal Pro License.
+See [DOCX Editor licensing](https://www.docx-editor.dev/commercial-license) or contact licensing@eigenpal.com.
 
-The bundled components are provided "as is", without warranty of any kind. To
-the extent permitted by law, Eigenpal, Inc. is not liable for any damages
-arising from their use.
+## Ownership and termination
 
-## 5. Termination
+Eigenpal and its licensors retain ownership of the Pro components.
+This permission does not transfer that ownership or grant trademark rights.
+Your rights for a distributed version continue while you comply with this permission.
+If you breach this permission, stop using and distributing the covered Pro components.
+Rights under independent open-source licenses remain subject to those licenses.
 
-This license ends automatically if you break its terms. On termination, stop
-using the plugin and delete your copies.
+## No warranty
+
+The Pro components come "as is", without warranties of merchantability, fitness, title, or noninfringement.
+To the extent applicable law permits, Eigenpal and its licensors accept no liability for damages from these components.

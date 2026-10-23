@@ -121,6 +121,11 @@ bridge.onsizechange = ({ width, height }) => {
   }
 };
 
+bridge.onopenlink = async ({ url }) => {
+  log(`ui/open-link: ${url}`);
+  return {};
+};
+
 bridge.oninitialized = () => {
   log(`initialized; app capabilities: ${JSON.stringify(bridge.getAppCapabilities())}`);
 };

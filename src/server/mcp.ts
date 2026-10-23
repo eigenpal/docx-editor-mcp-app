@@ -35,6 +35,10 @@ import {
 import { decodeBytes, openPath, read, version, write } from './documents.js';
 import { APP_ICONS } from './icons.js';
 import { PACKAGE_VERSION, REPO_ROOT } from './paths.js';
+import { createUpdateChecker } from './updates.js';
+import { UPDATE_RESOURCE } from '../shared/updates.js';
+
+const checkUpdates = createUpdateChecker(PACKAGE_VERSION);
 
 const DOCX_MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 const appOnly = { ui: { visibility: ['app' as const] } };
@@ -183,6 +187,23 @@ export function createMcpServer({ local = false, ui = loadWidget() }: McpServerO
           text: ui.html,
           // No CSP domains: the widget fetches nothing.
           _meta: { ui: { prefersBorder: true } },
+        },
+      ],
+    })
+  );
+
+  server.registerResource(
+    'plugin-updates',
+    UPDATE_RESOURCE,
+    { description: 'Plugin release availability.', mimeType: 'application/json' },
+    async (uri) => ({
+      contents: [
+        {
+          uri: uri.href,
+          mimeType: 'application/json',
+          text: JSON.stringify(
+            local ? await checkUpdates() : { current: PACKAGE_VERSION, latest: null }
+          ),
         },
       ],
     })

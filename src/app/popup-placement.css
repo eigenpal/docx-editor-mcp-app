@@ -1,0 +1,25 @@
+/* A comment has no other reading surface, so an open card must show its full text. */
+.mcp-editor .mcp-comment-card[data-active] .docx-review__summary {
+  max-height: none;
+  overflow: visible;
+}
+
+/* The top layer escapes a parent menu's scroll clipping without moving its children. */
+.mcp-editor .docx-menubar__submenu-panel[popover] {
+  inset: auto;
+  box-sizing: border-box;
+  min-width: min(240px, calc(100vw - 16px));
+  max-width: calc(100vw - 16px);
+  max-height: calc(100vh - 16px);
+  margin: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  z-index: var(--doc-z-context, 55);
+}
+
+.mcp-editor
+  .docx-menubar__submenu[data-mcp-side='left']
+  > .docx-menubar__item
+  .docx-menubar__item-caret {
+  transform: rotate(180deg);
+}

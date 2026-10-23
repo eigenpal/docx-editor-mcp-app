@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   DocxEditor,
   DocxEditorContentControlWidget,
@@ -38,7 +38,7 @@ const POPUPS: DocxEditorPopups = {
   pageSetup: (props) => <DocxEditorPageSetupDialog {...props} />,
 };
 
-type FrameProps = Pick<
+type FrameProps = { updateNotice?: ReactNode } & Pick<
   DocxEditorProps,
   'document' | 'modules' | 'title' | 'mode' | 'chrome' | 'colorMode' | 'onSave' | 'children'
 >;
@@ -66,6 +66,7 @@ export function EditorFrame({
   chrome,
   colorMode = 'system',
   onSave,
+  updateNotice,
   children,
 }: FrameProps) {
   const t = useChromeTranslate();
@@ -114,6 +115,7 @@ export function EditorFrame({
         data-chrome={!!chrome}
         data-panel={showPanel ? 'open' : 'closed'}
       >
+        {updateNotice}
         <EditorChrome
           title={title}
           author={author}

@@ -17,6 +17,13 @@ Thumbs.db
 .env
 .env.local
 .env.*.local
+.env.*
+!.env.example
+
+# Private agent notes and local test documents.
+/local/
+/samples/
+.claude/launch.json
 
 # Claude Code (local-only files)
 .claude/settings.local.json

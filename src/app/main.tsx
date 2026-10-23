@@ -44,6 +44,7 @@ import { DOCUMENT_META } from '../shared/catalog.js';
 import { adoptFile, applyHostContext } from './widget-helpers.js';
 import { loadRequest, type LoadedDoc, type OpenRequest } from './load-document.js';
 import { EditorFrame } from './EditorFrame.js';
+import { usePluginUpdate } from './PluginUpdate.js';
 import '@docx-editor.dev/core/styles/editor.css';
 import './styles.css';
 
@@ -136,6 +137,8 @@ function Widget() {
     },
     onAppCreated,
   });
+
+  const updateNotice = usePluginUpdate(app, isConnected);
 
   // Tokens, theme and the host's font faces. The widget declares no CSP
   // domains, so a host whose fonts live on another origin falls back to the
@@ -261,6 +264,7 @@ function Widget() {
               contenteditable document behind the card. */}
           <div className="stage" inert={!isFullscreen}>
             <EditorFrame
+              updateNotice={isFullscreen ? updateNotice : null}
               document={document}
               modules={PRO_MODULES}
               title={title}
@@ -302,6 +306,7 @@ function Widget() {
       )}
       {app && !isFileView && (
         <InlineCard
+          updateNotice={updateNotice}
           app={app}
           editor={editor}
           documentName={documentName}

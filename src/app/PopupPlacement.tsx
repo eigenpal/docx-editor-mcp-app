@@ -1,4 +1,6 @@
 import { useEffect, type RefObject } from 'react';
+import { placeSubmenus } from './submenu-placement.js';
+import './popup-placement.css';
 
 const EDGE = 8;
 
@@ -52,6 +54,7 @@ export function usePopupPlacement(rootRef: RefObject<HTMLDivElement | null>) {
       frame = requestAnimationFrame(() => {
         placeLink(root);
         placeSpacing(root);
+        placeSubmenus(root);
       });
     };
     const observer = new MutationObserver(place);

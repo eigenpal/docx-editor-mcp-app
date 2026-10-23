@@ -5,6 +5,8 @@ Both packages run the MCP server and editor locally.
 You do not deploy an editor or MCP endpoint.
 
 See [release.md](release.md) for editor updates and bug-fix releases.
+Use [publication-status.md](publication-status.md) for the current release checks and remaining work.
+Use [licensing.md](licensing.md) for the source, editor, and Pro license scopes.
 Use [openai-approval-request.md](openai-approval-request.md) when you contact your OpenAI representative.
 
 Use [listing.md](listing.md) for listing copy and the support page draft.
@@ -22,8 +24,8 @@ The build writes these files:
 
 | Host    | Archive                                             | Extracted contents             |
 | ------- | --------------------------------------------------- | ------------------------------ |
-| ChatGPT | `dist/local-packages/docx-editor-chatgpt-0.1.2.zip` | `dist/local-packages/chatgpt/` |
-| Claude  | `dist/local-packages/docx-editor-claude-0.1.2.mcpb` | `dist/local-packages/claude/`  |
+| ChatGPT | `dist/local-packages/docx-editor-chatgpt-1.0.0.zip` | `dist/local-packages/chatgpt/` |
+| Claude  | `dist/local-packages/docx-editor-claude-1.0.0.mcpb` | `dist/local-packages/claude/`  |
 
 The version comes from `package.json` and `.codex-plugin/plugin.json`.
 Use `bun run release:version <major.minor.patch>` to update both versions.
@@ -59,7 +61,7 @@ Run the official Claude validator before submission:
 
 ```bash
 npx --yes @anthropic-ai/mcpb@2.1.2 validate dist/local-packages/claude/manifest.json
-npx --yes @anthropic-ai/mcpb@2.1.2 info dist/local-packages/docx-editor-claude-0.1.2.mcpb
+npx --yes @anthropic-ai/mcpb@2.1.2 info dist/local-packages/docx-editor-claude-1.0.0.mcpb
 ```
 
 The generated `.mcpb` is an unsigned ZIP bundle.
@@ -83,7 +85,7 @@ Complete publisher identity verification and confirm your submission permissions
    ```
 
 4. In the submission portal, select **Create plugin > Skills only > Upload ZIP**.
-5. Upload `dist/local-packages/docx-editor-chatgpt-0.1.2.zip`.
+5. Upload `dist/local-packages/docx-editor-chatgpt-1.0.0.zip`.
 6. Complete the remaining review requirements and submit for review.
 
 The build includes review cases without a demo when you omit `DEMO_URL`.
@@ -107,7 +109,7 @@ The package supports macOS and Windows without a shell command.
 Confirm both platforms through clean desktop installation tests before you claim release support.
 
 For local review, open **Settings > Extensions > Advanced settings > Install Extension**.
-Select `dist/local-packages/docx-editor-claude-0.1.2.mcpb`.
+Select `dist/local-packages/docx-editor-claude-1.0.0.mcpb`.
 Use `open_document` with an absolute path.
 Claude does not use the OpenAI file viewer entrypoint.
 
@@ -129,8 +131,8 @@ Before submission, test a clean installation in each desktop host:
 ## Complete listing requirements
 
 Publish the support, privacy, and terms pages at the URLs in `.codex-plugin/plugin.json`.
-The policy drafts are [privacy.md](privacy.md) and [terms.md](terms.md).
-Set their effective dates and obtain legal review before publication.
+The page drafts are [support.md](support.md), [privacy.md](privacy.md), and [terms.md](terms.md).
+Each policy states its effective date.
 Review `LICENSE-PLUGIN.md` for the bundled Eigenpal components.
 The local packages carry that license and `THIRD_PARTY_NOTICES.md`.
 

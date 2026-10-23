@@ -44,6 +44,9 @@ const payload = [
   'LICENSE',
   'LICENSE-PLUGIN.md',
   'THIRD_PARTY_NOTICES.md',
+  'docs/releases.md',
+  'docs/submission/privacy.md',
+  'docs/submission/terms.md',
 ];
 // Missing build files must fail before an existing package is replaced.
 await Promise.all(payload.map((path) => readFile(join(root, path))));

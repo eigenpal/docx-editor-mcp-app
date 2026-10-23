@@ -244,6 +244,11 @@
   z-index: var(--doc-z-overlay, 50);
 }
 
+/* The document pane isolates its layers below the toolbar until a context menu opens. */
+.mcp-editor:has(.docx-contextmenu) .mcp-workspace {
+  z-index: var(--doc-z-context, 55);
+}
+
 .mcp-editor .docx-hyperlink-popup {
   box-sizing: border-box;
   min-width: min(280px, calc(100vw - 16px));

@@ -32,7 +32,10 @@ Choose a test host:
 
 ```bash
 bun run build:harness
-bun run build && node dist/cli.js setup codex
+bun run build
+npm pack
+npm install -g ./docx-editor.dev-mcp-app-*.tgz
+docx-editor-mcp-app setup codex
 ```
 
 - Use the harness for local widget tests.
@@ -63,8 +66,8 @@ Update `core`, `react`, and `pro` to the same version.
 The MCP package bundles these dependencies, so an editor release does not update an installed preview.
 
 ```bash
-DOCX_EDITOR_VERSION=2.30.0
-bun add --dev "@docx-editor.dev/core@$DOCX_EDITOR_VERSION" \
+DOCX_EDITOR_VERSION=2.32.0
+bun add --dev --exact "@docx-editor.dev/core@$DOCX_EDITOR_VERSION" \
   "@docx-editor.dev/react@$DOCX_EDITOR_VERSION" \
   "@docx-editor.dev/pro@$DOCX_EDITOR_VERSION"
 bun run typecheck

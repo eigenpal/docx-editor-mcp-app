@@ -9,7 +9,7 @@
  * changes. Every degraded state keeps the same geometry, so the card never jumps.
  */
 
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import type { App } from '@modelcontextprotocol/ext-apps';
 import { useReviewOf } from '@docx-editor.dev/pro/react';
 import type { DocxEditorInstance } from '@docx-editor.dev/core/editor';
@@ -31,6 +31,7 @@ interface CardProps {
   save: () => Promise<ArrayBuffer | null>;
   /** The preview follows a file on disk and refreshes when it changes. */
   live: boolean;
+  updateNotice?: ReactNode;
 }
 
 export function InlineCard({
@@ -43,6 +44,7 @@ export function InlineCard({
   onOpenEditor,
   save,
   live,
+  updateNotice,
 }: CardProps) {
   const [downloading, setDownloading] = useState(false);
   const review = useReviewOf(editor);
@@ -80,6 +82,7 @@ export function InlineCard({
             <p className="card-meta">{state.reason}</p>
           </div>
         </div>
+        {updateNotice}
         <div className="card-actions">
           <button type="button" className="btn btn-primary" onClick={state.retry}>
             Try again
@@ -131,6 +134,7 @@ export function InlineCard({
           )}
         </div>
       )}
+      {updateNotice}
       <div className="card-actions">
         {!fullscreenUnavailable && (
           <button
