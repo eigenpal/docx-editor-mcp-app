@@ -60,6 +60,8 @@ jobs:
       # plugin needs (npm skips dot-folders unless they are listed by path).
       - run: node dist/cli.js --version
       - run: bun run smoke
+      - run: node scripts/build-local-packages.mjs
+      - run: bun run smoke:packages
       - run: npm pack --dry-run 2>&1 | tee pack.txt
       - run: |
           for f in .codex-plugin/plugin.json .agents/plugins/marketplace.json .mcp.json dist/cli.js dist/app/editor.html dist/app/editor.hash dist/app/harfbuzz.wasm THIRD_PARTY_NOTICES.md LICENSE-PLUGIN.md assets/icon.svg skills/docx-editor/SKILL.md; do

@@ -32,7 +32,10 @@ Choose a test host:
 
 ```bash
 bun run build:harness
-bun run build && node dist/cli.js setup codex
+bun run build
+npm pack
+npm install -g ./docx-editor.dev-mcp-app-*.tgz
+docx-editor-mcp-app setup codex
 ```
 
 - Use the harness for local widget tests.
@@ -55,6 +58,30 @@ bun run format
 
 `bun run build` bundles the widget and the server.
 `bun run smoke` runs the built package over stdio, as desktop hosts do.
+
+## Update the editor
+
+Set `DOCX_EDITOR_VERSION` to the published editor version.
+Update `core`, `react`, and `pro` to the same version.
+The MCP package bundles these dependencies, so an editor release does not update an installed preview.
+
+```bash
+DOCX_EDITOR_VERSION=2.32.0
+bun add --dev --exact "@docx-editor.dev/core@$DOCX_EDITOR_VERSION" \
+  "@docx-editor.dev/react@$DOCX_EDITOR_VERSION" \
+  "@docx-editor.dev/pro@$DOCX_EDITOR_VERSION"
+bun run typecheck
+bun run lint
+bun run test
+bun run build
+bun run smoke
+npm pack
+npm install -g ./docx-editor.dev-mcp-app-*.tgz
+docx-editor-mcp-app setup codex
+```
+
+Restart your desktop app, then reopen the document.
+For a hosted MCP server, deploy the rebuilt `dist/cli.js` and `dist/app/` together.
 
 ## Keep it a preview
 

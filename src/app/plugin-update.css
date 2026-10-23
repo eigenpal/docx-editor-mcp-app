@@ -1,0 +1,29 @@
+.plugin-update {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  padding: 8px 12px;
+  color: var(--mcp-ink, var(--color-text-primary, #141413));
+  background: var(--mcp-surface-2, var(--color-background-secondary, #f5f4ed));
+  font: 13px/1.4 var(--mcp-sans, var(--font-sans, sans-serif));
+}
+.plugin-update span {
+  flex: 1;
+}
+.plugin-update button {
+  padding: 4px 8px;
+  border: 1px solid var(--mcp-line-2, var(--color-border-secondary, #d9d5ce));
+  border-radius: 6px;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+.plugin-update button:hover {
+  text-decoration: underline;
+}
+.plugin-update button:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}

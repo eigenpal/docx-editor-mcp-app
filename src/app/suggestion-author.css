@@ -1,0 +1,74 @@
+.mcp-author {
+  position: relative;
+}
+
+.mcp-author-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--doc-text);
+  cursor: pointer;
+}
+
+.mcp-author-trigger:hover,
+.mcp-author-trigger[aria-expanded='true'] {
+  background: var(--doc-bg-hover);
+}
+
+.mcp-author-panel {
+  position: absolute;
+  z-index: var(--doc-z-overlay, 50);
+  top: calc(100% + 6px);
+  right: 0;
+  box-sizing: border-box;
+  width: min(290px, calc(100vw - 24px));
+  padding: 14px;
+  border: 1px solid var(--doc-border);
+  border-radius: 10px;
+  background: var(--doc-surface);
+  box-shadow: var(--doc-shadow-lg);
+  color: var(--doc-text);
+}
+
+.mcp-author-panel label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.mcp-author-panel input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 7px 9px;
+  border: 1px solid var(--doc-border-input);
+  border-radius: 6px;
+  background: var(--doc-bg-input);
+  color: var(--doc-text);
+  font: inherit;
+}
+
+.mcp-author-panel p {
+  margin: 8px 0 12px;
+  color: var(--doc-text-muted);
+  font-size: 12px;
+}
+
+.mcp-author-panel button {
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: var(--doc-primary);
+  color: white;
+  font: inherit;
+  cursor: pointer;
+}
+
+.mcp-author-panel button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}

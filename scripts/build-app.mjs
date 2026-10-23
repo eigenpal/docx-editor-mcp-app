@@ -64,4 +64,15 @@ await writeFile(
 await copyFile(require.resolve('@docx-editor.dev/core/harfbuzz.wasm'), join(out, 'harfbuzz.wasm'));
 // Read by scripts/build-notices.mjs: every package inlined into the widget.
 await writeFile(join(root, 'dist/metafile-app.json'), JSON.stringify(result.metafile));
+const engine = {};
+for (const name of ['core', 'pro', 'react']) {
+  const path = join(root, 'node_modules/@docx-editor.dev', name, 'package.json');
+  engine[name] = JSON.parse(await readFile(path, 'utf8')).version;
+}
+if (new Set(Object.values(engine)).size !== 1)
+  throw new Error('Editor package versions must match.');
+await writeFile(
+  join(out, 'build.json'),
+  `${JSON.stringify({ version: require('../package.json').version, engine }, null, 2)}\n`
+);
 console.log(`built dist/app/editor.html (${Math.round(html.length / 1024)} KB)`);

@@ -5,9 +5,9 @@
     "": {
       "name": "docx-editor-mcp-app",
       "devDependencies": {
-        "@docx-editor.dev/core": "^2.24.0",
-        "@docx-editor.dev/pro": "^2.24.0",
-        "@docx-editor.dev/react": "^2.24.0",
+        "@docx-editor.dev/core": "2.32.0",
+        "@docx-editor.dev/pro": "2.32.0",
+        "@docx-editor.dev/react": "2.32.0",
         "@modelcontextprotocol/ext-apps": "^1.7.5",
         "@modelcontextprotocol/sdk": "^1.30.0",
         "@openai/mcp-extensions": "^0.1.0",
@@ -64,13 +64,13 @@
 
     "@cfworker/json-schema": ["@cfworker/json-schema@4.1.1", "", {}, "sha512-gAmrUZSGtKc3AiBL71iNWxDsyUC5uMaKKGdvzYsBoTW/xi42JQHl7eKV2OYzCUqvc+D2RCcf7EXY2iCyFIk6og=="],
 
-    "@docx-editor.dev/core": ["@docx-editor.dev/core@2.24.0", "", { "dependencies": { "@docx-editor.dev/i18n": "^2.24.0", "bidi-js": "1.1.0", "emf-converter": "2.0.2", "fast-xml-parser": "^5.10.1", "fflate": "^0.8.2", "harfbuzzjs": "1.6.1", "prosemirror-commands": "^1.7.1", "prosemirror-keymap": "^1.2.3", "prosemirror-model": "^1.25.4", "prosemirror-state": "^1.4.4", "prosemirror-view": "^1.41.8", "utif2": "4.1.0" }, "peerDependencies": { "pdf-lib": "^1.17.1", "yjs": "^13.6.0" }, "optionalPeers": ["pdf-lib", "yjs"] }, "sha512-zNBiM8CIM1niuTJg1PRBVfvJ+fC0lPtc08L4GQy4I3m56pVRmkkUMrX/tvmGhU8XHo+W1uxivWWqNBgeM1KEmw=="],
+    "@docx-editor.dev/core": ["@docx-editor.dev/core@2.32.0", "", { "dependencies": { "@docx-editor.dev/i18n": "^2.32.0", "bidi-js": "1.1.0", "emf-converter": "2.0.2", "fast-xml-parser": "^5.10.1", "fflate": "^0.8.2", "harfbuzzjs": "1.6.1", "prosemirror-commands": "^1.7.1", "prosemirror-keymap": "^1.2.3", "prosemirror-model": "^1.25.4", "prosemirror-state": "^1.4.4", "prosemirror-view": "^1.42.3", "utif2": "4.1.0" }, "peerDependencies": { "pdf-lib": "^1.17.1", "yjs": "^13.6.0" }, "optionalPeers": ["pdf-lib", "yjs"] }, "sha512-zLRW0RfJdzVGJfuiiUvQd0Ed8we87gr0FP8EomSuV0xMDRYTo77AV5f9Sq90uaJJLCR1c3CYImERqJ73wBtw3A=="],
 
-    "@docx-editor.dev/i18n": ["@docx-editor.dev/i18n@2.24.0", "", {}, "sha512-dOgQbBxb6z+ieyRaLSKjWtlmlrZxcoleU5NozhidbQ0PVsh9YU9MW93Fxms7PahUdgsdDc8EGx3b3Ixj999xxw=="],
+    "@docx-editor.dev/i18n": ["@docx-editor.dev/i18n@2.32.0", "", {}, "sha512-owOiLPCrzcsVHXNwWvIwt9ZSyUu8GPUzgHsXWq3dLjc1XFH7qfccQoFFzMGBh5yqqQSmhIdzjtDtj1F285gogg=="],
 
-    "@docx-editor.dev/pro": ["@docx-editor.dev/pro@2.24.0", "", { "dependencies": { "y-protocols": "^1.0.7" }, "peerDependencies": { "@docx-editor.dev/core": "~2.24.0", "@docx-editor.dev/react": "~2.24.0", "@docx-editor.dev/vue": "~2.24.0", "@hocuspocus/provider": "^4.6.0", "react": "^18.0.0 || ^19.0.0", "react-dom": "^18.0.0 || ^19.0.0", "vue": "^3.3.0", "y-webrtc": "^10.3.0", "yjs": "^13.6.32" }, "optionalPeers": ["@docx-editor.dev/react", "@docx-editor.dev/vue", "@hocuspocus/provider", "react", "react-dom", "vue", "y-webrtc", "yjs"] }, "sha512-f7l6VtyvoMy1U3Vb0ze1YOlPGYB6xtpBRqlW8kYILE0wd68io0I/S3Zy88lXieAdyVGSzUnUw0dKnf2lLYKyYA=="],
+    "@docx-editor.dev/pro": ["@docx-editor.dev/pro@2.32.0", "", { "dependencies": { "y-protocols": "^1.0.7" }, "peerDependencies": { "@docx-editor.dev/core": "~2.32.0", "@docx-editor.dev/react": "~2.32.0", "@docx-editor.dev/vue": "~2.32.0", "@hocuspocus/provider": "^4.6.0", "react": "^18.0.0 || ^19.0.0", "react-dom": "^18.0.0 || ^19.0.0", "vue": "^3.3.0", "y-webrtc": "^10.3.0", "yjs": "^13.6.32" }, "optionalPeers": ["@docx-editor.dev/react", "@docx-editor.dev/vue", "@hocuspocus/provider", "react", "react-dom", "vue", "y-webrtc", "yjs"] }, "sha512-fcxzjcTP45bJbh2nwaHl4yza51suS4vkcxBsQRdAnFMHKtYh3Cl5CZxHoxBCZxlGjpqho704SICLPLCC4RQUyA=="],
 
-    "@docx-editor.dev/react": ["@docx-editor.dev/react@2.24.0", "", { "dependencies": { "@docx-editor.dev/i18n": "^2.24.0", "@radix-ui/react-select": "^2.3.3", "class-variance-authority": "^0.7.1", "clsx": "^2.1.1" }, "peerDependencies": { "@docx-editor.dev/core": "~2.24.0", "react": "^18.0.0 || ^19.0.0", "react-dom": "^18.0.0 || ^19.0.0" }, "optionalPeers": ["react", "react-dom"] }, "sha512-H5J9QKlXcUQyU4A07+ngshjetueknhuLc8SCDKmOZAzcgX27m67kN1A9UVFtBAtUJdbp+8l1h/Uwqu6WGW/Dvg=="],
+    "@docx-editor.dev/react": ["@docx-editor.dev/react@2.32.0", "", { "dependencies": { "@docx-editor.dev/i18n": "^2.32.0", "@radix-ui/react-select": "^2.3.3", "class-variance-authority": "^0.7.1", "clsx": "^2.1.1" }, "peerDependencies": { "@docx-editor.dev/core": "~2.32.0", "react": "^18.0.0 || ^19.0.0", "react-dom": "^18.0.0 || ^19.0.0" }, "optionalPeers": ["react", "react-dom"] }, "sha512-TbLnzfgkB7tglzrJ5FpoGMWUlbzwCWkIEcy5SqwaiZ9OpvNVVpnnu2yiPPaJe4OJMXrzQjrWhyZJiWXOuLJYww=="],
 
     "@esbuild/aix-ppc64": ["@esbuild/aix-ppc64@0.25.12", "", { "os": "aix", "cpu": "ppc64" }, "sha512-Hhmwd6CInZ3dwpuGTF8fJG6yoWmsToE+vYgD4nytZVxcu1ulHpUQRAB1UJ8+N1Am3Mz4+xOByoQoSZf4D+CpkA=="],
 
@@ -578,13 +578,13 @@
 
     "prosemirror-keymap": ["prosemirror-keymap@1.2.3", "", { "dependencies": { "prosemirror-state": "^1.0.0", "w3c-keyname": "^2.2.0" } }, "sha512-4HucRlpiLd1IPQQXNqeo81BGtkY8Ai5smHhKW9jjPKRc2wQIxksg7Hl1tTI2IfT2B/LgX6bfYvXxEpJl7aKYKw=="],
 
-    "prosemirror-model": ["prosemirror-model@1.25.11", "", { "dependencies": { "orderedmap": "^2.0.0" } }, "sha512-QWg9RhnpLlogAmp3p96uEFrE5txQpFynd4vhBAELkwgOCWQs/X0yCzB3/hrHqiPwf91RG5KyWq6553zs9JqIOQ=="],
+    "prosemirror-model": ["prosemirror-model@1.25.12", "", { "dependencies": { "orderedmap": "^2.0.0" } }, "sha512-Ue2gTmXMa7EhpLNhC7J+h4+ykD8ha12K6rrZFFKKJHBForfIStw5gJ6Zrf1mqqAa9NmpmEB4wp9bKmA4eUVjWg=="],
 
     "prosemirror-state": ["prosemirror-state@1.4.4", "", { "dependencies": { "prosemirror-model": "^1.0.0", "prosemirror-transform": "^1.0.0", "prosemirror-view": "^1.27.0" } }, "sha512-6jiYHH2CIGbCfnxdHbXZ12gySFY/fz/ulZE333G6bPqIZ4F+TXo9ifiR86nAHpWnfoNjOb3o5ESi7J8Uz1jXHw=="],
 
     "prosemirror-transform": ["prosemirror-transform@1.12.0", "", { "dependencies": { "prosemirror-model": "^1.21.0" } }, "sha512-GxboyN4AMIsoHNtz5uf2r2Ru551i5hWeCMD6E2Ib4Eogqoub0NflniaBPVQ4MrGE5yZ8JV9tUHg9qcZTTrcN4w=="],
 
-    "prosemirror-view": ["prosemirror-view@1.42.2", "", { "dependencies": { "prosemirror-model": "^1.25.8", "prosemirror-state": "^1.0.0", "prosemirror-transform": "^1.1.0" } }, "sha512-Pdg0l5kXm8aLDquFAnQFTCITg0q44sLqBlHlpsVLD9segdOao8TOfQdAhCrCXyVgPSRr6UDDROOIWA3bIrN9YQ=="],
+    "prosemirror-view": ["prosemirror-view@1.42.6", "", { "dependencies": { "prosemirror-model": "^1.25.12", "prosemirror-state": "^1.0.0", "prosemirror-transform": "^1.1.0" } }, "sha512-3g25f6hKV2bBxo3puH3EcYWmmVNSH0iWmNsMVT7sugDSpA025jgpOLarcDWr39SdzPjYMaiYtRdNtXialPSjEQ=="],
 
     "proxy-addr": ["proxy-addr@2.0.7", "", { "dependencies": { "forwarded": "0.2.0", "ipaddr.js": "1.9.1" } }, "sha512-llQsMLSUDUPT44jdrU/O37qlnifitDP+ZwrmmZcoSKyLKvtZxpyV0n2/bD/N4tBAAZ/gJEdZU7KMraoK1+XYAg=="],
 
@@ -717,6 +717,14 @@
     "eslint/ajv": ["ajv@6.15.0", "", { "dependencies": { "fast-deep-equal": "^3.1.1", "fast-json-stable-stringify": "^2.0.0", "json-schema-traverse": "^0.4.1", "uri-js": "^4.2.2" } }, "sha512-fgFx7Hfoq60ytK2c7DhnF8jIvzYgOMxfugjLOSMHjLIPgenqa7S7oaagATUq99mV6IYvN2tRmC0wnTYX6iPbMw=="],
 
     "eslint/ignore": ["ignore@5.3.2", "", {}, "sha512-hsBTNUqQTDwkWtcdYI2i06Y/nUBEsNEDJKjWdigLvegy8kDuJAS8uRlpkkcQpyEXL0Z/pjDy5HBmMjRCJ2gq+g=="],
+
+    "prosemirror-commands/prosemirror-model": ["prosemirror-model@1.25.11", "", { "dependencies": { "orderedmap": "^2.0.0" } }, "sha512-QWg9RhnpLlogAmp3p96uEFrE5txQpFynd4vhBAELkwgOCWQs/X0yCzB3/hrHqiPwf91RG5KyWq6553zs9JqIOQ=="],
+
+    "prosemirror-state/prosemirror-model": ["prosemirror-model@1.25.11", "", { "dependencies": { "orderedmap": "^2.0.0" } }, "sha512-QWg9RhnpLlogAmp3p96uEFrE5txQpFynd4vhBAELkwgOCWQs/X0yCzB3/hrHqiPwf91RG5KyWq6553zs9JqIOQ=="],
+
+    "prosemirror-state/prosemirror-view": ["prosemirror-view@1.42.2", "", { "dependencies": { "prosemirror-model": "^1.25.8", "prosemirror-state": "^1.0.0", "prosemirror-transform": "^1.1.0" } }, "sha512-Pdg0l5kXm8aLDquFAnQFTCITg0q44sLqBlHlpsVLD9segdOao8TOfQdAhCrCXyVgPSRr6UDDROOIWA3bIrN9YQ=="],
+
+    "prosemirror-transform/prosemirror-model": ["prosemirror-model@1.25.11", "", { "dependencies": { "orderedmap": "^2.0.0" } }, "sha512-QWg9RhnpLlogAmp3p96uEFrE5txQpFynd4vhBAELkwgOCWQs/X0yCzB3/hrHqiPwf91RG5KyWq6553zs9JqIOQ=="],
 
     "type-is/content-type": ["content-type@2.1.0", "", {}, "sha512-mj7UPXE0jaqaOsukNZRUEfEi2AcL7C/vwmwcHV0O97eO1E1pxBZuyjlZrx5seTaNBg1U6+o35wpa35Qfcc+7ag=="],
 

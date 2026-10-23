@@ -1,24 +1,43 @@
 # docx-editor terms of use
 
-> **Draft for legal review.** Publish at https://www.docx-editor.dev/terms.
+Effective date: October 23, 2026
 
-Effective date: _to be set_
+These terms cover the docx-editor MCP plugin from Eigenpal, Inc.
 
-These terms govern your use of the docx-editor plugin from EigenPal, Inc.
+## Plugin use
 
-1. **Use.** You may use the plugin free of charge, including for business
-   use, inside ChatGPT, Codex, and other MCP hosts. The bundled EigenPal
-   components are licensed under the EigenPal Plugin License
-   (`LICENSE-PLUGIN.md`); the plugin's source code is licensed under the Apache
-   License 2.0.
-2. **The SDK.** These terms give no right to use the docx-editor SDK in your
-   own software. For that, see https://www.docx-editor.dev/pricing.
-3. **Your content.** You keep all rights to your documents. You are
-   responsible for the documents you open and the changes you save.
-4. **No warranty.** The plugin is provided "as is". Check important documents
-   in Microsoft Word before you rely on them.
-5. **Liability.** To the extent the law permits, EigenPal, Inc. is not liable
-   for indirect or consequential damages, or for lost data.
-6. **Changes.** We may update these terms. We will post the new effective date.
+You may use the official plugin in ChatGPT, Codex, and Claude, including for personal and business documents.
+The MCP app source uses MIT under `LICENSE`.
+The proprietary bundled Pro components have additional plugin permission under `LICENSE-PLUGIN.md`.
+Open-source editor components and other dependencies retain their own licenses.
 
-Contact: docx-editor@eigenpal.com
+You may not reuse the proprietary Pro components in your own product or service under the plugin permission.
+Obtain a separate EigenPal Pro License for that use.
+See [DOCX Editor licensing](https://www.docx-editor.dev/commercial-license).
+This restriction does not remove rights granted by the independent open-source licenses.
+You may embed the Apache 2.0 editor components in commercial products under their own licenses.
+You may reuse the MIT-licensed MCP app source under its license.
+The complete bundled plugin does not use a single MIT license.
+
+## Your documents
+
+You retain your document rights.
+You may use documents created or edited with the plugin in your business and products.
+You control the documents you open and the changes you save.
+
+## Updates and privacy
+
+Your host may supply plugin updates through its directory.
+The plugin can show a newer stable release through an optional GitHub metadata check.
+It does not replace its running editor or upload your documents for that check.
+Read the privacy policy for request details and the setting that disables update checks.
+
+## Warranty and liability
+
+The plugin comes "as is" under the applicable component licenses.
+Check important documents before you rely on them.
+The warranty and liability terms in `LICENSE`, `LICENSE-PLUGIN.md`, and the dependency licenses apply to their respective components.
+
+## Contact
+
+Email docx-editor@eigenpal.com for support.

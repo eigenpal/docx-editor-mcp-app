@@ -42,13 +42,13 @@ for (const dir of [...roots].sort()) {
   const text = licenseFile ? readFileSync(join(root, dir, licenseFile), 'utf8').trim() : null;
   const license = typeof pkg.license === 'string' ? pkg.license : pkg.license?.type;
   if (!text && !license) throw new Error(`${pkg.name} is bundled but declares no license`);
-  // EigenPal's own packages ship here under the plugin license, not their SDK terms.
-  if (pkg.name.startsWith('@docx-editor.dev/')) {
+  // The plugin permission supplements Pro terms; open-source editor licenses remain intact.
+  if (pkg.name === '@docx-editor.dev/pro') {
     entries.push({
       name: pkg.name,
       version: pkg.version,
-      license: 'LICENSE-PLUGIN.md',
-      text: null,
+      license: 'EigenPal Pro License; additional plugin permission in LICENSE-PLUGIN.md',
+      text,
     });
     continue;
   }
@@ -70,7 +70,7 @@ const body = unique
   .join('\n');
 writeFileSync(
   join(root, 'THIRD_PARTY_NOTICES.md'),
-  `# Third-party notices\n\nThis package bundles the following packages. Their licenses follow. EigenPal packages (\`@docx-editor.dev/*\`) are licensed for use in this plugin under LICENSE-PLUGIN.md.\n\n${body}`,
+  `# Third-party notices\n\nThis package bundles the following packages. Their licenses follow. The proprietary Pro components have additional plugin permission in LICENSE-PLUGIN.md. Open-source components retain their own licenses.\n\n${body}`,
   'utf8'
 );
 if (!existsSync(join(root, 'THIRD_PARTY_NOTICES.md'))) throw new Error('notices not written');

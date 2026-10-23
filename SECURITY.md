@@ -26,7 +26,21 @@ Untrusted document content or chat content can influence that path.
 `src/server/documents.ts` is the boundary.
 It opens only `.docx` files, checked on the resolved path, so a symlink cannot reach another file.
 It caps the file size, refuses to write read-only files, and keeps the file's permissions on save.
-The app never fetches from the network.
+The widget reads documents and editor assets through MCP.
+The local server can check public GitHub release metadata without sending document contents or file paths.
+Set `DOCX_EDITOR_UPDATE_CHECK=0` to disable that check.
+
+### Public source
+
+Keep credentials, private agent notes, local documents, and generated packages outside Git.
+Use `local/` for private notes and `samples/` for local test documents.
+Use `docs/submission/fixtures/` only for synthetic review documents.
+The secret scan checks all fetched Git history in CI.
+Check archive contents and document metadata before changing repository visibility.
+
+The MCP app source uses MIT.
+Bundled engine dependencies retain their own licenses.
+Keep the proprietary Pro notice and its separate plugin permission with every release package.
 
 ### Document content
 
