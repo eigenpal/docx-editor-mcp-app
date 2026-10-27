@@ -45,6 +45,14 @@ docx-editor-mcp-app setup codex
 
 Run `bun run inspect` to test the protocol with the MCP Inspector.
 
+## TypeScript tooling
+
+Use `bun run typecheck` to run the TypeScript 7 compiler.
+The `@typescript/native` alias supplies that compiler.
+The `typescript` alias supplies the TypeScript 6 API required by ESLint.
+Keep both aliases until the lint tools support the TypeScript 7 API.
+See [Microsoft's compatibility guidance](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/#running-side-by-side-with-typescript-6.0).
+
 ## Verify your change
 
 ```bash
