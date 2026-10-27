@@ -15,9 +15,9 @@ Keep preview URLs out of the release manifests.
 | Support | https://www.docx-editor.dev/mcp-app/support |
 | Privacy | https://www.docx-editor.dev/mcp-app/privacy |
 | Terms   | https://www.docx-editor.dev/mcp-app/terms   |
-| License | https://www.docx-editor.dev/mcp-app/licence |
+| License | https://www.docx-editor.dev/mcp-app/license |
 
-Publish these pages before you submit the final package for review.
+Verify these pages before you submit the final package for review.
 Check each URL without a publisher account.
 
 ## Name

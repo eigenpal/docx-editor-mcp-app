@@ -3,7 +3,7 @@
 Use these packages to submit docx-editor to the ChatGPT and Claude desktop directories.
 Both packages run the MCP server and editor locally.
 Use the product and policy URLs in [listing.md](listing.md) for both submissions.
-Publish those pages before final review.
+Verify those pages before final review.
 You do not deploy an editor or MCP endpoint.
 
 See [release.md](release.md) for editor updates and bug-fix releases.

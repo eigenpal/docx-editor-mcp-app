@@ -66,11 +66,10 @@ Support: docx-editor@eigenpal.com
 - Support: https://www.docx-editor.dev/mcp-app/support
 - Privacy: https://www.docx-editor.dev/mcp-app/privacy
 - Terms: https://www.docx-editor.dev/mcp-app/terms
-- License: https://www.docx-editor.dev/mcp-app/licence
+- License: https://www.docx-editor.dev/mcp-app/license
 
-The website PR has working previews for these pages.
-Publish and verify the production pages before final submission.
-You can request organization eligibility while the website review continues.
+The production pages are available without authentication.
+Verify them again before final submission.
 
 ## Request
 

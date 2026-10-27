@@ -35,7 +35,7 @@ The form links an older terms page that points to the current [Anthropic Softwar
 - Support page: https://www.docx-editor.dev/mcp-app/support.
 - Privacy policy: https://www.docx-editor.dev/mcp-app/privacy.
 - Terms: https://www.docx-editor.dev/mcp-app/terms.
-- Pro permission: https://www.docx-editor.dev/mcp-app/licence.
+- Pro permission: https://www.docx-editor.dev/mcp-app/license.
 - Candidate version: `1.0.0`.
 - Local server: Node.js over stdio.
 - Author profile: https://github.com/eigenpal.
