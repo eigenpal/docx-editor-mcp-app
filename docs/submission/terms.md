@@ -1,6 +1,6 @@
 # docx-editor terms of use
 
-Effective date: October 23, 2026
+Effective date: October 27, 2026
 
 These terms cover the docx-editor MCP plugin from Eigenpal, Inc.
 
@@ -8,6 +8,10 @@ These terms cover the docx-editor MCP plugin from Eigenpal, Inc.
 
 You may use the official plugin in ChatGPT, Codex, and Claude, including for personal and business documents.
 You need no separate Pro subscription for this permitted plugin use.
+Official releases include Eigenpal's npm package, GitHub packages, host directory packages, and downloads identified on the plugin website.
+The Pro plugin permission also covers limited internal source builds.
+Its conditions apply to those builds.
+
 The MCP app source uses Apache-2.0 under the [source license](https://github.com/eigenpal/docx-editor-mcp-app/blob/main/LICENSE).
 The proprietary bundled Pro components have additional plugin permission under the [Pro plugin permission](https://github.com/eigenpal/docx-editor-mcp-app/blob/main/LICENSE-PLUGIN.md).
 Open-source editor components and other dependencies retain their own licenses.
@@ -26,6 +30,15 @@ The complete bundled plugin does not use a single open-source license.
 You retain your document rights.
 You may use documents created or edited with the plugin in your business and products.
 You control the documents you open and the changes you save.
+Ordinary plugin feedback does not assign your documents or unrelated intellectual property to Eigenpal.
+
+## License precedence
+
+The Pro plugin permission controls conflicts with the Pro evaluation license for permitted plugin use.
+This includes production use, distribution, feedback assignment, and termination.
+Your rights for received versions continue while you comply with that permission.
+Later policy changes or discontinued support do not revoke those rights.
+Independent open-source licenses continue to govern their respective components.
 
 ## Updates and privacy
 

@@ -62,7 +62,7 @@ The editor runs locally and needs no Eigenpal account or API key.
 
 1. Disclose the host-specific Pro permission in the submission.
 2. Test the `.mcpb` in Claude Desktop, including local file access and an agent edit.
-3. Publish the support, privacy, and terms pages after review.
+3. Verify the published support, privacy, and terms links in the final package.
 4. Confirm the primary contact name.
 5. Attach the final `.mcpb` and submit after reviewing the directory terms.
 
