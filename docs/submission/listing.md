@@ -4,6 +4,22 @@ Use this copy in both directory submissions.
 Match the publisher name to your verified identity.
 Confirm the supported platforms after the desktop tests.
 
+## Product and policy links
+
+Use the production URLs in both submissions.
+Keep preview URLs out of the release manifests.
+
+| Purpose | URL                                         |
+| ------- | ------------------------------------------- |
+| Product | https://www.docx-editor.dev/mcp-app         |
+| Support | https://www.docx-editor.dev/mcp-app/support |
+| Privacy | https://www.docx-editor.dev/mcp-app/privacy |
+| Terms   | https://www.docx-editor.dev/mcp-app/terms   |
+| License | https://www.docx-editor.dev/mcp-app/license |
+
+Verify these pages before you submit the final package for review.
+Check each URL without a publisher account.
+
 ## Name
 
 docx-editor

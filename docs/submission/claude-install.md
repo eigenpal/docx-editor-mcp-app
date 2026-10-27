@@ -53,5 +53,5 @@ See `docs/releases.md` in this package for the complete release policy.
 
 ## Support
 
-Visit https://www.docx-editor.dev/support or email docx-editor@eigenpal.com.
+Visit https://www.docx-editor.dev/mcp-app/support or email docx-editor@eigenpal.com.
 Read `LICENSE-PLUGIN.md` and `THIRD_PARTY_NOTICES.md` for bundled component terms.

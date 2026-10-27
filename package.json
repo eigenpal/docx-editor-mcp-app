@@ -4,7 +4,7 @@
   "description": "Word-faithful .docx viewer and editor for ChatGPT, Codex, and Claude, as an MCP App with OpenAI plugin extensions.",
   "author": "Eigenpal",
   "license": "SEE LICENSE IN LICENSE-PLUGIN.md",
-  "homepage": "https://docx-editor.dev/",
+  "homepage": "https://www.docx-editor.dev/mcp-app",
   "repository": {
     "type": "git",
     "url": "https://github.com/eigenpal/docx-editor-mcp-app.git"

@@ -31,6 +31,11 @@ The form links an older terms page that points to the current [Anthropic Softwar
 - Primary contact email: docx-editor@eigenpal.com, confirmed by the owner.
 - Primary contact name: awaiting owner confirmation.
 - Product: docx-editor.
+- Product page: https://www.docx-editor.dev/mcp-app.
+- Support page: https://www.docx-editor.dev/mcp-app/support.
+- Privacy policy: https://www.docx-editor.dev/mcp-app/privacy.
+- Terms: https://www.docx-editor.dev/mcp-app/terms.
+- Pro permission: https://www.docx-editor.dev/mcp-app/license.
 - Candidate version: `1.0.0`.
 - Local server: Node.js over stdio.
 - Author profile: https://github.com/eigenpal.

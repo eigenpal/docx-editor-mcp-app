@@ -31,7 +31,7 @@ These results do not establish Claude installation, Windows support, or director
 ## Remaining publication work
 
 1. Confirm the primary directory contact name.
-2. Publish the support, privacy, and terms pages at the manifest URLs.
+2. Verify the published support, privacy, and terms pages at the manifest URLs.
 3. Test the final `.mcpb` in Claude Desktop.
 4. Record the demonstration and host versions with the candidate package checksums.
 5. Create a draft `v1.0.0` release from the reviewed source commit.
@@ -39,8 +39,10 @@ These results do not establish Claude installation, Windows support, or director
 7. Submit the Claude extension with its complete license disclosure.
 8. Obtain OpenAI local-MCP submission access before uploading its directory package.
 
-The support, privacy, and terms URLs each returned `404` during this check.
-Use `support.md`, `privacy.md`, and `terms.md` as the page content drafts.
+The product, support, license, privacy, and terms pages are public under `/mcp-app`.
+The production pages returned `200` on October 27, 2026.
+Use the production URLs from `listing.md` in the final manifests.
+Verify those URLs without authentication before submission.
 Keep the support URL and policy URLs in the package synchronized with the published pages.
 
 The review proposal fixture uses its clean synthetic version after the local document tests.
