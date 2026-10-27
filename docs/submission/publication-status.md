@@ -1,6 +1,7 @@
 # Prepare publication of version 1.0.0
 
-Status checked on October 23, 2026.
+Publication availability checked on October 27, 2026.
+The completed checks below describe the earlier release candidate.
 Keep this record with the candidate packages until publication.
 
 ## Candidate
@@ -10,7 +11,9 @@ Keep this record with the candidate packages until publication.
 - Source repository: `https://github.com/eigenpal/docx-editor-mcp-app`.
 - Repository visibility: public, with `main` as the default branch.
 - Release preparation: merged through [pull request 11](https://github.com/eigenpal/docx-editor-mcp-app/pull/11).
-- Published GitHub releases: none returned during the check.
+- Published GitHub releases: none returned during the October 27 check.
+- Stable marketplace branch: absent during the October 27 check.
+- npm package: `@docx-editor.dev/mcp-app` returned `404` during the October 27 check.
 - Source license: Apache-2.0.
 - Pro permission: `LICENSE-PLUGIN.md`.
 - Directory contact email: `docx-editor@eigenpal.com`, confirmed by the owner.

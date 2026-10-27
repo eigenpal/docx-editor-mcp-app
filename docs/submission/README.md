@@ -6,13 +6,13 @@ Use the product and policy URLs in [listing.md](listing.md) for both submissions
 Verify those pages before final review.
 You do not deploy an editor or MCP endpoint.
 
-See [release.md](release.md) for editor updates and bug-fix releases.
-Use [publication-status.md](publication-status.md) for the current release checks and remaining work.
-Use [licensing.md](licensing.md) for the source, editor, and Pro license scopes.
-Use [openai-approval-request.md](openai-approval-request.md) when you contact your OpenAI representative.
+See the [release guide](release.md) for editor updates and bug-fix releases.
+Use [publication status](publication-status.md) for the current release checks and remaining work.
+Use [license scopes](licensing.md) for the source, editor, and Pro license scopes.
+Use [OpenAI approval request](openai-approval-request.md) when you contact your OpenAI representative.
 
-Use [listing.md](listing.md) for listing copy and the support page draft.
-Use [demo.md](demo.md) and `fixtures/` for the review demonstration.
+Use [directory listing copy](listing.md) for listing copy and the support page draft.
+Use [demonstration guide](demo.md) and `fixtures/` for the review demonstration.
 
 ## Build both packages
 
@@ -132,7 +132,8 @@ Before submission, test a clean installation in each desktop host:
 
 ## Complete listing requirements
 
-Publish the support, privacy, and terms pages at the URLs in `.codex-plugin/plugin.json`.
+Use the published support, privacy, and terms pages under `https://www.docx-editor.dev/mcp-app`.
+Keep the URLs in `.codex-plugin/plugin.json` synchronized with those pages.
 The page drafts are [support.md](support.md), [privacy.md](privacy.md), and [terms.md](terms.md).
 Each policy states its effective date.
 Review `LICENSE-PLUGIN.md` for the bundled Eigenpal components.

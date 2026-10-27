@@ -1,9 +1,14 @@
 # Install and update docx-editor
 
-## Release decision
+## Publication status
 
 See [publication status](https://github.com/eigenpal/docx-editor-mcp-app/blob/main/docs/submission/publication-status.md) for candidate checks and remaining work.
 See [license scope](https://github.com/eigenpal/docx-editor-mcp-app/blob/main/docs/submission/licensing.md) for the source, editor, and Pro permissions.
+
+As of October 27, 2026, no public GitHub release or `stable` branch exists.
+The npm package also returns `404`.
+Use the [source evaluation instructions](../README.md#build-for-local-evaluation) until the first release.
+The installation routes below apply after publication.
 
 Use a complete local package with the editor included.
 Use native directory updates when the host provides them.
@@ -27,7 +32,7 @@ OpenAI limits public local-MCP submissions to approved partners.
 A GitHub release cannot bypass that approval.
 A universal one-click public listing is therefore a distribution approval, not a feature the package can create.
 
-Before directory approval, use the public Git marketplace with Codex CLI:
+After the first stable release, use the public Git marketplace with Codex CLI:
 
 ```bash
 codex plugin marketplace add https://github.com/eigenpal/docx-editor-mcp-app.git --ref stable
@@ -48,7 +53,7 @@ After Anthropic approves the extension, select **Install** in its desktop extens
 Claude supplies the local Node.js runtime.
 Directory extensions update automatically by default.
 
-Before approval, download `docx-editor-claude-<version>.mcpb` from the stable release page.
+After the first release, download `docx-editor-claude-<version>.mcpb` from the stable release page.
 Open **Settings > Extensions > Advanced settings > Install Extension** and select that file.
 This fallback has additional steps and does not provide directory automatic updates.
 Use the desktop extension submission route, not the remote connector submission route.

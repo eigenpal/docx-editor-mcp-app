@@ -15,6 +15,39 @@ That restriction covers Pro code, including Pro code inside combined bundles.
 It does not cover the open-source editor or Apache-2.0-licensed MCP app source.
 Your documents remain yours, including documents you use in products or services.
 
+## Free plugin and commercial licensing
+
+Eigenpal supplies the official plugin without a separate Pro subscription.
+Official channels include npm, the Eigenpal GitHub repository, host directories, and downloads identified on the plugin website.
+The permission controls conflicts with the Pro evaluation license, including termination and feedback assignment.
+Compliant recipients retain their rights for received versions after policy changes or discontinued support.
+Ordinary plugin feedback does not assign documents or unrelated intellectual property.
+
+This permission includes business document use within ChatGPT, Codex, and Claude.
+Customers need a separate license to embed the proprietary Pro components in another product.
+The Apache-2.0 editor core remains available for commercial use under Apache-2.0.
+Do not describe every commercial editor integration as requiring payment.
+
+The plugin permission relies on Eigenpal's rights to the covered Pro code.
+It does not replace licenses from other copyright owners.
+Keep dependency notices and confirm contributor rights for code that you license separately.
+The public repository alone cannot establish ownership of every contribution.
+
+## Source builds and hosted services
+
+You can change and redistribute the Apache-2.0 MCP app source.
+The current build includes Pro components with separate terms.
+The plugin permission covers limited internal source builds for personal and business use in ChatGPT, Codex, and Claude.
+You may modify the Apache-2.0 source, but keep the covered Pro code unchanged.
+Use a Pro version recorded in an official release and preserve all notices.
+You may share these builds with employees and contractors for your organization's internal use.
+
+Public distribution of modified builds containing Pro code requires separate permission.
+
+The permission also excludes third-party hosted editor services.
+Confirm the terms for any official hosted offering before launch.
+See [local and hosted deployment](../hosting.md) for the technical differences.
+
 ## Directory disclosure
 
 Describe the source repository as Apache-2.0 licensed.

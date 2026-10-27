@@ -24,7 +24,8 @@ In local mode, `open_document` takes a file path from a tool call.
 Untrusted document content or chat content can influence that path.
 
 `src/server/documents.ts` is the boundary.
-It opens only `.docx` files, checked on the resolved path, so a symlink cannot reach another file.
+It resolves the real path and checks the `.docx` extension.
+A symlink cannot bypass the extension check.
 It caps the file size, refuses to write read-only files, and keeps the file's permissions on save.
 The widget reads documents and editor assets through MCP.
 The local server can check public GitHub release metadata without sending document contents or file paths.
