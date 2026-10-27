@@ -89,7 +89,7 @@
     "@typescript-eslint/eslint-plugin": "^8.54.0",
     "@typescript-eslint/parser": "^8.54.0",
     "esbuild": "^0.28.2",
-    "eslint": "^9.20.0",
+    "eslint": "^10.8.1",
     "eslint-plugin-react-hooks": "^7.0.1",
     "fflate": "^0.8.2",
     "prettier": "^3.8.1",
