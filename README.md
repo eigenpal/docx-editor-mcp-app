@@ -41,9 +41,14 @@ If no dialog opens, drag the file into the Claude Desktop window.
 
 ### Update
 
-The plugin tells you when a new version is available. In Claude Desktop,
-install the new `.mcpb`. In ChatGPT and Codex, run
-`codex plugin marketplace upgrade`.
+The plugin tells you when a new version is available.
+
+- **Claude Desktop:** install the new `.mcpb` file.
+- **ChatGPT and Codex:** run this command, and then restart the app:
+
+  ```bash
+  codex plugin marketplace upgrade && codex plugin add docx-editor@docx-editor
+  ```
 
 ### Limitations
 
