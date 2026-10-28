@@ -26,6 +26,8 @@ need an account or an API key.
    [latest release](https://github.com/eigenpal/docx-editor-mcp-app/releases/latest).
 2. Open the file, and then select **Install**.
 
+If no dialog opens, drag the file into the Claude Desktop window.
+
 ### ChatGPT and Codex desktop
 
 1. Run this command with the

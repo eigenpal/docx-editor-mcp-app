@@ -1,5 +1,11 @@
 # Troubleshoot docx-editor
 
+## Claude Desktop does not open the install dialog
+
+Drag the `.mcpb` file into the Claude Desktop window. You can also go to
+**Settings > Extensions > Advanced settings > Install Extension**, and select
+the file.
+
 ## The preview does not finish loading
 
 Finish running tasks, and then restart your desktop app.
