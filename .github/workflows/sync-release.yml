@@ -1,0 +1,195 @@
+name: Sync library release
+# The upstream post-release job finds this run by the request ID in its name.
+run-name: ${{ github.event_name == 'repository_dispatch' && format('upstream-release {0}', github.event.client_payload.request) || github.workflow }}
+
+# The plugin follows the docx-editor unified release: plugin <version> bundles
+# editor <version>. Each upstream release sends `upstream-release` here
+# (release-downstream.yml in eigenpal/docx-editor), and upstream waits for this
+# run, so a red run here fails its post-release report.
+#
+# This run pins the editor, sets the plugin version, opens a pull request,
+# merges it only when its checks pass, and pushes v<version>. The tag starts
+# release-packages.yml, which builds a DRAFT release. Publishing it stays a
+# person's decision: host acceptance and directory review are manual.
+
+on:
+  repository_dispatch:
+    types: [upstream-release]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Exact published editor version, for example 2.34.0
+        required: true
+        type: string
+
+concurrency:
+  group: library-release-sync
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  checks: read
+  statuses: read
+
+jobs:
+  sync:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    env:
+      VERSION: ${{ github.event.client_payload.version || inputs.version }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+          # create-pull-request and the tag push use the App token explicitly.
+          persist-credentials: false
+
+      # App-authored pull requests and tags start the normal workflows.
+      # GitHub suppresses events caused by GITHUB_TOKEN, so CI would never run
+      # on the pull request and the tag would never build the release.
+      - name: Mint release-pal App token
+        id: pal
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510
+        with:
+          app-id: ${{ secrets.RELEASE_PAL_APP_ID }}
+          private-key: ${{ secrets.RELEASE_PAL_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: docx-editor-mcp-app
+
+      - name: Decide what this run does
+        id: plan
+        env:
+          GH_TOKEN: ${{ steps.pal.outputs.token }}
+        run: |
+          set -euo pipefail
+          if ! printf '%s' "$VERSION" | grep -Eq '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'; then
+            echo "::error::'$VERSION' is not an exact major.minor.patch version." >&2
+            exit 1
+          fi
+          current=$(node -p "require('./package.json').version")
+          newest=$(printf '%s\n%s\n' "$current" "$VERSION" | sort -V | tail -1)
+          if [ "$current" != "$VERSION" ] && [ "$newest" = "$current" ]; then
+            echo "The plugin is already at $current, newer than $VERSION. Nothing to do."
+            echo "action=none" >> "$GITHUB_OUTPUT"
+          elif gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/v$VERSION" >/dev/null 2>&1; then
+            echo "v$VERSION is already tagged. Nothing to do."
+            echo "action=none" >> "$GITHUB_OUTPUT"
+          elif [ "$current" = "$VERSION" ]; then
+            echo "main is already at $VERSION; only the tag is missing."
+            echo "action=tag" >> "$GITHUB_OUTPUT"
+          else
+            echo "action=sync" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/setup-node@v7
+        if: steps.plan.outputs.action == 'sync'
+        with:
+          node-version: '22'
+      - uses: oven-sh/setup-bun@v2
+        if: steps.plan.outputs.action == 'sync'
+        with:
+          bun-version: '1.3.5'
+
+      # The dispatch can arrive before npm serves every package of the release.
+      - name: Wait for npm to serve the editor packages
+        if: steps.plan.outputs.action == 'sync'
+        run: |
+          for pkg in core pro react; do
+            for i in $(seq 1 30); do
+              [ "$(npm view "@docx-editor.dev/$pkg@$VERSION" version 2>/dev/null)" = "$VERSION" ] && break
+              if [ "$i" -eq 30 ]; then
+                echo "::error::npm does not serve @docx-editor.dev/$pkg@$VERSION after 5 minutes." >&2
+                exit 1
+              fi
+              sleep 10
+            done
+          done
+
+      - name: Move the plugin to the editor release
+        if: steps.plan.outputs.action == 'sync'
+        run: |
+          bun install --frozen-lockfile
+          bun run release:version "$VERSION"
+          bun install --lockfile-only
+          bunx prettier --write CHANGELOG.md package.json .codex-plugin/plugin.json
+
+      - name: Open pull request
+        id: cpr
+        if: steps.plan.outputs.action == 'sync'
+        uses: peter-evans/create-pull-request@c5a7806660adbe173f04e3e038b0ccdcd758773c # v6
+        with:
+          token: ${{ steps.pal.outputs.token }}
+          branch: bot/release-${{ env.VERSION }}
+          add-paths: |
+            package.json
+            bun.lock
+            .codex-plugin/plugin.json
+            CHANGELOG.md
+          commit-message: 'chore: release ${{ env.VERSION }} with editor ${{ env.VERSION }}'
+          title: 'chore: release ${{ env.VERSION }} with editor ${{ env.VERSION }}'
+          body: |
+            docx-editor published `${{ env.VERSION }}`. This pins `core`, `pro`, and
+            `react` to it and sets the plugin version to the same number.
+
+            Opened by `.github/workflows/sync-release.yml`. It merges only after
+            the checks pass, then tags `v${{ env.VERSION }}` to build a draft release.
+          labels: automated
+
+      # Wait until checks exist, then for their verdict. A pull request that
+      # nothing checked must never merge, so no checks after 5 minutes fails.
+      - name: Wait for the checks on the pull request
+        if: steps.plan.outputs.action == 'sync'
+        timeout-minutes: 30
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ steps.cpr.outputs.pull-request-head-sha }}
+          PR_URL: ${{ steps.cpr.outputs.pull-request-url }}
+        run: |
+          set -euo pipefail
+          [ -n "$PR_URL" ] || { echo "::error::No pull request was opened." >&2; exit 1; }
+          for _ in $(seq 1 30); do
+            runs=$(gh api "repos/$GITHUB_REPOSITORY/commits/$HEAD_SHA/check-runs" --jq '.total_count')
+            statuses=$(gh api "repos/$GITHUB_REPOSITORY/commits/$HEAD_SHA/status" --jq '.statuses | length')
+            [ $((runs + statuses)) -gt 0 ] && break
+            sleep 10
+          done
+          if [ $((runs + statuses)) -eq 0 ]; then
+            echo "::error::No checks registered on $PR_URL. Not merging." >&2
+            exit 1
+          fi
+          gh pr checks "$PR_URL" --watch --fail-fast --interval 20
+
+      # Mergeability settles asynchronously after the pull request opens.
+      - name: Merge the pull request
+        if: steps.plan.outputs.action == 'sync'
+        env:
+          GH_TOKEN: ${{ steps.pal.outputs.token }}
+          PR_URL: ${{ steps.cpr.outputs.pull-request-url }}
+        run: |
+          for i in $(seq 1 12); do
+            gh pr merge "$PR_URL" --squash --delete-branch && exit 0
+            echo "Not mergeable yet (attempt $i/12)."
+            sleep 5
+          done
+          exit 1
+
+      # Tag the commit that carries the version, so the release workflow's
+      # tag check (tag == package.json version) passes.
+      - name: Tag the release
+        if: steps.plan.outputs.action != 'none'
+        env:
+          GH_TOKEN: ${{ steps.pal.outputs.token }}
+        run: |
+          set -euo pipefail
+          sha=$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha)
+          at=$(gh api "repos/$GITHUB_REPOSITORY/contents/package.json?ref=$sha" --jq .content | base64 -d | node -p "JSON.parse(require('fs').readFileSync(0,'utf8')).version")
+          if [ "$at" != "$VERSION" ]; then
+            echo "::error::main is at $at, not $VERSION. Not tagging." >&2
+            exit 1
+          fi
+          gh api "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/tags/v$VERSION" -f sha="$sha" >/dev/null
+          {
+            echo "Tagged \`v$VERSION\` at \`$sha\`."
+            echo "release-packages.yml now builds the draft release. Publish it after host acceptance."
+          } >> "$GITHUB_STEP_SUMMARY"

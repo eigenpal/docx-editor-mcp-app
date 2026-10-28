@@ -44,7 +44,8 @@ jobs:
         run: node -e 'if (process.env.RELEASE_TAG !== "v" + require("./package.json").version) process.exit(1)'
       - run: bun run release:verify
         env:
-          DEMO_URL: ${{ inputs.demo_url }}
+          # A tag build has no inputs; the repository variable holds the stable demo URL.
+          DEMO_URL: ${{ inputs.demo_url || vars.DEMO_URL }}
           DOCX_EDITOR_UPDATE_CHECK: '0'
       - run: npx --yes @anthropic-ai/mcpb@2.1.2 validate dist/local-packages/claude/manifest.json
       - run: npm pack --ignore-scripts --pack-destination dist/local-packages

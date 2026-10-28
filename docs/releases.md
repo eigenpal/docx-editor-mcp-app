@@ -82,29 +82,40 @@ The interface reads update status through MCP and declares no additional network
 
 ## Version and recovery policy
 
-Use one semantic version in the package, host manifests, release tag, and archives.
-Use `v1.0.0` for the first stable release.
-Increase the patch number for compatible fixes and the minor number for compatible features.
-Increase the major number for breaking interface or configuration changes.
-Never replace assets for an existing published version.
-Pin the editor packages to an exact tested version and include its matching WebAssembly file.
-Do not require the newest upstream editor to release a tested plugin fix.
-Keep the previous release available for manual recovery.
-For an urgent regression, publish a higher patch version with the previous working implementation.
-Do not move a stable tag or silently downgrade a user's files.
+The plugin follows the docx-editor unified release.
+Its version is the editor version: plugin `2.34.0` bundles editor `2.34.0`.
+The package, host manifests, release tag, and archives all use that version.
+
+- Add plugin changes to `main` under `## Unreleased` in `CHANGELOG.md`.
+  The next editor release ships them.
+- To ship a plugin-only fix sooner, add a patch changeset in `eigenpal/docx-editor`.
+  The editor patch release then releases the plugin too.
+- Never replace assets for an existing published version.
+- Keep the previous release available for manual recovery.
+- For an urgent regression, release the next editor patch with the previous working implementation.
+- Do not move a stable tag or silently downgrade a user's files.
 
 ## Publish a release
 
-1. Run `bun run release:version <version>` and update `CHANGELOG.md`.
-2. Run `bun install --lockfile-only` and commit the version with the tested changes.
-3. Push the version tag to trigger package preparation.
-4. Download the workflow artifacts or inspect the draft GitHub release.
-5. Confirm the package checks and recorded manual host acceptance results.
-6. Publish the draft release when you approve the public release.
+Each docx-editor release sends an `upstream-release` dispatch to this repository.
+`.github/workflows/sync-release.yml` then does steps 1 to 3 without a person:
+
+1. It runs `bun run release:version <version>`.
+   This pins the editor packages and sets the plugin version.
+   It also turns `## Unreleased` into the release heading.
+2. It opens a pull request, waits for its checks, and merges it only if they pass.
+   A failed check leaves the pull request open, and `main` does not change.
+3. It pushes the `v<version>` tag, which builds the packages into a draft release.
+
+A person does the rest:
+
+4. Inspect the draft GitHub release and its package checks.
+5. Record the manual host acceptance results.
+6. Publish the draft release.
+   Publishing promotes the exact Codex archive to the `stable` marketplace branch.
 7. Submit the same built packages to the host directories through their review routes.
 
-Tag preparation creates a draft release; it does not publish automatically.
-Publishing a stable GitHub release promotes its exact Codex archive to the `stable` marketplace branch.
+To release by hand, run the **Sync library release** workflow with a `version`.
 The workflow does not upload a directory submission or invent a directory listing URL.
 Directory review and account eligibility remain controlled by OpenAI and Anthropic.
 The release includes ChatGPT ZIP, Codex marketplace ZIP, Claude MCPB, npm tarball, and SHA-256 checksums.
