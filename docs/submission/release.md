@@ -14,7 +14,7 @@ Use [license scope](licensing.md) when you describe the source and bundled edito
 6. Run the official Claude validator listed in `README.md` in this folder.
 7. Record clean host installation, file updates, manual edits, conflicts, and upgrade results.
 
-The current candidate is `1.0.0` with editor `2.32.0`.
+The current candidate is `1.0.0` with editor `2.33.0`.
 The engine fix keeps clicks and typing available after file updates.
 Retest those actions after an engine change.
 A successful text refresh alone does not prove that pointer input works.

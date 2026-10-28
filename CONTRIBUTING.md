@@ -72,7 +72,7 @@ Update `core`, `react`, and `pro` to the same version.
 The MCP package bundles these dependencies, so an editor release does not update an installed preview.
 
 ```bash
-DOCX_EDITOR_VERSION=2.32.0
+DOCX_EDITOR_VERSION=2.33.0
 bun add --dev --exact "@docx-editor.dev/core@$DOCX_EDITOR_VERSION" \
   "@docx-editor.dev/react@$DOCX_EDITOR_VERSION" \
   "@docx-editor.dev/pro@$DOCX_EDITOR_VERSION"
