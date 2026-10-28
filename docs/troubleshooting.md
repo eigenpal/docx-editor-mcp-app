@@ -13,10 +13,11 @@ installed and enabled. Then restart ChatGPT.
 
 ## Page layout differs from Word
 
-Check that the preview loaded `harfbuzz.wasm`.
-Report engine layout problems in [eigenpal/docx-editor](https://github.com/eigenpal/docx-editor/issues).
+Report the problem in
+[eigenpal/docx-editor](https://github.com/eigenpal/docx-editor/issues).
+Attach a sample document without private content.
 
 ## A file does not open
 
-Use a `.docx` file no larger than 15 MB.
-Provide an absolute path for local mode or `content_base64` for hosted mode.
+Check that the file is a `.docx` file of 15 MB or less. Then ask your agent
+to open it by its absolute path, for example `/Users/you/report.docx`.
