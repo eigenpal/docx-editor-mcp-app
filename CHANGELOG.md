@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.2
+
+- Open a file in every server process of the host. Claude Desktop can send the open and the preview's reads to different processes, for example between a chat and Cowork.
+- Sign document tokens with a per-user key, so a token still opens its file after a restart.
+- Keep the editor packages pinned to `2.33.0`.
+
 ## 1.0.1
 
 - Send replies from the button and Enter key inside restricted host frames.

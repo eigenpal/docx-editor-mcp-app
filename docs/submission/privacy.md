@@ -1,6 +1,6 @@
 # docx-editor privacy policy
 
-Effective date: October 23, 2026
+Effective date: October 28, 2026
 
 Eigenpal, Inc. provides the docx-editor local plugin for ChatGPT, Codex, and Claude Desktop.
 This policy describes the local plugin.
@@ -26,7 +26,7 @@ It uses this name for comments and tracked changes.
 The server creates one random signing key in your user state folder.
 It uses the key to sign the token for each document you open, so each plugin process on your computer can find that document.
 A token contains the file path. The key contains no document data.
-It does not create an Eigenpal account for you.
+The plugin does not create an Eigenpal account for you.
 The local plugin includes no analytics service.
 Your host can keep its own diagnostic logs.
 
@@ -52,6 +52,8 @@ This package does not include an automatic document upload to support.
 Close the preview or disable the plugin in your desktop host.
 Uninstall the plugin through the host's settings.
 Your saved documents remain under your control.
+Uninstalling does not remove the signing key.
+To remove it, delete `~/Library/Application Support/docx-editor` on macOS or `%LOCALAPPDATA%\docx-editor` on Windows.
 Ask your host provider how to remove its stored conversations and local application data.
 
 ## Contact

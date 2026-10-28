@@ -1,10 +1,10 @@
-# docx-editor 1.0.1
+# docx-editor 1.0.2
 
 Preview and edit Word documents inside ChatGPT, Codex, and Claude Desktop.
 The plugin follows local file changes and preserves unsaved work during file conflicts.
-This patch fixes reply controls inside restricted host frames.
-Send replies with the button or Enter, then reopen the file to check the saved thread.
-The same fix covers replies to comments and tracked changes.
+This patch fixes "This document is no longer open" in Claude Desktop.
+The preview now opens its file in every server process, for example in a chat and in Cowork.
+A preview card also opens its file again after a restart.
 Engine `2.33.0` keeps clicks and typing available after file updates.
 
 ## Install
