@@ -14,8 +14,11 @@ You do not need an account or an API key.
 ## Update
 
 - **Claude Desktop:** install the new `.mcpb` file.
-- **ChatGPT and Codex:** run `codex plugin marketplace upgrade`, and then
-  restart the app.
+- **ChatGPT and Codex:** run this command, and then restart the app:
+
+  ```bash
+  codex plugin marketplace upgrade && codex plugin add docx-editor@docx-editor
+  ```
 
 For more information, see
 [Install and update docx-editor](https://github.com/eigenpal/docx-editor-mcp-app/blob/main/docs/releases.md).

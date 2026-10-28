@@ -34,8 +34,11 @@ The plugin tells you when a new version is available. Select **Get update** to
 open the release, or **Later** to hide the notice.
 
 - **Claude Desktop:** install the new `.mcpb` file.
-- **ChatGPT and Codex:** run `codex plugin marketplace upgrade`, and then
-  restart the app.
+- **ChatGPT and Codex:** run this command, and then restart the app:
+
+  ```bash
+  codex plugin marketplace upgrade && codex plugin add docx-editor@docx-editor
+  ```
 
 Finish your running tasks before you restart. Directory installations update
 through the host.
