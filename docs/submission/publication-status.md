@@ -1,21 +1,25 @@
-# Prepare publication of version 1.0.0
+# Publication of version 1.0.0
 
 Publication availability checked on October 28, 2026.
 The candidate includes the October 27 MCP main changes and editor `2.33.0`.
-Keep this record with the candidate packages until publication.
+Use the published release assets for directory submissions.
 
-## Candidate
+## Release
 
 - Plugin version: `1.0.0`.
 - Editor packages: `2.33.0`, pinned in `package.json` and `bun.lock`.
 - Source repository: `https://github.com/eigenpal/docx-editor-mcp-app`.
 - Repository visibility: public, with `main` as the default branch.
 - Release preparation: merged through [pull request 11](https://github.com/eigenpal/docx-editor-mcp-app/pull/11).
-- Published GitHub releases: none returned during the October 28 check.
-- Stable marketplace branch: absent during the October 27 check.
-- npm package: `@docx-editor.dev/mcp-app` returned `404` during the October 27 check.
+- Published release: [v1.0.0](https://github.com/eigenpal/docx-editor-mcp-app/releases/tag/v1.0.0), October 28, 2026.
+- Release source: `d69c26533ad38e85da82b3426b80ed3d5182fe2a`.
+- Editor update: [pull request 16](https://github.com/eigenpal/docx-editor-mcp-app/pull/16), merged.
+- Stable marketplace branch: promoted from the published Codex package.
+- npm registry publication: incomplete; this computer has no npm login.
+- Installable npm archive: available in the GitHub release.
 - Source license: Apache-2.0.
 - Pro permission: `LICENSE-PLUGIN.md`.
+- Directory contact name: Jedrzej Blaszyk, confirmed by the owner.
 - Directory contact email: `docx-editor@eigenpal.com`, confirmed by the owner.
 
 ## Completed checks
@@ -35,16 +39,32 @@ The owner also confirmed two file updates in the installed preview after restart
 These earlier installed-plugin checks do not verify the installed `2.33.0` candidate.
 The harness checks do not establish Claude installation, Windows support, or directory approval.
 
-## Remaining publication work
+## Directory submission status
 
-1. Confirm the primary directory contact name.
-2. Verify the published support, privacy, and terms pages at the manifest URLs.
-3. Test the final `.mcpb` in Claude Desktop.
-4. Record the demonstration and host versions with the candidate package checksums.
-5. Create a draft `v1.0.0` release from the reviewed source commit.
-6. Review the exact draft assets before publishing the GitHub release.
-7. Submit the Claude extension with its complete license disclosure.
-8. Obtain OpenAI local-MCP submission access before uploading its directory package.
+Claude recorded the submission on October 28, 2026.
+The owner approved acceptance of Anthropic's directory terms before submission.
+The form uses the Eigenpal Google account and names Jedrzej Blaszyk as the primary contact.
+The submission discloses Apache-2.0 source and the separate proprietary Pro permission.
+Claude has not confirmed directory acceptance.
+
+Submitted file: `docx-editor-claude-1.0.0.mcpb` from the published release.
+SHA-256: `43ad2c4e271300069be358622f9f686841d05a8f65069ca9fba93d3b62f4c804`.
+
+OpenAI accepted the released `docx-editor-chatgpt-1.0.0.zip` as a draft upload.
+The portal shows **Needs attention** and **Not published**.
+Its blocking finding requires an OpenAI representative for command-line MCP submissions.
+The portal shows the local MCP configuration as **Unavailable**.
+The draft has not entered review.
+Do not remove the local server to bypass this requirement.
+
+## Remaining work
+
+1. Obtain OpenAI approval for local MCP submission access.
+2. Record a demonstration and add its accessible URL to the OpenAI review material.
+3. Test the released `.mcpb` in Claude Desktop and record the host version.
+4. Complete OpenAI review submission after the blocking finding clears.
+5. Sign in to npm before publishing the registry package, if required.
+6. Track reviewer responses and confirm the license combination with Claude.
 
 The product, support, license, privacy, and terms pages are public under `/mcp-app`.
 The product, support, privacy, and terms pages returned `200` on October 28, 2026.

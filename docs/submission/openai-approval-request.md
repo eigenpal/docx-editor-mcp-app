@@ -18,7 +18,8 @@ Do not send API keys or account credentials.
 
 You can prepare your organization and complete business verification before this request.
 Use the [plugin submission portal](https://platform.openai.com/plugins) when you have the required access.
-Keep the ZIP ready locally until OpenAI confirms local MCP submission approval.
+The released ZIP is uploaded as a draft.
+The portal blocks review until OpenAI approves command-line MCP submissions.
 Do not submit it as an ordinary skills-only plugin to bypass the local MCP requirement.
 
 See [OpenAI's submission support guidance](https://developers.openai.com/plugins/deploy/app-review#getting-help).
@@ -39,6 +40,7 @@ Please route this request to the relevant team and tell us what information they
 
 Product: https://www.docx-editor.dev/mcp-app
 Repository: https://github.com/eigenpal/docx-editor-mcp-app
+Primary contact: Jedrzej Blaszyk
 Contact: docx-editor@eigenpal.com
 
 The MCP source and open-source editor components use Apache-2.0.

@@ -29,14 +29,14 @@ The form links an older terms page that points to the current [Anthropic Softwar
 - Legal owner: Eigenpal, Inc.
 - Public publisher: Eigenpal.
 - Primary contact email: docx-editor@eigenpal.com, confirmed by the owner.
-- Primary contact name: awaiting owner confirmation.
+- Primary contact name: Jedrzej Blaszyk, confirmed by the owner.
 - Product: docx-editor.
 - Product page: https://www.docx-editor.dev/mcp-app.
 - Support page: https://www.docx-editor.dev/mcp-app/support.
 - Privacy policy: https://www.docx-editor.dev/mcp-app/privacy.
 - Terms: https://www.docx-editor.dev/mcp-app/terms.
 - Pro permission: https://www.docx-editor.dev/mcp-app/license.
-- Candidate version: `1.0.0`.
+- Submitted version: `1.0.0`.
 - Local server: Node.js over stdio.
 - Author profile: https://github.com/eigenpal.
 - GitHub repository: https://github.com/eigenpal/docx-editor-mcp-app.
@@ -58,13 +58,23 @@ Open local `.docx` files with pages, tables, images, comments, and tracked chang
 The preview follows file changes and saves manual edits.
 The editor runs locally and needs no Eigenpal account or API key.
 
+## Submission record
+
+Claude recorded the submission on October 28, 2026.
+The owner approved acceptance of the directory terms before submission.
+The form used the Eigenpal Google account.
+The form named Jedrzej Blaszyk and `docx-editor@eigenpal.com` as the primary contact.
+The feedback field disclosed both licenses and requested review of the license combination.
+The submission attached the published `docx-editor-claude-1.0.0.mcpb` release asset.
+Its SHA-256 is `43ad2c4e271300069be358622f9f686841d05a8f65069ca9fba93d3b62f4c804`.
+The confirmation stated: "Your response has been recorded".
+This confirmation does not establish directory acceptance.
+
 ## Remaining work
 
-1. Disclose the host-specific Pro permission in the submission.
-2. Test the `.mcpb` in Claude Desktop, including local file access and an agent edit.
-3. Verify the published support, privacy, and terms links in the final package.
-4. Confirm the primary contact name.
-5. Attach the final `.mcpb` and submit after reviewing the directory terms.
+1. Test the released `.mcpb` in Claude Desktop, including local file access and an agent edit.
+2. Record the host version and prepare a short demonstration for reviewer follow-up.
+3. Track reviewer responses about directory inclusion and the license combination.
 
 Keep screenshots and a short demonstration ready for reviewer follow-up.
 The initial form does not include a dedicated demonstration URL field.
@@ -87,7 +97,7 @@ See `LICENSE`, `LICENSE-PLUGIN.md`, and `THIRD_PARTY_NOTICES.md` in the attached
 ## Test the extension first
 
 Open **Settings > Extensions > Advanced settings > Install Extension** in Claude Desktop.
-Choose the candidate `.mcpb` from `dist/local-packages/`.
+Choose `docx-editor-claude-1.0.0.mcpb` from the published GitHub release.
 Use the three examples in `claude-install.md`.
 Record the Claude version, operating system, plugin version, and results.
 Test Windows before you claim Windows support.
