@@ -2,13 +2,14 @@
 
 ## The preview does not finish loading
 
-Run `setup codex` or `setup claude` again, then restart your desktop app.
-Finish running tasks before you restart.
+Finish running tasks, and then restart your desktop app.
+If the problem continues, install the plugin again as described in the
+[README](../README.md#install).
 
 ## The plugin does not appear in ChatGPT
 
-Run `codex plugin list` and check for `docx-editor@docx-editor`.
-Then restart ChatGPT.
+Run `codex plugin list`, and check that `docx-editor@docx-editor` is
+installed and enabled. Then restart ChatGPT.
 
 ## Page layout differs from Word
 
