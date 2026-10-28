@@ -20,36 +20,45 @@ preview and save to the same file.
 The plugin runs in the ChatGPT, Codex, and Claude desktop apps. You do not
 need an account or an API key.
 
-**Claude Desktop:** download `docx-editor-claude-<version>.mcpb` from the
-[latest release](https://github.com/eigenpal/docx-editor-mcp-app/releases/latest).
-Open the file, and select **Install** in the dialog.
+### Claude Desktop
 
-**ChatGPT and Codex desktop:** run this command with the
-[Codex CLI](https://developers.openai.com/codex/cli), then restart the app:
+1. Download `docx-editor-claude-<version>.mcpb` from the
+   [latest release](https://github.com/eigenpal/docx-editor-mcp-app/releases/latest).
+2. Open the file, and then select **Install**.
 
-```bash
-codex plugin marketplace add eigenpal/docx-editor-mcp-app@stable && codex plugin add docx-editor@docx-editor
-```
+### ChatGPT and Codex desktop
 
-To update, run `codex plugin marketplace upgrade` or download the new `.mcpb`.
-The plugin tells you when a new version is available. For more information,
-see [Install and update docx-editor](docs/releases.md).
+1. Run this command with the
+   [Codex CLI](https://learn.chatgpt.com/docs/codex/cli):
 
-### Current limitations
+   ```bash
+   codex plugin marketplace add eigenpal/docx-editor-mcp-app@stable && codex plugin add docx-editor@docx-editor
+   ```
+
+2. Restart the app. One installation serves ChatGPT and Codex.
+
+### Update
+
+The plugin tells you when a new version is available. In Claude Desktop,
+install the new `.mcpb`. In ChatGPT and Codex, run
+`codex plugin marketplace upgrade`.
+
+### Limitations
 
 - The plugin does not work in ChatGPT or Claude on the web or on mobile.
 - In ChatGPT, the preview follows file changes only in threads that run on
   your computer.
-- The ChatGPT, Codex, and Claude directory listings wait for review.
-- Windows is not tested yet.
+- The ChatGPT, Codex, and Claude directory listings are in review.
+- The plugin is not tested on Windows.
 - The plugin opens `.docx` files up to 15 MB.
 
 ## Use
 
-1. Ask your agent to show a file, for example: "Open ~/report.docx."
+1. Ask your agent for a document, for example: "Draft a one-page memo as a
+   .docx and show it." To open a file you have, ask: "Open ~/report.docx."
 2. Select **Open editor** to see the full editor.
-3. Ask for a change, for example: "Shorten the executive summary." The
-   preview updates when the file changes.
+3. Ask for a change, for example: "Shorten the summary." The preview updates
+   when the file changes.
 
 If the file and your unsaved edits both change, the preview asks which
 version to keep.
@@ -65,7 +74,6 @@ endpoint instead, see [Choose local or hosted deployment](docs/hosting.md).
 
 - [Troubleshoot docx-editor](docs/troubleshooting.md)
 - [Contributing](CONTRIBUTING.md), including source builds
-- [Local directory submissions](docs/submission/README.md)
 - [Security policy](SECURITY.md)
 - [Support](https://www.docx-editor.dev/mcp-app/support),
   [privacy policy](https://www.docx-editor.dev/mcp-app/privacy), and
