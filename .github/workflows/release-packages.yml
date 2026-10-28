@@ -67,8 +67,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
+          node scripts/release-notes.mjs "${RELEASE_TAG#v}" > "$RUNNER_TEMP/notes.md"
           gh release create "$RELEASE_TAG" --draft --verify-tag --title "$RELEASE_TAG" \
-            --notes-file docs/release-notes.md \
+            --notes-file "$RUNNER_TEMP/notes.md" \
             dist/local-packages/*.zip dist/local-packages/*.mcpb \
             dist/local-packages/*.tgz dist/local-packages/*.sha256 \
             dist/local-packages/*.json dist/local-packages/SHA256SUMS
