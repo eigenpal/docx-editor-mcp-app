@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "docx-editor": {
+      "command": "node",
+      "args": [
+        "${PLUGIN_ROOT}/dist/cli.js",
+        "stdio"
+      ],
+      "cwd": "${PLUGIN_ROOT}"
+    }
+  }
+}

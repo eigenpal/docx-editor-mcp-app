@@ -1,0 +1,100 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "docx-editor",
+  "version": "1.0.0",
+  "description": "A live, Word-faithful preview of the .docx files your agent edits.",
+  "author": {
+    "name": "Eigenpal",
+    "email": "docx-editor@eigenpal.com",
+    "url": "https://www.docx-editor.dev"
+  },
+  "homepage": "https://www.docx-editor.dev/mcp-app",
+  "license": "SEE LICENSE IN LICENSE-PLUGIN.md",
+  "keywords": [
+    "docx",
+    "word",
+    "document",
+    "preview",
+    "editor"
+  ],
+  "extensions": {
+    "com.openai": {
+      "requires_local_executor": true,
+      "interface": {
+        "displayName": "docx-editor",
+        "shortDescription": "Live .docx preview",
+        "longDescription": "See Word documents with real pages, fonts, tables, headers, footers, tracked changes, and comments, next to the conversation. Ask your agent to show a .docx, and it opens in the preview. In the ChatGPT and Codex desktop apps, a .docx you open stays in the viewer: when your agent edits the file with its document skill, the viewer updates in place and highlights what changed, and your own edits in the viewer save back to the file. docx-editor has no editing tools of its own.",
+        "developerName": "Eigenpal",
+        "category": "Productivity",
+        "capabilities": [
+          "Interactive",
+          "Read",
+          "Write"
+        ],
+        "websiteURL": "https://www.docx-editor.dev/mcp-app",
+        "supportURL": "https://www.docx-editor.dev/mcp-app/support",
+        "privacyPolicyURL": "https://www.docx-editor.dev/mcp-app/privacy",
+        "termsOfServiceURL": "https://www.docx-editor.dev/mcp-app/terms",
+        "defaultPrompt": [
+          "Show the attached .docx in docx-editor.",
+          "Tighten the summary in the attached .docx and show me the result.",
+          "Draft a one-page memo as a .docx and show it."
+        ],
+        "brandColor": "#185ABD",
+        "composerIcon": "./assets/icon.png",
+        "logo": "./assets/logo.png",
+        "logoDark": "./assets/logo-dark.png"
+      },
+      "review": {
+        "test_cases": {
+          "positive": [
+            {
+              "description": "Open an attached .docx in the viewer.",
+              "prompt": "Show the attached proposal.docx in docx-editor.",
+              "tools_triggered": "open_document or view_docx_file",
+              "expected_behavior": "The docx-editor preview shows the document with its pages, headings, table, and image."
+            },
+            {
+              "description": "Follow an agent edit in the open viewer. ChatGPT or Codex desktop only. Before the prompt, open proposal.docx from the conversation's files so it shows in the docx-editor viewer.",
+              "prompt": "Shorten the first paragraph of proposal.docx.",
+              "tools_triggered": "None from the prompt. The host calls view_docx_file when the file opens.",
+              "expected_behavior": "The agent edits the file with its document skill. The open viewer updates in place and highlights the changed paragraph. No second preview opens."
+            },
+            {
+              "description": "Show a document the agent creates.",
+              "prompt": "Draft a one-page memo about the office move as a .docx and show it in docx-editor.",
+              "tools_triggered": "open_document",
+              "expected_behavior": "The agent creates a local .docx and calls open_document with its absolute path. A preview card appears; Open editor shows the full page."
+            },
+            {
+              "description": "Show tracked changes and comments.",
+              "prompt": "Show the attached contract.docx in docx-editor so I can review its tracked changes.",
+              "tools_triggered": "open_document or view_docx_file",
+              "expected_behavior": "The preview shows the insertions, deletions, and comments in the document, and the card shows the comment count."
+            },
+            {
+              "description": "Show the result of an edit to an attached file.",
+              "prompt": "Add a heading named Summary to the top of the attached proposal.docx and show me the result.",
+              "tools_triggered": "open_document or view_docx_file",
+              "expected_behavior": "The agent edits the file with its document skill. The preview shows the new heading with the document's existing heading style."
+            }
+          ],
+          "negative": [
+            {
+              "description": "A PDF is not a Word document.",
+              "prompt": "Summarize the attached report.pdf."
+            },
+            {
+              "description": "A spreadsheet task is out of scope.",
+              "prompt": "Make a spreadsheet of my monthly expenses."
+            },
+            {
+              "description": "A general question needs no preview.",
+              "prompt": "What is the difference between the .doc and .docx formats?"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

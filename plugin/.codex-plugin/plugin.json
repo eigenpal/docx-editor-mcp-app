@@ -1,0 +1,36 @@
+{
+  "name": "docx-editor",
+  "version": "1.0.0",
+  "description": "A live, Word-faithful preview of the .docx files your agent edits.",
+  "author": {
+    "name": "Eigenpal",
+    "email": "docx-editor@eigenpal.com",
+    "url": "https://www.docx-editor.dev"
+  },
+  "homepage": "https://www.docx-editor.dev/mcp-app",
+  "license": "SEE LICENSE IN LICENSE-PLUGIN.md",
+  "keywords": ["docx", "word", "document", "preview", "editor"],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "docx-editor",
+    "shortDescription": "Live .docx preview",
+    "longDescription": "See Word documents with real pages, fonts, tables, headers, footers, tracked changes, and comments, next to the conversation. Ask your agent to show a .docx, and it opens in the preview. In the ChatGPT and Codex desktop apps, a .docx you open stays in the viewer: when your agent edits the file with its document skill, the viewer updates in place and highlights what changed, and your own edits in the viewer save back to the file. docx-editor has no editing tools of its own.",
+    "developerName": "Eigenpal",
+    "category": "Productivity",
+    "capabilities": ["Interactive", "Read", "Write"],
+    "websiteURL": "https://www.docx-editor.dev/mcp-app",
+    "supportURL": "https://www.docx-editor.dev/mcp-app/support",
+    "privacyPolicyURL": "https://www.docx-editor.dev/mcp-app/privacy",
+    "termsOfServiceURL": "https://www.docx-editor.dev/mcp-app/terms",
+    "defaultPrompt": [
+      "Show the attached .docx in docx-editor.",
+      "Tighten the summary in the attached .docx and show me the result.",
+      "Draft a one-page memo as a .docx and show it."
+    ],
+    "brandColor": "#185ABD",
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/logo.png",
+    "logoDark": "./assets/logo-dark.png"
+  }
+}
