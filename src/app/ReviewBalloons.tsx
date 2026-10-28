@@ -284,18 +284,16 @@ export function ReplyRow({
   const info = useReviewAuthor(author);
   const t = useChromeTranslate();
   const [draft, setDraft] = useState('');
+  const submit = () => {
+    if (draft.trim() && reply(item, draft.trim())) setDraft('');
+  };
   return (
-    <form
+    <div
       className={`mcp-balloon__reply ${className}`.trim()}
-      // Inside a review card, the card would take these presses and move focus off the
-      // input. Keys pass through, so Escape still closes the balloon or the rail.
+      // The card must not take these presses and move focus away from the input.
       onPointerDown={(event) => event.stopPropagation()}
       onMouseDown={(event) => event.stopPropagation()}
       onClick={(event) => event.stopPropagation()}
-      onSubmit={(event) => {
-        event.preventDefault();
-        if (draft.trim() && reply(item, draft.trim())) setDraft('');
-      }}
     >
       <span className="mcp-avatar mcp-avatar--sm" style={{ background: authorColor(author, info) }}>
         {initialOf(author)}
@@ -306,17 +304,25 @@ export function ReplyRow({
         aria-label={t('review.reply')}
         value={draft}
         onChange={(event) => setDraft(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key !== 'Enter' || event.nativeEvent.isComposing) return;
+          // Hosts can block native form submission before a submit handler runs.
+          event.preventDefault();
+          event.stopPropagation();
+          submit();
+        }}
       />
       <button
-        type="submit"
+        type="button"
         className="mcp-balloon__send"
         disabled={!draft.trim()}
         aria-label={t('review.reply')}
         title={t('review.reply')}
+        onClick={submit}
       >
         <SendIcon />
       </button>
-    </form>
+    </div>
   );
 }
 
