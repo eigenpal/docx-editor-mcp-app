@@ -30,6 +30,8 @@ permissions:
   contents: read
   checks: read
   statuses: read
+  # `gh pr checks` reads the pull request.
+  pull-requests: read
 
 jobs:
   sync:
@@ -162,30 +164,35 @@ jobs:
 
       # Mergeability settles asynchronously after the pull request opens.
       - name: Merge the pull request
+        id: merge
         if: steps.plan.outputs.action == 'sync'
         env:
           GH_TOKEN: ${{ steps.pal.outputs.token }}
           PR_URL: ${{ steps.cpr.outputs.pull-request-url }}
         run: |
           for i in $(seq 1 12); do
-            gh pr merge "$PR_URL" --squash --delete-branch && exit 0
+            if gh pr merge "$PR_URL" --squash --delete-branch; then
+              echo "sha=$(gh pr view "$PR_URL" --json mergeCommit --jq .mergeCommit.oid)" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
             echo "Not mergeable yet (attempt $i/12)."
             sleep 5
           done
           exit 1
 
-      # Tag the commit that carries the version, so the release workflow's
-      # tag check (tag == package.json version) passes.
+      # Tag the commit this run merged, never a later push to main. The
+      # release workflow then checks that the tag matches package.json.
       - name: Tag the release
         if: steps.plan.outputs.action != 'none'
         env:
           GH_TOKEN: ${{ steps.pal.outputs.token }}
+          MERGED: ${{ steps.merge.outputs.sha }}
         run: |
           set -euo pipefail
-          sha=$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha)
+          sha="${MERGED:-$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha)}"
           at=$(gh api "repos/$GITHUB_REPOSITORY/contents/package.json?ref=$sha" --jq .content | base64 -d | node -p "JSON.parse(require('fs').readFileSync(0,'utf8')).version")
           if [ "$at" != "$VERSION" ]; then
-            echo "::error::main is at $at, not $VERSION. Not tagging." >&2
+            echo "::error::$sha is at $at, not $VERSION. Not tagging." >&2
             exit 1
           fi
           gh api "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/tags/v$VERSION" -f sha="$sha" >/dev/null
