@@ -5,10 +5,11 @@
 See [publication status](https://github.com/eigenpal/docx-editor-mcp-app/blob/main/docs/submission/publication-status.md) for candidate checks and remaining work.
 See [license scope](https://github.com/eigenpal/docx-editor-mcp-app/blob/main/docs/submission/licensing.md) for the source, editor, and Pro permissions.
 
-As of October 27, 2026, no public GitHub release or `stable` branch exists.
-The npm package also returns `404`.
-Use the [source evaluation instructions](../README.md#build-for-local-evaluation) until the first release.
-The installation routes below apply after publication.
+Download packages from the [stable release page](https://github.com/eigenpal/docx-editor-mcp-app/releases/latest).
+Use the Codex marketplace or install the downloaded Claude extension as described below.
+For developer installation, install the npm tarball from the same release with `npm install -g <tarball>`.
+GitHub distribution does not require npm registry publication or directory approval.
+You can also use the [source evaluation instructions](../README.md#build-for-local-evaluation).
 
 Use a complete local package with the editor included.
 Use native directory updates when the host provides them.

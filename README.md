@@ -26,13 +26,14 @@ The harness emulates the host file viewer; this image does not show a desktop di
 
 ## Installation status
 
-As of October 27, 2026, this repository is public, but no GitHub release is published.
-The `stable` marketplace branch does not exist yet.
-The npm registry returns `404` for `@docx-editor.dev/mcp-app`.
-Directory approval remains pending in the [publication record](docs/submission/publication-status.md).
+Use the [release installation guide](docs/releases.md) for the published packages and Codex marketplace installation.
+Download packages from [GitHub releases](https://github.com/eigenpal/docx-editor-mcp-app/releases/latest).
+The release includes the ChatGPT ZIP, Codex marketplace ZIP, Claude extension, and npm tarball.
+You can install the npm tarball directly without a registry account.
+Directory approval remains separate from GitHub publication.
+See the [publication record](docs/submission/publication-status.md) for submission status.
 
-For now, use the source build below to evaluate the plugin.
-After publication, use the [release installation guide](docs/releases.md).
+Use the source build below when you need a local development build.
 
 ### Build for local evaluation
 
