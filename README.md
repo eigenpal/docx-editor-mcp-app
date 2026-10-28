@@ -17,24 +17,32 @@ preview and save to the same file.
 
 ## Install
 
-Download the package for your host from the
+The plugin runs in the ChatGPT, Codex, and Claude desktop apps. You do not
+need an account or an API key.
+
+**Claude Desktop:** download `docx-editor-claude-<version>.mcpb` from the
 [latest release](https://github.com/eigenpal/docx-editor-mcp-app/releases/latest).
-You do not need an account or an API key.
+Open the file, and select **Install** in the dialog.
 
-- **Codex and ChatGPT desktop:** add the `stable` marketplace, then install
-  the plugin:
+**ChatGPT and Codex desktop:** run this command with the
+[Codex CLI](https://developers.openai.com/codex/cli), then restart the app:
 
-  ```bash
-  codex plugin marketplace add https://github.com/eigenpal/docx-editor-mcp-app.git --ref stable
-  codex plugin add docx-editor@docx-editor
-  ```
+```bash
+codex plugin marketplace add eigenpal/docx-editor-mcp-app@stable && codex plugin add docx-editor@docx-editor
+```
 
-- **Claude Desktop:** download `docx-editor-claude-<version>.mcpb`. Go to
-  **Settings > Extensions > Advanced settings > Install Extension**, and
-  select the file.
+To update, run `codex plugin marketplace upgrade` or download the new `.mcpb`.
+The plugin tells you when a new version is available. For more information,
+see [Install and update docx-editor](docs/releases.md).
 
-Start a new desktop session after you install. For updates and directory
-listings, see [Install and update docx-editor](docs/releases.md).
+### Current limitations
+
+- The plugin does not work in ChatGPT or Claude on the web or on mobile.
+- In ChatGPT, the preview follows file changes only in threads that run on
+  your computer.
+- The ChatGPT, Codex, and Claude directory listings wait for review.
+- Windows is not tested yet.
+- The plugin opens `.docx` files up to 15 MB.
 
 ## Use
 

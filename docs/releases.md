@@ -36,7 +36,7 @@ A universal one-click public listing is therefore a distribution approval, not a
 After the first stable release, use the public Git marketplace with Codex CLI:
 
 ```bash
-codex plugin marketplace add https://github.com/eigenpal/docx-editor-mcp-app.git --ref stable
+codex plugin marketplace add eigenpal/docx-editor-mcp-app@stable
 codex plugin add docx-editor@docx-editor
 ```
 
