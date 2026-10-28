@@ -1,8 +1,8 @@
 /**
- * Files `open_document` opened by path (local mode only), behind random
- * tokens. The widget reads a token as the `docx-local://<token>` MCP resource;
- * nothing accepts a raw path. Files are read fresh on every request,
- * versioned by `stat`, and written back atomically.
+ * Files `open_document` opened by path (local mode only), behind signed
+ * tokens (`tokens.ts`). The widget reads a token as the `docx-local://<token>`
+ * MCP resource; nothing accepts a raw path. Files are read fresh on every
+ * request, versioned by `stat`, and written back atomically.
  *
  * Bytes passed in a call (`content_base64`) are only validated here: they go
  * back to the widget in the tool result, so the server keeps no document state.
@@ -23,6 +23,7 @@ import {
 import { homedir } from 'node:os';
 import { basename, isAbsolute, resolve } from 'node:path';
 import { MAX_CONTENT_BYTES } from '../shared/limits.js';
+import { signPath, verifiedPath } from './tokens.js';
 
 type Refusal = { message: string };
 interface Version {
@@ -35,8 +36,6 @@ type WriteResult =
   | { outcome: 'too-large'; maxBytes: number }
   | { outcome: 'refused'; message: string };
 
-/** Tokens live as long as the process: one small entry per opened file. */
-const paths = new Map<string, string>();
 const isDocx = (bytes: Uint8Array) =>
   bytes[0] === 0x50 && bytes[1] === 0x4b && bytes[2] === 0x03 && bytes[3] === 0x04;
 
@@ -61,9 +60,7 @@ export function openPath(raw: string, name?: string): { token: string; name: str
   if (info.size > MAX_CONTENT_BYTES) {
     return { message: `"${raw}" is larger than the ${MAX_CONTENT_BYTES}-byte limit.` };
   }
-  const token = randomUUID();
-  paths.set(token, real);
-  return { token, name: name ?? basename(real) };
+  return { token: signPath(real), name: name ?? basename(real) };
 }
 
 /**
@@ -79,7 +76,7 @@ export function decodeBytes(base64: string): Buffer | Refusal {
 }
 
 export async function version(token: string): Promise<Version | null> {
-  const path = paths.get(token);
+  const path = verifiedPath(token);
   if (!path) return null;
   const info = await stat(path);
   // A rename would replace even a read-only file; respect its permission instead.
@@ -91,7 +88,7 @@ export async function version(token: string): Promise<Version | null> {
 }
 
 export async function read(token: string): Promise<Buffer | null> {
-  const path = paths.get(token);
+  const path = verifiedPath(token);
   return path ? readFile(path) : null;
 }
 
@@ -105,7 +102,7 @@ export async function write(
   bytes: Uint8Array,
   ifMatch: string | null
 ): Promise<WriteResult> {
-  const path = paths.get(token);
+  const path = verifiedPath(token);
   const current = await version(token);
   if (!path || !current) return { outcome: 'refused', message: 'This document is not open.' };
   if (bytes.byteLength > MAX_CONTENT_BYTES) {

@@ -13,3 +13,4 @@ minimumReleaseAgeExcludes = ["@openai/mcp-extensions", "@docx-editor.dev/core", 
 
 [test]
 root = "./src"
+preload = ["./src/test-setup.ts"]
