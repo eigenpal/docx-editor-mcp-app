@@ -9,7 +9,7 @@ Download packages from the [stable release page](https://github.com/eigenpal/doc
 Use the Codex marketplace or install the downloaded Claude extension as described below.
 For developer installation, install the npm tarball from the same release with `npm install -g <tarball>`.
 GitHub distribution does not require npm registry publication or directory approval.
-You can also use the [source evaluation instructions](../README.md#build-for-local-evaluation).
+You can also use the [source setup instructions](../CONTRIBUTING.md#set-up-the-project).
 
 Use a complete local package with the editor included.
 Use native directory updates when the host provides them.
