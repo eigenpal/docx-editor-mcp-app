@@ -28,6 +28,12 @@ Do not put the fixtures inside the plugin archives.
 10. Open `contract.docx` and show its comment and tracked replacement.
 11. Switch between light and dark modes and between inline and fullscreen modes.
 12. For OpenAI, show the `.docx` file viewer workflow where supported.
+13. Send a comment reply with the send button, then send another reply with Enter.
+14. Close and reopen the file, then confirm that both replies remain in the thread.
+
+Test replies inside the harness iframe with its existing sandbox permissions.
+The sandbox blocks native form submission before a submit handler runs.
+Reply controls must call the reply action directly.
 
 Record the conflict test separately if it makes the main demonstration too long.
 Make an unsaved editor change, change the same file externally, and show the version choice.
