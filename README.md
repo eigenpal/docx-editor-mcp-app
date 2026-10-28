@@ -1,9 +1,9 @@
 <p align="center">
   <a href="https://www.docx-editor.dev/mcp-app">
     <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/eigenpal/docx-editor-mcp-app/main/.github/assets/readme-logo-dark.svg" />
-      <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/eigenpal/docx-editor-mcp-app/main/.github/assets/readme-logo-light.svg" />
-      <img src="https://raw.githubusercontent.com/eigenpal/docx-editor-mcp-app/main/.github/assets/readme-logo-light.svg" alt="DOCX Editor by EigenPal" width="320" height="90" />
+      <source media="(prefers-color-scheme: dark)" srcset="./.github/assets/readme-logo-dark.svg" />
+      <source media="(prefers-color-scheme: light)" srcset="./.github/assets/readme-logo-light.svg" />
+      <img src="./.github/assets/readme-logo-light.svg" alt="DOCX Editor by EigenPal" width="320" height="90" />
     </picture>
   </a>
 </p>
