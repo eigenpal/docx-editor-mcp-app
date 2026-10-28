@@ -78,6 +78,8 @@ bun run release:verify
 ```
 
 `release:version` pins `core`, `pro`, and `react` to that version and sets the plugin version to match.
+Merge the change, and then run the **Sync library release** workflow with that version.
+The workflow creates the tag, which builds the draft release.
 Add your changes under `## Unreleased` in `CHANGELOG.md`; the next release takes them.
 See [Install and update docx-editor](docs/releases.md#publish-a-release) for the release steps.
 

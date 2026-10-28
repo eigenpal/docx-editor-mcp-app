@@ -115,7 +115,9 @@ A person does the rest:
    Publishing promotes the exact Codex archive to the `stable` marketplace branch.
 7. Submit the same built packages to the host directories through their review routes.
 
-To release by hand, run the **Sync library release** workflow with a `version`.
+If the checks fail, fix the problem on `main`.
+Then run the **Sync library release** workflow with the same `version`.
+Use the same workflow to release by hand.
 The workflow does not upload a directory submission or invent a directory listing URL.
 Directory review and account eligibility remain controlled by OpenAI and Anthropic.
 The release includes ChatGPT ZIP, Codex marketplace ZIP, Claude MCPB, npm tarball, and SHA-256 checksums.

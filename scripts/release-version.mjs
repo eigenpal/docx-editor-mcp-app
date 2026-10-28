@@ -31,6 +31,23 @@ if (compare(requested, pkg.version) < 0) {
   throw new Error(`The plugin is at ${pkg.version}. Versions only go up.`);
 }
 
+// Check the changelog before writing anything, so a refusal changes no file.
+const changelogPath = join(root, 'CHANGELOG.md');
+const changelog = await readFile(changelogPath, 'utf8');
+const hasRelease = changelog.includes(`\n## ${requested}\n`);
+const hasUnreleased = /\n## Unreleased\n/.test(changelog);
+if (hasRelease && hasUnreleased) {
+  throw new Error(`CHANGELOG.md has both ## ${requested} and ## Unreleased. Merge them by hand.`);
+}
+let changelogNext = null;
+if (!hasRelease) {
+  const editorLine = `- Update the editor packages to \`${requested}\`.`;
+  changelogNext = hasUnreleased
+    ? changelog.replace(/\n## Unreleased\n+/, `\n## ${requested}\n\n${editorLine}\n`)
+    : changelog.replace(/^# Changelog\n/, `# Changelog\n\n## ${requested}\n\n${editorLine}\n`);
+  if (changelogNext === changelog) throw new Error('CHANGELOG.md has no "# Changelog" heading.');
+}
+
 if (EDITOR.some((name) => pkg.devDependencies[name] !== requested)) {
   execFileSync(
     'bun',
@@ -51,16 +68,6 @@ for (const path of MANIFESTS) {
   }
 }
 
-const changelogPath = join(root, 'CHANGELOG.md');
-const changelog = await readFile(changelogPath, 'utf8');
-if (!changelog.includes(`\n## ${requested}\n`)) {
-  const editorLine = `- Update the editor packages to \`${requested}\`.`;
-  const next = changelog.includes('\n## Unreleased\n')
-    ? changelog.replace(/\n## Unreleased\n\n((?:- .*\n)*)/, (_, items) => {
-        return `\n## ${requested}\n\n${editorLine}\n${items}`;
-      })
-    : changelog.replace('# Changelog\n', `# Changelog\n\n## ${requested}\n\n${editorLine}\n`);
-  await writeFile(changelogPath, next);
-}
+if (changelogNext) await writeFile(changelogPath, changelogNext);
 
 console.log(`Plugin and editor at ${requested}.`);

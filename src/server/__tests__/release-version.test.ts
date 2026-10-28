@@ -64,6 +64,24 @@ describe('release version command', () => {
     });
   });
 
+  it('takes Unreleased items without a blank line after the heading', () => {
+    fixture({ editor: '0.1.2', changelog: '# Changelog\n\n## Unreleased\n- Fix.\n' }, (root) => {
+      expect(release(root, '0.1.2').exitCode).toBe(0);
+      expect(readFileSync(join(root, 'CHANGELOG.md'), 'utf8')).toBe(
+        '# Changelog\n\n## 0.1.2\n\n- Update the editor packages to `0.1.2`.\n- Fix.\n'
+      );
+    });
+  });
+
+  it('refuses a changelog with both the release and Unreleased', () => {
+    const changelog = '# Changelog\n\n## Unreleased\n\n- New.\n\n## 0.1.2\n\n- Old.\n';
+    fixture({ editor: '0.1.2', changelog }, (root) => {
+      expect(release(root, '0.1.2').exitCode).not.toBe(0);
+      expect(readFileSync(join(root, 'CHANGELOG.md'), 'utf8')).toBe(changelog);
+      expect(versions(root)).toEqual(['0.1.1', '0.1.1']);
+    });
+  });
+
   it('refuses lower and invalid versions without changing files', () => {
     fixture({ editor: '0.1.1', changelog: '# Changelog\n' }, (root) => {
       for (const version of ['0.1.0', 'latest', '01.2.3', '0.2.0-beta']) {
