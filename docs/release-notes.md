@@ -3,7 +3,7 @@
 Preview and edit Word documents inside ChatGPT, Codex, and Claude Desktop.
 The plugin follows local file changes and preserves unsaved work during file conflicts.
 This release shows full active comments and keeps nested menus inside the window.
-Engine `2.32.0` keeps clicks and typing available after file updates.
+Engine `2.33.0` keeps clicks and typing available after file updates.
 
 ## Install
 

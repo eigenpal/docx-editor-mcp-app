@@ -76,9 +76,9 @@
     "smoke:upgrade": "node scripts/smoke-upgrade.mjs"
   },
   "devDependencies": {
-    "@docx-editor.dev/core": "2.32.0",
-    "@docx-editor.dev/pro": "2.32.0",
-    "@docx-editor.dev/react": "2.32.0",
+    "@docx-editor.dev/core": "2.33.0",
+    "@docx-editor.dev/pro": "2.33.0",
+    "@docx-editor.dev/react": "2.33.0",
     "@modelcontextprotocol/ext-apps": "^1.7.5",
     "@modelcontextprotocol/sdk": "^1.30.0",
     "@openai/mcp-extensions": "^0.1.0",

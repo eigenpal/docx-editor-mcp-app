@@ -2,7 +2,7 @@
 
 ## 1.0.0
 
-- Pin the editor packages to `2.32.0` to restore pointer input after file updates.
+- Pin the editor packages to `2.33.0`, including the file refresh fixes and current rendering improvements.
 - Add a release update notice with no package replacement during document editing.
 - Build versioned ChatGPT, Codex marketplace, Claude, and npm packages from one release.
 - Publish release artifacts through a draft GitHub release and promote the stable marketplace after publication.
