@@ -15,8 +15,6 @@ Your agent edits the file with its own document tools. The preview follows
 each change and highlights changed paragraphs. You can also edit in the
 preview and save to the same file.
 
-![DOCX Editor preview with formatting controls and a sample document](https://raw.githubusercontent.com/eigenpal/docx-editor-mcp-app/main/docs/images/editor-preview.jpg)
-
 ## Install
 
 Download the package for your host from the
