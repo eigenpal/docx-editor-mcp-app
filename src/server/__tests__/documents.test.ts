@@ -53,6 +53,14 @@ describe('openPath', () => {
     symlinkSync(file('secret.txt'), link);
     expect(openPath(link)).toHaveProperty('message');
   });
+
+  it('gives a file it never opened no access through a token for another file', async () => {
+    const [, signature] = token(openPath(file('opened.docx'))).split('.');
+    const forged = `${Buffer.from(file('other.docx')).toString('base64url')}.${signature}`;
+    expect(await read(forged)).toBeNull();
+    expect(await version(forged)).toBeNull();
+    expect((await write(forged, DOCX, null)).outcome).toBe('refused');
+  });
 });
 
 describe('decodeBytes', () => {

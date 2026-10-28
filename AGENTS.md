@@ -86,6 +86,12 @@ caps the size, and saves through a same-directory temporary file that keeps
 the original's mode. Nothing accepts a raw path except `open_document` in
 local mode. Keep `src/server/__tests__/documents.test.ts` passing.
 
+A host can run the server more than once and send the open and the widget's
+reads to different processes (Claude Desktop does, between a chat and
+Cowork). So a document token is the real path signed with a per-user key
+(`src/server/tokens.ts`), not an entry in process memory. Only `openPath`
+signs. Keep `src/server/__tests__/tokens.test.ts` passing.
+
 ## Two display modes, one mounted editor
 
 Claude's guidelines put document editing in fullscreen. Inline apps must fit

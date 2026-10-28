@@ -23,7 +23,9 @@ Local installation does not change those policies.
 
 The viewer stores your suggestion author name in the host's local storage.
 It uses this name for comments and tracked changes.
-The server keeps document tokens and file versions in process memory while it runs.
+The server creates one random signing key in your user state folder.
+It uses the key to sign the token for each document you open, so each plugin process on your computer can find that document.
+A token contains the file path. The key contains no document data.
 It does not create an Eigenpal account for you.
 The local plugin includes no analytics service.
 Your host can keep its own diagnostic logs.

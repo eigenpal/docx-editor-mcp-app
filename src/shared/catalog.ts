@@ -42,6 +42,12 @@ export const VIEW_DOCX_FILE = {
     "the file changes. The user's own edits in the viewer save through the host.",
 } as const;
 
+/** A file `open_document` opened: the encoded path, a dot, and its 32-byte signature. */
+const LocalToken = z
+  .string()
+  .max(16_384)
+  .regex(/^[\w-]+\.[\w-]{43}$/);
+
 /**
  * Local mode's file sync, called by the WIDGET: the preview watches the file
  * `open_document` opened and saves the reader's own edits back to it.
@@ -49,14 +55,14 @@ export const VIEW_DOCX_FILE = {
 export const LOCAL_FILE_VERSION = {
   name: 'local_file_version',
   description: 'Returns the version token of a document the preview opened from disk.',
-  input: z.object({ token: z.string().uuid() }),
+  input: z.object({ token: LocalToken }),
 } as const;
 
 export const WRITE_LOCAL_FILE = {
   name: 'write_local_file',
   description: "Saves the preview's document over the file it opened, if the file is unchanged.",
   input: z.object({
-    token: z.string().uuid(),
+    token: LocalToken,
     blob: z.string().min(1).describe('Base64 of the .docx bytes.'),
     ifMatch: z.string().nullable(),
   }),
