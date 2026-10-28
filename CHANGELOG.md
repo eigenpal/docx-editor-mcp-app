@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.1
+
+- Send replies from the button and Enter key inside restricted host frames.
+- Save comment replies and tracked-change replies without native form submission.
+- Keep the editor packages pinned to `2.33.0`.
+
 ## 1.0.0
 
 - Pin the editor packages to `2.33.0`, including the file refresh fixes and current rendering improvements.
