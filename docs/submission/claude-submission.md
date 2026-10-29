@@ -30,7 +30,7 @@ The form links an older terms page that points to the current [Anthropic Softwar
 - Public publisher: Eigenpal.
 - Primary contact email: docx-editor@eigenpal.com, confirmed by the owner.
 - Primary contact name: Jedrzej Blaszyk, confirmed by the owner.
-- Product: docx-editor.
+- Product: DOCX Editor.
 - Product page: https://www.docx-editor.dev/mcp-app.
 - Support page: https://www.docx-editor.dev/mcp-app/support.
 - Privacy policy: https://www.docx-editor.dev/mcp-app/privacy.

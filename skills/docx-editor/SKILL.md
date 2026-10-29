@@ -5,9 +5,9 @@ description: Show a .docx in a live, Word-faithful preview while you edit it wit
 
 # Live preview for Word documents
 
-docx-editor shows a `.docx` with Word-faithful pages and follows the file.
+DOCX Editor shows a `.docx` with Word-faithful pages and follows the file.
 When the file changes, the preview updates in place and highlights the
-changed paragraphs. docx-editor has no editing tools.
+changed paragraphs. DOCX Editor has no editing tools.
 
 ## Show the file once
 

@@ -1,6 +1,6 @@
 # Local directory submissions
 
-Use these packages to submit docx-editor to the ChatGPT and Claude desktop directories.
+Use these packages to submit DOCX Editor to the ChatGPT and Claude desktop directories.
 Both packages run the MCP server and editor locally.
 Use the product and policy URLs in [listing.md](listing.md) for both submissions.
 Verify those pages before final review.

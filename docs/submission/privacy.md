@@ -1,8 +1,8 @@
-# docx-editor privacy policy
+# DOCX Editor privacy policy
 
 Effective date: October 28, 2026
 
-Eigenpal, Inc. provides the docx-editor local plugin for ChatGPT, Codex, and Claude Desktop.
+Eigenpal, Inc. provides the DOCX Editor local plugin for ChatGPT, Codex, and Claude Desktop.
 This policy describes the local plugin.
 It does not cover a separately deployed HTTP server.
 

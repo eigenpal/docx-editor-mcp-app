@@ -1,15 +1,15 @@
-# docx-editor for Claude Desktop
+# DOCX Editor for Claude Desktop
 
-Install docx-editor from the desktop extension directory after Anthropic approves the listing.
+Install DOCX Editor from the desktop extension directory after Anthropic approves the listing.
 For a local test, open **Settings > Extensions > Advanced settings > Install Extension**.
 Select the `.mcpb` file.
 Claude uses its Node.js runtime to start the bundled server.
 You do not install npm packages or start an HTTP server.
-You need no account or API key for docx-editor.
+You need no account or API key for DOCX Editor.
 
 ## Open a document
 
-Ask Claude to open a local `.docx` file in docx-editor.
+Ask Claude to open a local `.docx` file in DOCX Editor.
 Give Claude the absolute file path.
 Select **Open editor** to expand the preview.
 Your agent edits the document with its own document tools.
@@ -24,7 +24,7 @@ Use `open_document` in Claude.
 
 Use absolute paths to copies of the synthetic review documents.
 
-1. "Open /absolute/path/proposal.docx in docx-editor."
+1. "Open /absolute/path/proposal.docx in DOCX Editor."
    Check the headings, table, and image in the expanded preview.
 2. "Shorten the first paragraph of /absolute/path/proposal.docx and show the result."
    Claude needs document tools with local file access for this example.
