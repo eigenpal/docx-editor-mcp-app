@@ -1,4 +1,4 @@
-# Test docx-editor in Codex desktop
+# Test DOCX Editor in Codex desktop
 
 Use this private test package before the official directory listing is available.
 The legal owner is Eigenpal, Inc.
@@ -21,7 +21,7 @@ The official directory installation remains a separate approval process.
 
 4. Finish your current tasks before you restart Codex desktop.
 5. Open a local conversation after the restart.
-6. Ask Codex to open `examples/proposal.docx` in docx-editor, using its absolute path.
+6. Ask Codex to open `examples/proposal.docx` in DOCX Editor, using its absolute path.
 
 Keep the extracted folder for the duration of the test.
 Test in Codex desktop first.

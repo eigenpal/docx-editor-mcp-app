@@ -1,4 +1,4 @@
-# Install and update docx-editor
+# Install and update DOCX Editor
 
 Download packages from the
 [latest release](https://github.com/eigenpal/docx-editor-mcp-app/releases/latest).

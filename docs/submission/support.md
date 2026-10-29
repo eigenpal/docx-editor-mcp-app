@@ -1,6 +1,6 @@
-# Support for the docx-editor plugin
+# Support for the DOCX Editor plugin
 
-Use docx-editor to preview and edit `.docx` files in ChatGPT, Codex, and Claude Desktop.
+Use DOCX Editor to preview and edit `.docx` files in ChatGPT, Codex, and Claude Desktop.
 Your assistant uses its own document tools for changes that you request in the conversation.
 
 ## Contact support

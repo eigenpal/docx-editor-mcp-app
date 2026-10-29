@@ -22,7 +22,7 @@ Check each URL without a publisher account.
 
 ## Name
 
-docx-editor
+DOCX Editor
 
 ## Short description
 
@@ -46,19 +46,19 @@ The assistant needs its own document tools to make changes from a prompt.
 
 ## Suggested prompts
 
-- Open my report.docx in docx-editor.
+- Open my report.docx in DOCX Editor.
 - Shorten the summary in my proposal.docx and show the result.
 - Show the comments and tracked changes in my contract.docx.
 
 ## OpenAI installation
 
-After approval, install docx-editor from the desktop Plugin Directory.
+After approval, install DOCX Editor from the desktop Plugin Directory.
 Use a local conversation to open documents on your computer.
 You can also open a `.docx` through the host's file viewer where available.
 
 ## Claude installation
 
-After approval, install docx-editor from Claude Desktop's extension directory.
+After approval, install DOCX Editor from Claude Desktop's extension directory.
 Ask Claude to open a local `.docx` and provide its absolute path.
 Expand the preview to edit the document.
 

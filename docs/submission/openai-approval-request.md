@@ -26,7 +26,7 @@ See [OpenAI's submission support guidance](https://developers.openai.com/plugins
 
 ## Support request draft
 
-We want to publish docx-editor under the public publisher name Eigenpal.
+We want to publish DOCX Editor under the public publisher name Eigenpal.
 The legal owner is Eigenpal, Inc.
 Our OpenAI organization ID is [add organization ID].
 
@@ -49,7 +49,7 @@ That permission does not allow Pro reuse in other products or services.
 
 ## Product details
 
-Product: docx-editor
+Product: DOCX Editor
 
 Legal owner: Eigenpal, Inc.
 
@@ -76,7 +76,7 @@ Verify them again before final submission.
 ## Request
 
 Please approve our organization for desktop-only plugin submissions with a bundled local MCP server.
-We want customers to discover docx-editor in the public Plugin Directory before installation.
+We want customers to discover DOCX Editor in the public Plugin Directory before installation.
 
 The package runs its MCP server locally over stdio.
 It includes the editor, WebAssembly, server dependencies, icons, and license notices.

@@ -1,4 +1,4 @@
-# Release and update docx-editor
+# Release and update DOCX Editor
 
 Use [the release guide](../releases.md) for versioning, package preparation, publication, updates, and recovery.
 Use [publication status](publication-status.md) for the current candidate checks and remaining work.

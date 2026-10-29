@@ -2,25 +2,25 @@
   "positive": [
     {
       "description": "Open an attached .docx in the viewer.",
-      "prompt": "Show the attached proposal.docx in docx-editor.",
+      "prompt": "Show the attached proposal.docx in DOCX Editor.",
       "tools_triggered": "open_document or view_docx_file",
-      "expected_behavior": "The docx-editor preview shows the document with its pages, headings, table, and image."
+      "expected_behavior": "The DOCX Editor preview shows the document with its pages, headings, table, and image."
     },
     {
-      "description": "Follow an agent edit in the open viewer. ChatGPT or Codex desktop only. Before the prompt, open proposal.docx from the conversation's files so it shows in the docx-editor viewer.",
+      "description": "Follow an agent edit in the open viewer. ChatGPT or Codex desktop only. Before the prompt, open proposal.docx from the conversation's files so it shows in the DOCX Editor viewer.",
       "prompt": "Shorten the first paragraph of proposal.docx.",
       "tools_triggered": "None from the prompt. The host calls view_docx_file when the file opens.",
       "expected_behavior": "The agent edits the file with its document skill. The open viewer updates in place and highlights the changed paragraph. No second preview opens."
     },
     {
       "description": "Show a document the agent creates.",
-      "prompt": "Draft a one-page memo about the office move as a .docx and show it in docx-editor.",
+      "prompt": "Draft a one-page memo about the office move as a .docx and show it in DOCX Editor.",
       "tools_triggered": "open_document",
       "expected_behavior": "The agent creates a local .docx and calls open_document with its absolute path. A preview card appears; Open editor shows the full page."
     },
     {
       "description": "Show tracked changes and comments.",
-      "prompt": "Show the attached contract.docx in docx-editor so I can review its tracked changes.",
+      "prompt": "Show the attached contract.docx in DOCX Editor so I can review its tracked changes.",
       "tools_triggered": "open_document or view_docx_file",
       "expected_behavior": "The preview shows the insertions, deletions, and comments in the document, and the card shows the comment count."
     },
