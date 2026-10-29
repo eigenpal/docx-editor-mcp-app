@@ -15,7 +15,7 @@ Use the published release assets for directory submissions.
 - Release source: `d69c26533ad38e85da82b3426b80ed3d5182fe2a`.
 - Editor update: [pull request 16](https://github.com/eigenpal/docx-editor-mcp-app/pull/16), merged.
 - Stable marketplace branch: promoted from the published Codex package.
-- npm registry publication: incomplete; this computer has no npm login.
+- npm registry publication: not planned. GitHub releases are the distribution channel.
 - Installable npm archive: available in the GitHub release.
 - Source license: Apache-2.0.
 - Pro permission: `LICENSE-PLUGIN.md`.
@@ -60,11 +60,11 @@ Do not remove the local server to bypass this requirement.
 ## Remaining work
 
 1. Obtain OpenAI approval for local MCP submission access.
-2. Record a demonstration and add its accessible URL to the OpenAI review material.
+2. Add the demonstration URL to the OpenAI review material:
+   `https://www.docx-editor.dev/mcp-app/demo/video_preview.mp4`.
 3. Test the released `.mcpb` in Claude Desktop and record the host version.
 4. Complete OpenAI review submission after the blocking finding clears.
-5. Sign in to npm before publishing the registry package, if required.
-6. Track reviewer responses and confirm the license combination with Claude.
+5. Track reviewer responses and confirm the license combination with Claude.
 
 The product, support, license, privacy, and terms pages are public under `/mcp-app`.
 The product, support, privacy, and terms pages returned `200` on October 28, 2026.
