@@ -314,9 +314,15 @@
 .mcp-editor[data-chrome='false'] .mcp-navigation,
 .mcp-editor[data-chrome='false'] .mcp-navigation-toggle,
 .mcp-editor[data-chrome='false'] .mcp-page-number,
-.mcp-editor[data-chrome='false'] .docx-review,
 .mcp-editor[data-chrome='false'] .mcp-balloon {
   display: none;
+}
+
+/* Hidden, not removed: the rail measures its place beside the page once, when it mounts
+   inline. Without a layout box then, it stays pinned to the viewport's edge in fullscreen
+   until a review event moves it. */
+.mcp-editor[data-chrome='false'] .docx-review {
+  visibility: hidden;
 }
 
 @media (max-width: 760px) {
