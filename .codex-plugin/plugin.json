@@ -1,6 +1,6 @@
 {
   "name": "docx-editor",
-  "version": "1.0.2",
+  "version": "2.33.0",
   "description": "A live, Word-faithful preview of the .docx files your agent edits.",
   "author": {
     "name": "Eigenpal",

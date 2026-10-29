@@ -149,3 +149,9 @@ The widget reads its editor assets and documents through MCP.
 It does not fetch assets from an editor website.
 The server declares no widget connect or resource domains.
 The local process exposes no HTTP listener when the host starts it with `stdio`.
+
+## Install link
+
+The link `codex://plugins/install/docx-editor?marketplace=docx-editor` works
+only after a user adds the `docx-editor` marketplace. It does not add an
+unknown marketplace, so do not use it as a first-install button.
