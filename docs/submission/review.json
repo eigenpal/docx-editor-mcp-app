@@ -33,7 +33,7 @@
   ],
   "negative": [
     {
-      "description": "A PDF is not a Word document.",
+      "description": "A PDF is not a .docx file.",
       "prompt": "Summarize the attached report.pdf."
     },
     {

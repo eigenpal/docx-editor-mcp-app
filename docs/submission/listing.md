@@ -26,7 +26,7 @@ DOCX Editor
 
 ## Short description
 
-Preview and edit Word documents beside your conversation.
+Preview and edit .docx files beside your conversation.
 
 ## Description
 

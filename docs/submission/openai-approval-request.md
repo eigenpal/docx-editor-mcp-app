@@ -30,7 +30,7 @@ We want to publish DOCX Editor under the public publisher name Eigenpal.
 The legal owner is Eigenpal, Inc.
 Our OpenAI organization ID is [add organization ID].
 
-The plugin bundles a local stdio MCP server and an interactive Word document preview.
+The plugin bundles a local stdio MCP server and an interactive `.docx` preview.
 It needs local execution for file access and file synchronization.
 We have no OpenAI representative.
 

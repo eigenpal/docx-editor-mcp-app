@@ -1,11 +1,11 @@
 ---
 name: docx-editor
-description: Show a .docx in a live, Word-faithful preview while you edit it with your own document skill. Use when the user asks to see a .docx, or when you change a .docx that is open in the preview.
+description: Show a .docx in a live, page-by-page preview while you edit it with your own document skill. Use when the user asks to see a .docx, or when you change a .docx that is open in the preview.
 ---
 
-# Live preview for Word documents
+# Live preview for .docx files
 
-DOCX Editor shows a `.docx` with Word-faithful pages and follows the file.
+DOCX Editor shows a `.docx` page by page and follows the file.
 When the file changes, the preview updates in place and highlights the
 changed paragraphs. DOCX Editor has no editing tools.
 
@@ -33,7 +33,7 @@ show it again. The open preview updates by itself.
    original, so the preview never reads half a file.
 4. Make one save for each logical change, so the user can follow your work.
 
-For reviewable edits, write Word tracked changes and comments with your
+For reviewable edits, write tracked changes and comments into the `.docx` with your
 document skill. The preview shows them.
 
 ## The user's edits
