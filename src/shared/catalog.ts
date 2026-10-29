@@ -36,9 +36,9 @@ export const DOCUMENT_META = 'docx-editor/document';
  */
 export const VIEW_DOCX_FILE = {
   name: 'view_docx_file',
-  title: '.docx viewer',
+  title: 'DOCX Editor',
   description:
-    'Shows a .docx file the user opened, with Word-faithful pages. The view updates when ' +
+    'Shows a .docx file the user opened, page by page. The view updates when ' +
     "the file changes. The user's own edits in the viewer save through the host.",
 } as const;
 

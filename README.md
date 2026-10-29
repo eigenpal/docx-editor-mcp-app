@@ -8,7 +8,7 @@
   </a>
 </p>
 
-A live, Word-faithful preview of the `.docx` files your agent edits, in
+A live, page-by-page preview of the `.docx` files your agent edits, in
 ChatGPT, Codex, and Claude.
 
 Your agent edits the file with its own document tools. The preview follows
@@ -66,6 +66,9 @@ The plugin tells you when a new version is available.
 2. Select **Open editor** to see the full editor.
 3. Ask for a change, for example: "Shorten the summary." The preview updates
    when the file changes.
+
+In ChatGPT and Codex, you can open every `.docx` in DOCX Editor: go to
+**Settings > File viewers**, and choose **DOCX Editor** for `.docx`.
 
 If the file and your unsaved edits both change, the preview asks which
 version to keep.

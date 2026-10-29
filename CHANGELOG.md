@@ -5,6 +5,7 @@
 - Use the editor version as the plugin version. This release keeps the editor packages at `2.33.0`.
 - Open a file in every server process of the host. Claude Desktop can send the open and the preview's reads to different processes, for example between a chat and Cowork.
 - Sign document tokens with a per-user key, so a token still opens its file after a restart.
+- Name the file viewer DOCX Editor in ChatGPT and Codex, and say how to make it the default `.docx` viewer.
 - Show comment badges beside the page when the editor opens from the inline card. Before, they stayed at the editor's right edge until the first click on a comment or a tracked change.
 
 ## 1.0.1

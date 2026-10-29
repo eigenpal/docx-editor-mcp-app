@@ -53,7 +53,7 @@ Do not describe the bundled package as MIT licensed.
 
 ## Description for the form
 
-Preview and edit Word documents beside your Claude conversation.
+Preview and edit .docx files beside your Claude conversation.
 Open local `.docx` files with pages, tables, images, comments, and tracked changes.
 The preview follows file changes and saves manual edits.
 The editor runs locally and needs no Eigenpal account or API key.

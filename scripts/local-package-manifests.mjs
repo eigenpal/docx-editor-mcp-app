@@ -35,10 +35,11 @@ export function claudeManifest(legacy, pkg) {
     version: legacy.version,
     description: legacy.description,
     long_description:
-      'Preview Word documents with pages, tables, images, comments, and tracked changes. ' +
-      'Open a local .docx file by path. The preview follows file changes and saves your edits. ' +
-      'Your agent edits files with its own document tools. ' +
-      'The server and editor run locally. You need no account or API key for this extension.',
+      'See any .docx beside the conversation, page by page: fonts, tables, images, headers, ' +
+      'footers, comments, and tracked changes. Ask Claude to open a local .docx by its path. ' +
+      'When Claude edits the file with its own document tools, the preview updates and ' +
+      'highlights what changed. Your own edits, comment replies, and accepted changes save ' +
+      'back to the same file. DOCX Editor runs on your computer and needs no account or API key.',
     author: { ...legacy.author, url: 'https://github.com/eigenpal' },
     homepage: legacy.homepage,
     repository: pkg.repository,

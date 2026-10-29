@@ -73,10 +73,10 @@ export function createMcpServer({ local = false, ui = loadWidget() }: McpServerO
   const server = new McpServer(
     // Hosts fall back to the server icon for entrypoints: the SDK's registerTool
     // does not carry tool icons.
-    { name: 'docx-editor', title: 'docx-editor', version: PACKAGE_VERSION, icons: APP_ICONS },
+    { name: 'docx-editor', title: 'DOCX Editor', version: PACKAGE_VERSION, icons: APP_ICONS },
     {
       instructions:
-        'Shows .docx files in a Word-faithful preview. Call open_document to show a file. ' +
+        'Shows .docx files in a live, page-by-page preview. Call open_document to show a file. ' +
         'This app has no editing tools: edit the .docx with your own document tools, in ' +
         'place, so the formatting survives.' +
         (local
@@ -92,7 +92,7 @@ export function createMcpServer({ local = false, ui = loadWidget() }: McpServerO
     {
       title: '.docx preview',
       description:
-        'Show a .docx in a Word-faithful preview. ' +
+        'Show a .docx in a live, page-by-page preview. ' +
         (local ? 'Pass its absolute path; the preview then follows the file. ' : '') +
         'For a file with no path here, pass content_base64. To change the document, ' +
         'edit the file with your own document tools.',
@@ -178,7 +178,7 @@ export function createMcpServer({ local = false, ui = loadWidget() }: McpServerO
     server,
     'docx-editor',
     ui.uri,
-    { description: 'A Word-faithful .docx preview.', mimeType: RESOURCE_MIME_TYPE },
+    { description: 'A live, page-by-page .docx preview.', mimeType: RESOURCE_MIME_TYPE },
     async () => ({
       contents: [
         {
