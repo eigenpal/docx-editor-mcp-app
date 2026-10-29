@@ -67,27 +67,21 @@ bun run format
 
 ## Update the editor
 
-Set `DOCX_EDITOR_VERSION` to the published editor version.
-Update `core`, `react`, and `pro` to the same version.
-The MCP package bundles these dependencies, so an editor release does not update an installed preview.
+The plugin version is the editor version.
+Each docx-editor release updates this repository through `.github/workflows/sync-release.yml`.
+To do the same by hand, run:
 
 ```bash
-DOCX_EDITOR_VERSION=2.33.0
-bun add --dev --exact "@docx-editor.dev/core@$DOCX_EDITOR_VERSION" \
-  "@docx-editor.dev/react@$DOCX_EDITOR_VERSION" \
-  "@docx-editor.dev/pro@$DOCX_EDITOR_VERSION"
-bun run typecheck
-bun run lint
-bun run test
-bun run build
-bun run smoke
-npm pack
-npm install -g ./docx-editor.dev-mcp-app-*.tgz
-docx-editor-mcp-app setup codex
+bun run release:version 2.34.0
+bun install --lockfile-only
+bun run release:verify
 ```
 
-Restart your desktop app, then reopen the document.
-For a hosted MCP server, deploy the rebuilt `dist/cli.js` and `dist/app/` together.
+`release:version` pins `core`, `pro`, and `react` to that version and sets the plugin version to match.
+Merge the change, and then run the **Sync library release** workflow with that version.
+The workflow creates the tag, which builds the draft release.
+Add your changes under `## Unreleased` in `CHANGELOG.md`; the next release takes them.
+See [Install and update docx-editor](docs/releases.md#publish-a-release) for the release steps.
 
 ## Keep it a preview
 
