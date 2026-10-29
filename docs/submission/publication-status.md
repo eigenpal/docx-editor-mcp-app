@@ -61,7 +61,8 @@ Do not remove the local server to bypass this requirement.
 
 1. Obtain OpenAI approval for local MCP submission access.
 2. Add the demonstration URL to the OpenAI review material:
-   `https://www.docx-editor.dev/mcp-app/demo/video_preview.mp4`.
+   `https://www.loom.com/share/67dce6c4032841469d4b617e8fdee1a3`.
+   The `DEMO_URL` repository variable holds the same URL for tag builds.
 3. Test the released `.mcpb` in Claude Desktop and record the host version.
 4. Complete OpenAI review submission after the blocking finding clears.
 5. Track reviewer responses and confirm the license combination with Claude.

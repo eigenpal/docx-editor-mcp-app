@@ -82,7 +82,7 @@ Complete publisher identity verification and confirm your submission permissions
 3. Rebuild the packages with the recording URL:
 
    ```bash
-   DEMO_URL=https://your-domain.example/demo.mp4 bun run build:local
+   DEMO_URL=https://www.loom.com/share/67dce6c4032841469d4b617e8fdee1a3 bun run build:local
    bun run smoke:packages
    ```
 
