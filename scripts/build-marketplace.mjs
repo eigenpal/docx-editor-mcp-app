@@ -34,7 +34,7 @@ await writeFile(
   JSON.stringify(
     {
       name: 'docx-editor',
-      interface: { displayName: 'docx-editor' },
+      interface: { displayName: 'DOCX Editor' },
       plugins: [
         {
           name: 'docx-editor',

@@ -13,7 +13,7 @@
   "skills": "./skills/",
   "mcpServers": "./.mcp.json",
   "interface": {
-    "displayName": "docx-editor",
+    "displayName": "DOCX Editor",
     "shortDescription": "Live .docx preview",
     "longDescription": "See Word documents with real pages, fonts, tables, headers, footers, tracked changes, and comments, next to the conversation. Ask your agent to show a .docx, and it opens in the preview. In the ChatGPT and Codex desktop apps, a .docx you open stays in the viewer: when your agent edits the file with its document skill, the viewer updates in place and highlights what changed, and your own edits in the viewer save back to the file. docx-editor has no editing tools of its own.",
     "developerName": "Eigenpal",

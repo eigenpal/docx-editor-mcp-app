@@ -1,7 +1,7 @@
 {
   "name": "@docx-editor.dev/mcp-app",
   "version": "1.0.2",
-  "description": "Word-faithful .docx viewer and editor for ChatGPT, Codex, and Claude, as an MCP App with OpenAI plugin extensions.",
+  "description": "A live, Word-faithful preview of the .docx files your agent edits.",
   "author": "Eigenpal",
   "license": "SEE LICENSE IN LICENSE-PLUGIN.md",
   "homepage": "https://www.docx-editor.dev/mcp-app",

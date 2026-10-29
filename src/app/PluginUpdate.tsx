@@ -27,7 +27,7 @@ export function usePluginUpdate(app: App | null, connected: boolean): ReactNode 
   if (!app || !update?.latest || dismissed) return null;
   return (
     <aside className="plugin-update" aria-label="Plugin update">
-      <span>docx-editor {update.latest} is available.</span>
+      <span>DOCX Editor {update.latest} is available.</span>
       <button
         type="button"
         onClick={() => {
