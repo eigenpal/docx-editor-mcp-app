@@ -17,6 +17,7 @@
  */
 
 import type { HostFileVersion } from './host-file.js';
+import { formatLimit } from '../shared/limits.js';
 import { bodyParagraphTexts, diffParagraphs, toRefreshInputs } from './paragraph-diff.js';
 import {
   CHANGED_AGAIN,
@@ -344,7 +345,7 @@ export class FileSyncSession {
     clearTimeout(this.autosaveTimer);
     if (result.outcome === 'too-large') {
       this.tooLarge = true;
-      const limit = `The file exceeds the ${result.maxBytes}-byte write limit.`;
+      const limit = `The file exceeds the ${formatLimit(result.maxBytes)} write limit.`;
       this.show({ kind: 'error', reason: `${limit} Press Save to download a copy.` });
       return 'too-large';
     }

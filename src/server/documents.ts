@@ -22,7 +22,7 @@ import {
 } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { basename, isAbsolute, resolve } from 'node:path';
-import { MAX_CONTENT_BYTES } from '../shared/limits.js';
+import { formatLimit, MAX_CONTENT_BYTES } from '../shared/limits.js';
 import { signPath, verifiedPath } from './tokens.js';
 
 type Refusal = { message: string };
@@ -58,7 +58,7 @@ export function openPath(raw: string, name?: string): { token: string; name: str
   // another file must not open.
   if (!info.isFile() || !/\.docx$/i.test(real)) return { message: `"${raw}" is not a .docx file.` };
   if (info.size > MAX_CONTENT_BYTES) {
-    return { message: `"${raw}" is larger than the ${MAX_CONTENT_BYTES}-byte limit.` };
+    return { message: `"${raw}" is larger than the ${formatLimit(MAX_CONTENT_BYTES)} limit.` };
   }
   return { token: signPath(real), name: name ?? basename(real) };
 }
@@ -70,7 +70,9 @@ export function openPath(raw: string, name?: string): { token: string; name: str
 export function decodeBytes(base64: string): Buffer | Refusal {
   const bytes = Buffer.from(base64, 'base64');
   if (bytes.byteLength > MAX_CONTENT_BYTES) {
-    return { message: `content_base64 is larger than the ${MAX_CONTENT_BYTES}-byte limit.` };
+    return {
+      message: `content_base64 is larger than the ${formatLimit(MAX_CONTENT_BYTES)} limit.`,
+    };
   }
   return isDocx(bytes) ? bytes : { message: 'content_base64 is not a .docx file.' };
 }

@@ -15,7 +15,7 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { MAX_CONTENT_BYTES } from '../../shared/limits.js';
+import { formatLimit, MAX_CONTENT_BYTES } from '../../shared/limits.js';
 import { decodeBytes, openPath, read, version, write } from '../documents.js';
 
 const dir = mkdtempSync(join(tmpdir(), 'docx-documents-'));
@@ -103,5 +103,13 @@ describe('write', () => {
     const t = token(openPath(path));
     expect(await version(t)).toMatchObject({ writable: false });
     expect((await write(t, DOCX, null)).outcome).toBe('refused');
+  });
+});
+
+describe('formatLimit', () => {
+  it('reads as megabytes or bytes', () => {
+    expect(formatLimit(7 * 1024 * 1024)).toBe('7 MB');
+    expect(formatLimit(1.5 * 1024 * 1024)).toBe('1.5 MB');
+    expect(formatLimit(10)).toBe('10 bytes');
   });
 });
