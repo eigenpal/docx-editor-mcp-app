@@ -1,37 +1,31 @@
-# docx-editor 1.0.2
-
-Preview and edit Word documents inside ChatGPT, Codex, and Claude Desktop.
-The plugin follows local file changes and preserves unsaved work during file conflicts.
-This patch fixes "This document is no longer open" in Claude Desktop.
-The preview now opens its file in every server process, for example in a chat and in Cowork.
-A preview card also opens its file again after a restart.
-Engine `2.33.0` keeps clicks and typing available after file updates.
-
 ## Install
 
-Use **Install** on the approved host directory listing when available.
-OpenAI local listings require partner approval.
-Claude extensions require directory approval.
-This release does not claim those approvals.
+You do not need an account or an API key.
 
-For Claude testing, download the `.mcpb` asset and install it through **Settings > Extensions > Advanced settings**.
-For Codex testing, extract the Codex ZIP and register its directory as a local marketplace.
-After stable marketplace promotion, use the Git installation instructions in [the release guide](https://github.com/eigenpal/docx-editor-mcp-app/blob/main/docs/releases.md).
-The ChatGPT ZIP is the OpenAI local-directory submission package.
-The npm tarball supports developer installation.
+- **Claude Desktop:** download `docx-editor-claude-<version>.mcpb` from the
+  assets, open it, and then select **Install**.
+- **ChatGPT and Codex:** run this command with the Codex CLI, and then restart
+  the app:
 
-## Updates
+  ```bash
+  codex plugin marketplace add eigenpal/docx-editor-mcp-app@stable && codex plugin add docx-editor@docx-editor
+  ```
 
-Use your host's directory update process when available.
-Otherwise, the preview shows a newer stable release with **Get update** and **Later** actions.
-The check sends no documents or file paths.
-It never replaces a running editor.
+## Update
 
-## Licenses
+- **Claude Desktop:** install the new `.mcpb` file.
+- **ChatGPT and Codex:** run this command, and then restart the app:
 
-The MCP app source uses Apache-2.0.
-The bundled Pro components permit plugin use inside ChatGPT, Codex, and Claude.
-Reusing those Pro components in another product requires a separate EigenPal Pro License.
-Open-source dependencies retain their own licenses.
-The Apache 2.0 editor components remain available for commercial embedding under their own licenses.
-The complete bundled package does not use a single open-source license.
+  ```bash
+  codex plugin marketplace upgrade && codex plugin add docx-editor@docx-editor
+  ```
+
+For more information, see
+[Install and update docx-editor](https://github.com/eigenpal/docx-editor-mcp-app/blob/main/docs/releases.md).
+
+## License
+
+The plugin source uses Apache-2.0. The bundled Pro components are free to use
+in the official plugin, including for business documents. To reuse them in
+another product, you need an EigenPal Pro License. For more information, see
+`LICENSE-PLUGIN.md`.
