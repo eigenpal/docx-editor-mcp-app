@@ -25,5 +25,5 @@ Attach a sample document without private content.
 
 ## A file does not open
 
-Check that the file is a `.docx` file of 15 MB or less. Then ask your agent
+Check that the file is a `.docx` file of 7 MB or less. Then ask your agent
 to open it by its absolute path, for example `/Users/you/report.docx`.

@@ -13,7 +13,7 @@ Do not send private documents, account credentials, or API keys.
 ## Open a document
 
 Confirm that the plugin is enabled and the file uses the `.docx` format.
-The plugin accepts files up to 15 MB.
+The plugin accepts files up to 7 MB.
 In Claude, provide the absolute path to the local file.
 The plugin does not open legacy `.doc` files or convert PDFs.
 

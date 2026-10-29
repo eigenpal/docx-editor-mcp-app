@@ -1,9 +1,10 @@
 /**
  * Smoke test of the built package over stdio, the path desktop hosts use:
  * start `dist/cli.js stdio`, list the tools, read the inline widget and the
- * wasm resource, open a file, and save a 12 MB document through the same
- * message a preview autosave sends. The SDK's default 10 MB message limit
- * once made that save end the server.
+ * wasm resource, open a file, and save through the message a preview
+ * autosave sends: a document under the cap saves, and a 12 MB one gets a
+ * `too-large` answer. The SDK's default 10 MB message limit once made a save
+ * that size end the server.
  */
 
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
@@ -41,18 +42,26 @@ if (Buffer.from(wasm.contents[0].blob, 'base64').length < 100_000) fail('harfbuz
 
 const dir = mkdtempSync(join(tmpdir(), 'smoke-'));
 const path = join(dir, 'big.docx');
-const big = Buffer.alloc(12 * 1024 * 1024);
-big.set([0x50, 0x4b, 0x03, 0x04]);
-writeFileSync(path, big.subarray(0, 64));
+const doc = (size) => {
+  const bytes = Buffer.alloc(size);
+  bytes.set([0x50, 0x4b, 0x03, 0x04]);
+  return bytes;
+};
+writeFileSync(path, doc(64));
 const opened = await client.callTool({ name: 'open_document', arguments: { path } });
 const token = opened.structuredContent?.resourceUri?.split('//')[1];
 if (!token) fail('open_document did not open the file');
-const saved = await client.callTool({
-  name: 'write_local_file',
-  arguments: { token, blob: big.toString('base64'), ifMatch: null },
-});
+const save = (bytes, ifMatch) =>
+  client.callTool({
+    name: 'write_local_file',
+    arguments: { token, blob: bytes.toString('base64'), ifMatch },
+  });
+const saved = await save(doc(6 * 1024 * 1024), null);
 if (saved.structuredContent?.outcome !== 'saved')
-  fail(`12 MB save: ${JSON.stringify(saved.structuredContent)}`);
+  fail(`6 MB save: ${JSON.stringify(saved.structuredContent)}`);
+const tooLarge = await save(doc(12 * 1024 * 1024), saved.structuredContent.etag);
+if (tooLarge.structuredContent?.outcome !== 'too-large')
+  fail(`12 MB save: ${JSON.stringify(tooLarge.structuredContent)}`);
 
 // A file over the cap is refused at open, so no save of it can ever exceed
 // the transport's message limit.
