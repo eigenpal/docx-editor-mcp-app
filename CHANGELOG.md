@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.34.0
+
+- Update the editor packages to `2.34.0`.
+
 ## 2.33.0
 
 - Use the editor version as the plugin version. This release keeps the editor packages at `2.33.0`.
