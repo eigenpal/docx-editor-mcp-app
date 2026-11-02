@@ -41,7 +41,7 @@ jobs:
     env:
       VERSION: ${{ github.event.client_payload.version || inputs.version }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           ref: main
           # create-pull-request and the tag push use the App token explicitly.
