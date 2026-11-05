@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.35.0
+
+- Update the editor packages to `2.35.0`.
+
 ## 2.34.0
 
 - Update the editor packages to `2.34.0`.

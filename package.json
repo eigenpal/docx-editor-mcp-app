@@ -1,6 +1,6 @@
 {
   "name": "@docx-editor.dev/mcp-app",
-  "version": "2.34.0",
+  "version": "2.35.0",
   "description": "A live, page-by-page preview of the .docx files your agent edits.",
   "author": "Eigenpal",
   "license": "SEE LICENSE IN LICENSE-PLUGIN.md",
@@ -76,9 +76,9 @@
     "smoke:upgrade": "node scripts/smoke-upgrade.mjs"
   },
   "devDependencies": {
-    "@docx-editor.dev/core": "2.34.0",
-    "@docx-editor.dev/pro": "2.34.0",
-    "@docx-editor.dev/react": "2.34.0",
+    "@docx-editor.dev/core": "2.35.0",
+    "@docx-editor.dev/pro": "2.35.0",
+    "@docx-editor.dev/react": "2.35.0",
     "@modelcontextprotocol/ext-apps": "^1.7.5",
     "@modelcontextprotocol/sdk": "^1.30.0",
     "@openai/mcp-extensions": "^0.1.0",
