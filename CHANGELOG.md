@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- In ChatGPT and Codex desktop, open a file by path in the host's file viewer. The host reads and writes the file, so files over 7 MB open, follow agent edits, and save.
+- Show every `.docx` that the agent creates or changes, without a request from the user.
+- Keep a live page thumbnail in the chat card. Its **Open** button opens the side panel, also on older cards.
+- Refuse to send a file that grew past 7 MB after it opened. Before, the server sent it, and the host closed the connection.
+
 ## 2.37.0
 
 - Update the editor packages to `2.37.0`.

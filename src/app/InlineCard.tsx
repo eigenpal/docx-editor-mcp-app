@@ -28,6 +28,8 @@ interface CardProps {
   /** A newer copy of this widget exists further down the conversation. */
   superseded: boolean;
   onOpenEditor: () => void;
+  /** The primary button's label; `Open editor` by default. A custom action needs no editor. */
+  openLabel?: string;
   save: () => Promise<ArrayBuffer | null>;
   /** The preview follows a file on disk and refreshes when it changes. */
   live: boolean;
@@ -42,6 +44,7 @@ export function InlineCard({
   fullscreenUnavailable,
   superseded,
   onOpenEditor,
+  openLabel = 'Open editor',
   save,
   live,
   updateNotice,
@@ -141,9 +144,9 @@ export function InlineCard({
             type="button"
             className="btn btn-primary"
             onClick={onOpenEditor}
-            disabled={editor === null}
+            disabled={editor === null && openLabel === 'Open editor'}
           >
-            Open editor
+            {openLabel}
           </button>
         )}
         {canDownload && (

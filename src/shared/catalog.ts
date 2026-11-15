@@ -30,6 +30,12 @@ export const OpenDocumentInput = z.object({
 export const DOCUMENT_META = 'docx-editor/document';
 
 /**
+ * The `open_document` result `_meta` key carrying the real path of a file
+ * opened by path. A host with a file viewer opens the file there itself.
+ */
+export const PATH_META = 'docx-editor/path';
+
+/**
  * The file viewer entrypoint. The HOST calls it when the user opens a .docx in
  * ChatGPT or Codex desktop. Its input is the OpenAI SDK's
  * `OpenAIFileEntrypointInputSchema`.

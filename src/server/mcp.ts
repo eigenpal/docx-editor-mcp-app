@@ -27,12 +27,14 @@ import {
 } from '@openai/mcp-extensions/server';
 import {
   DOCUMENT_META,
+  PATH_META,
   LOCAL_FILE_VERSION,
   OpenDocumentInput,
   VIEW_DOCX_FILE,
   WRITE_LOCAL_FILE,
 } from '../shared/catalog.js';
 import { decodeBytes, openPath, read, version, write } from './documents.js';
+import { formatLimit, MAX_CONTENT_BYTES } from '../shared/limits.js';
 import { APP_ICONS } from './icons.js';
 import { PACKAGE_VERSION, REPO_ROOT } from './paths.js';
 import { createUpdateChecker } from './updates.js';
@@ -76,7 +78,8 @@ export function createMcpServer({ local = false, ui = loadWidget() }: McpServerO
     { name: 'docx-editor', title: 'DOCX Editor', version: PACKAGE_VERSION, icons: APP_ICONS },
     {
       instructions:
-        'Shows .docx files in a live, page-by-page preview. Call open_document to show a file. ' +
+        'Shows .docx files in a live, page-by-page editor. Call open_document to show a file, ' +
+        'and call it without being asked after you create or change a .docx. ' +
         'This app has no editing tools: edit the .docx with your own document tools, in ' +
         'place, so the formatting survives.' +
         (local
@@ -92,7 +95,8 @@ export function createMcpServer({ local = false, ui = loadWidget() }: McpServerO
     {
       title: '.docx preview',
       description:
-        'Show a .docx in a live, page-by-page preview. ' +
+        'Show a .docx in a live, page-by-page editor. Call it after you create or change a ' +
+        '.docx, without being asked, so the user can read and edit it. ' +
         (local ? 'Pass its absolute path; the preview then follows the file. ' : '') +
         'For a file with no path here, pass content_base64. To change the document, ' +
         'edit the file with your own document tools.',
@@ -136,13 +140,22 @@ export function createMcpServer({ local = false, ui = loadWidget() }: McpServerO
           _meta: { [DOCUMENT_META]: bytes.toString('base64') },
         };
       }
+      // A host with its own file viewer (ChatGPT and Codex desktop) shows any
+      // size; the chat preview can carry only files under the message limit.
+      const large =
+        opened.size > MAX_CONTENT_BYTES
+          ? ` The file is larger than ${formatLimit(MAX_CONTENT_BYTES)}: it opens in the ` +
+            "host's file viewer, and a host without one cannot show it."
+          : '';
       return {
-        content: [{ type: 'text', text: `Showing ${opened.name} in the preview.` }],
+        content: [{ type: 'text', text: `Showing ${opened.name} in the preview.${large}` }],
         structuredContent: {
           name: opened.name,
           resourceUri: `docx-local://${opened.token}`,
           ...election,
         },
+        // For the widget only: a host with a file viewer opens the file there.
+        _meta: { [PATH_META]: opened.path },
       };
     }
   );
@@ -226,6 +239,7 @@ export function createMcpServer({ local = false, ui = loadWidget() }: McpServerO
       async (uri, { token }) => {
         const [bytes, current] = await Promise.all([read(String(token)), version(String(token))]);
         if (!bytes || !current) throw new Error('This document is no longer open.');
+        if ('message' in bytes) throw new Error(bytes.message);
         return {
           contents: [
             {

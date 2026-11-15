@@ -68,6 +68,17 @@ Two kinds of document follow the disk: a file the host opened through the
 (`src/app/local-file.ts`, polled through `local_file_version`).
 `src/app/file-sync-session.ts` owns the rules; keep its tests passing.
 
+In ChatGPT and Codex desktop, a file opened by path goes to the host's file
+viewer (`openai/files/open`). The host moves the bytes for the editor there.
+The inline card keeps a live page thumbnail (files up to `MAX_CONTENT_BYTES`)
+and its **Open** button opens the side panel; a larger file gets the plain
+card (`src/app/HostViewerCard.tsx`). The host asks the user once for each
+tab that an app opens; do not try to avoid that prompt. Only a new tool
+result opens the panel on its own, so a reloaded conversation stays quiet.
+An older card in panel mode is not superseded: it keeps its **Open** button. Other hosts preview it inline, up to
+`MAX_CONTENT_BYTES`; `read` in `src/server/documents.ts` refuses larger files
+so that a base64 message never passes the host's 10 MiB stdio limit.
+
 - A file viewer never takes part in the supersession election.
 - Never replace the editor's document while it has unsaved edits. Hold the
   newer version and let the reader choose.

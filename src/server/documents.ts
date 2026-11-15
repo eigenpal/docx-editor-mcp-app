@@ -39,7 +39,10 @@ type WriteResult =
 const isDocx = (bytes: Uint8Array) =>
   bytes[0] === 0x50 && bytes[1] === 0x4b && bytes[2] === 0x03 && bytes[3] === 0x04;
 
-export function openPath(raw: string, name?: string): { token: string; name: string } | Refusal {
+export function openPath(
+  raw: string,
+  name?: string
+): { token: string; name: string; path: string; size: number } | Refusal {
   const expanded = raw.startsWith('~/') ? resolve(homedir(), raw.slice(2)) : raw;
   if (!isAbsolute(expanded)) return { message: `"${raw}" is not an absolute path.` };
   let real: string;
@@ -57,10 +60,9 @@ export function openPath(raw: string, name?: string): { token: string; name: str
   // Checked on the REAL path: the preview writes there, so a `.docx` symlink to
   // another file must not open.
   if (!info.isFile() || !/\.docx$/i.test(real)) return { message: `"${raw}" is not a .docx file.` };
-  if (info.size > MAX_CONTENT_BYTES) {
-    return { message: `"${raw}" is larger than the ${formatLimit(MAX_CONTENT_BYTES)} limit.` };
-  }
-  return { token: signPath(real), name: name ?? basename(real) };
+  // No size check here: a host's own file viewer shows any size. `read`
+  // refuses a file too large for this server's messages.
+  return { token: signPath(real), name: name ?? basename(real), path: real, size: info.size };
 }
 
 /**
@@ -89,9 +91,19 @@ export async function version(token: string): Promise<Version | null> {
   return { etag: `${info.mtimeMs}-${info.size}`, writable };
 }
 
-export async function read(token: string): Promise<Buffer | null> {
+/**
+ * A token's file, or why it cannot travel. A file that grew past the cap after
+ * it opened is refused here: its base64 would exceed the host's message limit,
+ * and the host would drop the connection.
+ */
+export async function read(token: string): Promise<Buffer | Refusal | null> {
   const path = verifiedPath(token);
-  return path ? readFile(path) : null;
+  if (!path) return null;
+  const { size } = await stat(path);
+  if (size > MAX_CONTENT_BYTES) {
+    return { message: `The file is larger than the ${formatLimit(MAX_CONTENT_BYTES)} limit.` };
+  }
+  return readFile(path);
 }
 
 /**

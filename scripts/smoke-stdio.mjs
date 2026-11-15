@@ -63,12 +63,22 @@ const tooLarge = await save(doc(12 * 1024 * 1024), saved.structuredContent.etag)
 if (tooLarge.structuredContent?.outcome !== 'too-large')
   fail(`12 MB save: ${JSON.stringify(tooLarge.structuredContent)}`);
 
-// A file over the cap is refused at open, so no save of it can ever exceed
-// the transport's message limit.
+// A file over the cap opens, for a host's own file viewer, but this server
+// never sends it: the read is refused before its base64 could exceed the
+// host's message limit and end the connection.
 const huge = join(dir, 'huge.docx');
-writeFileSync(huge, Buffer.alloc(16 * 1024 * 1024));
-const refused = await client.callTool({ name: 'open_document', arguments: { path: huge } });
-if (!refused.isError) fail('a file over the size cap opened');
+const hugeBytes = Buffer.alloc(16 * 1024 * 1024);
+hugeBytes.set([0x50, 0x4b, 0x03, 0x04]);
+writeFileSync(huge, hugeBytes);
+const large = await client.callTool({ name: 'open_document', arguments: { path: huge } });
+const hugeUri = large.structuredContent?.resourceUri;
+if (large.isError || !hugeUri) fail('a large file did not open for the host viewer');
+if (large._meta?.['docx-editor/path'] === undefined) fail('a large file gave no path');
+const hugeRead = await client.readResource({ uri: hugeUri }).then(
+  () => 'read',
+  () => 'refused'
+);
+if (hugeRead !== 'refused') fail('the server sent a file over the size cap');
 await client.listTools(); // still connected
 
 await client.close();

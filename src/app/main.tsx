@@ -39,8 +39,14 @@ import { InlineCard, InlineSkeleton, type CardState } from './InlineCard.js';
 import { createSupersession } from './supersession.js';
 import { downloadDocx } from './download.js';
 import { FileOpenError, FileSync, type FileActions } from './FileSync.js';
-import { FileEntrypointInput, attachOpenAIExtensions } from './host-file.js';
-import { DOCUMENT_META } from '../shared/catalog.js';
+import {
+  FileEntrypointInput,
+  attachOpenAIExtensions,
+  hasHostFileViewer,
+  openInHostViewer,
+} from './host-file.js';
+import { HostViewerCard, showInHostViewer, type HostView } from './HostViewerCard.js';
+import { DOCUMENT_META, PATH_META } from '../shared/catalog.js';
 import { adoptFile, applyHostContext } from './widget-helpers.js';
 import { loadRequest, type LoadedDoc, type OpenRequest } from './load-document.js';
 import { EditorFrame } from './EditorFrame.js';
@@ -70,6 +76,9 @@ function Widget() {
   const [superseded, setSuperseded] = useState(supersession.superseded);
   useEffect(() => supersession.subscribe(() => setSuperseded(supersession.superseded)), []);
   const [handshakeContext, setHandshakeContext] = useState<McpUiHostContext | null>(null);
+  // A file that the host's file viewer shows. If the host refuses, the editor opens here.
+  const [hostView, setHostView] = useState<HostView | null>(null);
+  const fallBackFromHostView = useCallback(() => setHostView(null), []);
 
   // Registered before `connect()` resolves. `toolresult` is a one-shot event:
   // a handler added after the handshake can miss the notification that carried
@@ -80,53 +89,63 @@ function Widget() {
     fileActions.current = actions;
   }, []);
 
-  const onAppCreated = useCallback((app: App) => {
-    // Before connect: the extensions read host capabilities from the handshake.
-    attachOpenAIExtensions(app);
-    provideApp(app);
-    // The host opened a file through the file entrypoint (ChatGPT and Codex
-    // desktop). The arguments name the host's resource for it; see host-file.ts.
-    app.addEventListener('toolinput', (params) => {
-      const input = FileEntrypointInput.safeParse(params.arguments);
-      if (!input.success) return;
-      // Save the open file before a new request can unmount its editor.
-      fileActions.current?.flush();
-      setRequest((current) => adoptFile(current, input.data.file));
-    });
-    // The notification's params ARE the CallToolResult (the spec wraps
-    // nothing), so structuredContent sits directly on them.
-    app.addEventListener('toolresult', (params) => {
-      const structured = params.structuredContent as
-        { name?: string; resourceUri?: string; createdAt?: number; seq?: number } | undefined;
-      if (!structured) return;
-      fileActions.current?.flush();
-      const opened = FileEntrypointInput.safeParse(structured);
-      if (opened.success) {
-        // A file viewer stays out of the election: it shows the user's file
-        // in its own panel and must not stand down for a chat editor.
-        setRequest((current) => adoptFile(current, opened.data.file));
-        return;
-      }
-      const name = structured.name ?? 'document.docx';
-      const base64 = params._meta?.[DOCUMENT_META];
-      if (typeof base64 === 'string') setRequest({ name, base64 });
-      else if (structured.resourceUri) setRequest({ name, resource: structured.resourceUri });
-      else return;
-      // The server-minted election key: the newest open_document wins, and
-      // every older widget instance in the conversation stands down.
-      if (Number.isFinite(structured.createdAt)) {
-        supersession.adoptKey({ createdAt: structured.createdAt!, seq: structured.seq });
-      }
-    });
-    // The notification payload is a PARTIAL context; the SDK merges it into
-    // getHostContext(), so re-read the merged view rather than the params.
-    app.addEventListener('hostcontextchanged', () => {
-      applyHostContext(app);
-      const context = app.getHostContext();
-      if (context?.displayMode) setMode(context.displayMode);
-      if (context?.theme) setHostTheme(context.theme);
-    });
-  }, []);
+  const onAppCreated = useCallback(
+    (app: App) => {
+      // Before connect: the extensions read host capabilities from the handshake.
+      attachOpenAIExtensions(app);
+      provideApp(app);
+      // The host opened a file through the file entrypoint (ChatGPT and Codex
+      // desktop). The arguments name the host's resource for it; see host-file.ts.
+      app.addEventListener('toolinput', (params) => {
+        const input = FileEntrypointInput.safeParse(params.arguments);
+        if (!input.success) return;
+        // Save the open file before a new request can unmount its editor.
+        fileActions.current?.flush();
+        setRequest((current) => adoptFile(current, input.data.file));
+      });
+      // The notification's params ARE the CallToolResult (the spec wraps
+      // nothing), so structuredContent sits directly on them.
+      app.addEventListener('toolresult', (params) => {
+        const structured = params.structuredContent as
+          { name?: string; resourceUri?: string; createdAt?: number; seq?: number } | undefined;
+        if (!structured) return;
+        fileActions.current?.flush();
+        const opened = FileEntrypointInput.safeParse(structured);
+        if (opened.success) {
+          // A file viewer stays out of the election: it shows the user's file
+          // in its own panel and must not stand down for a chat editor.
+          setRequest((current) => adoptFile(current, opened.data.file));
+          return;
+        }
+        const name = structured.name ?? 'document.docx';
+        const base64 = params._meta?.[DOCUMENT_META];
+        const path = params._meta?.[PATH_META];
+        if (typeof base64 === 'string') setRequest({ name, base64 });
+        else if (typeof path === 'string' && structured.resourceUri && hasHostFileViewer(app)) {
+          const view = { name, path, resource: structured.resourceUri };
+          setHostView(view);
+          // Also a page thumbnail in the card, for a file small enough to cross this server.
+          setRequest({ name, resource: view.resource });
+          showInHostViewer(app, view, structured.createdAt, fallBackFromHostView);
+        } else if (structured.resourceUri) setRequest({ name, resource: structured.resourceUri });
+        else return;
+        // The server-minted election key: the newest open_document wins, and
+        // every older widget instance in the conversation stands down.
+        if (Number.isFinite(structured.createdAt)) {
+          supersession.adoptKey({ createdAt: structured.createdAt!, seq: structured.seq });
+        }
+      });
+      // The notification payload is a PARTIAL context; the SDK merges it into
+      // getHostContext(), so re-read the merged view rather than the params.
+      app.addEventListener('hostcontextchanged', () => {
+        applyHostContext(app);
+        const context = app.getHostContext();
+        if (context?.displayMode) setMode(context.displayMode);
+        if (context?.theme) setHostTheme(context.theme);
+      });
+    },
+    [fallBackFromHostView]
+  );
 
   const { app, isConnected, error } = useApp({
     appInfo: APP_INFO,
@@ -218,6 +237,17 @@ function Widget() {
     }
   }, [app]);
 
+  // The side panel, or the editor here when the host refuses the path.
+  const openHostView = useCallback(
+    async (view: HostView) => {
+      if (app && !(await openInHostViewer(app, view.path))) {
+        setHostView(null);
+        await openEditor();
+      }
+    },
+    [app, openEditor]
+  );
+
   const save = useCallback(() => editor?.save() ?? Promise.resolve(null), [editor]);
   const documentName = request?.name ?? 'document.docx';
   // The document shown is only ever the one the CURRENT request produced.
@@ -242,6 +272,15 @@ function Widget() {
   if (error) {
     return <ErrorCard title="Could not connect to the host" detail={error.message} />;
   }
+  // A file too large for the thumbnail: the card only points to the side panel.
+  if (app && hostView && loadError) {
+    return (
+      <HostViewerCard
+        documentName={hostView.name}
+        open={() => openInHostViewer(app, hostView.path)}
+      />
+    );
+  }
   if (!isConnected || !request || (!document && !loadError)) return <InlineSkeleton />;
 
   if (isFileView && loadError) {
@@ -256,7 +295,7 @@ function Widget() {
     <div
       className="widget"
       data-mode={isFullscreen ? 'fullscreen' : 'inline'}
-      data-superseded={superseded || undefined}
+      data-superseded={(superseded && !hostView) || undefined}
     >
       {document !== null && (
         <div className="thumb">
@@ -312,10 +351,11 @@ function Widget() {
           documentName={documentName}
           state={cardState}
           fullscreenUnavailable={fullscreenDenied}
-          superseded={superseded}
-          onOpenEditor={() => void openEditor()}
+          superseded={superseded && !hostView}
+          onOpenEditor={() => void (hostView ? openHostView(hostView) : openEditor())}
+          openLabel={hostView ? 'Open' : undefined}
           save={save}
-          live={syncedFile !== null}
+          live={syncedFile !== null && !superseded}
         />
       )}
     </div>
