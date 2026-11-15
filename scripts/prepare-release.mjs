@@ -25,6 +25,7 @@ const files = [
   'verification.json',
   'upgrade-verification.json',
   'release.json',
+  'tools-list.json',
 ];
 const sums = [];
 for (const name of files) {

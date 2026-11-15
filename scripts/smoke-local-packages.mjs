@@ -109,6 +109,13 @@ try {
       );
       assert.equal(client.getServerVersion().version, pkg.version);
       const { tools } = await client.listTools();
+      // Directory reviewers ask for the exact tools/list a package serves.
+      if (host === 'chatgpt') {
+        await writeFile(
+          join(artifacts, 'tools-list.json'),
+          `${JSON.stringify({ tools }, null, 2)}\n`
+        );
+      }
       const visible = tools.filter(
         (tool) => !tool._meta?.ui?.visibility?.every((mode) => mode === 'app')
       );
