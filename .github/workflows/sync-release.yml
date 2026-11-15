@@ -11,6 +11,11 @@ run-name: ${{ github.event_name == 'repository_dispatch' && format('upstream-rel
 # merges it only when its checks pass, and pushes v<version>. The tag starts
 # release-packages.yml, which builds a DRAFT release. Publishing it stays a
 # person's decision: host acceptance and directory review are manual.
+#
+# A daily run repeats the sync for the newest editor on npm. The dispatch
+# fails when the editor pins a dependency younger than bunfig.toml's
+# minimumReleaseAge; the daily run lands that release once the window passes.
+# Every step skips what is already done, so a quiet day changes nothing.
 
 on:
   repository_dispatch:
@@ -21,6 +26,8 @@ on:
         description: Exact published editor version, for example 2.34.0
         required: true
         type: string
+  schedule:
+    - cron: '17 6 * * *'
 
 concurrency:
   group: library-release-sync
@@ -38,9 +45,18 @@ jobs:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 50
-    env:
-      VERSION: ${{ github.event.client_payload.version || inputs.version }}
     steps:
+      # A scheduled run has no version of its own: it follows npm `latest`.
+      - name: Resolve the editor version
+        env:
+          PAYLOAD_VERSION: ${{ github.event.client_payload.version }}
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          version="${PAYLOAD_VERSION:-$INPUT_VERSION}"
+          [ -n "$version" ] || version=$(npm view @docx-editor.dev/core version)
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+
       - uses: actions/checkout@v7
         with:
           ref: main
@@ -54,7 +70,7 @@ jobs:
         id: pal
         uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510
         with:
-          app-id: ${{ secrets.RELEASE_PAL_APP_ID }}
+          client-id: ${{ vars.RELEASE_PAL_CLIENT_ID }}
           private-key: ${{ secrets.RELEASE_PAL_PRIVATE_KEY }}
           owner: ${{ github.repository_owner }}
           repositories: docx-editor-mcp-app
@@ -92,7 +108,7 @@ jobs:
         if: steps.plan.outputs.action == 'sync'
         with:
           # The same bun as ci.yml, which checks the lockfile this step writes.
-          bun-version: latest
+          bun-version-file: .bun-version
 
       # The dispatch can arrive before npm serves every package of the release.
       - name: Wait for npm to serve the editor packages
