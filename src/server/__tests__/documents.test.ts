@@ -9,6 +9,7 @@ import {
   chmodSync,
   mkdtempSync,
   readFileSync,
+  realpathSync,
   statSync,
   symlinkSync,
   writeFileSync,
@@ -36,16 +37,27 @@ describe('openPath', () => {
     const path = file('a.docx');
     const t = token(openPath(path));
     writeFileSync(path, Buffer.concat([DOCX, Buffer.from([9])]));
-    expect((await read(t))?.at(-1)).toBe(9);
+    expect((await read(t)) as Buffer).toHaveProperty('length', DOCX.length + 1);
   });
 
-  it('refuses relative paths, missing files, other types, and oversized files', () => {
+  it('refuses relative paths, missing files, and other types', () => {
     expect(openPath('a.docx')).toHaveProperty('message');
     expect(openPath(join(dir, 'missing.docx'))).toHaveProperty('message');
     expect(openPath(file('notes.txt'))).toHaveProperty('message');
-    expect(openPath(file('huge.docx', Buffer.alloc(MAX_CONTENT_BYTES + 1)))).toHaveProperty(
-      'message'
-    );
+  });
+
+  it('opens an oversized file for the host viewer, but never reads it', async () => {
+    const path = file('huge.docx', Buffer.alloc(MAX_CONTENT_BYTES + 1));
+    const opened = openPath(path);
+    expect(opened).toMatchObject({ path: realpathSync(path), size: MAX_CONTENT_BYTES + 1 });
+    expect(await read(token(opened))).toHaveProperty('message');
+  });
+
+  it('refuses to read a file that grew past the limit after it opened', async () => {
+    const path = file('grows.docx');
+    const t = token(openPath(path));
+    writeFileSync(path, Buffer.alloc(MAX_CONTENT_BYTES + 1));
+    expect(await read(t)).toHaveProperty('message');
   });
 
   it('refuses a .docx symlink to a file that is not a .docx', () => {

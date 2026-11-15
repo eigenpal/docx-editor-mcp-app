@@ -6,7 +6,7 @@
 import { describe, expect, it } from 'bun:test';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, realpathSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createMcpServer } from '../mcp.js';
@@ -73,7 +73,8 @@ describe('open_document', () => {
       await connect(true)
     ).callTool({ name: 'open_document', arguments: { path, content_base64: DOCX } });
     expect(result.structuredContent).toHaveProperty('resourceUri');
-    expect(result._meta).toBeUndefined();
+    // The real path, for the host's file viewer; never the bytes.
+    expect(result._meta).toEqual({ 'docx-editor/path': realpathSync(path) });
   });
 
   it('falls back to bytes when a local path does not open', async () => {

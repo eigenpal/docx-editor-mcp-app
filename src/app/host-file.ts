@@ -41,6 +41,25 @@ export function attachOpenAIExtensions(app: App): void {
   if (!extensions.has(app)) extensions.set(app, new OpenAIExtensions(app));
 }
 
+/** Whether the host can show a local file in its own file viewer. */
+export function hasHostFileViewer(app: App): boolean {
+  return extensions.get(app)?.files !== undefined;
+}
+
+/**
+ * Ask the host to show a local file in its side panel. The host reads and
+ * writes the file itself, so no size limit of this app's server applies.
+ * Resolves false when the host refuses the path.
+ */
+export async function openInHostViewer(app: App, path: string): Promise<boolean> {
+  const files = extensions.get(app)?.files;
+  if (!files) return false;
+  return files.open(path).then(
+    () => true,
+    () => false
+  );
+}
+
 function resources(app: App): OpenAIResources {
   const api = extensions.get(app)?.resources;
   if (!api) throw new Error('This host does not serve opened files to apps.');

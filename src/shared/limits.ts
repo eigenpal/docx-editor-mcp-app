@@ -1,6 +1,8 @@
 /**
- * The largest document this app opens or saves. Both halves enforce it: the
- * server refuses bigger files, and the widget checks before it sends a save.
+ * The largest document that crosses this app's server. Both halves enforce
+ * it: the server refuses to send or save bigger files, and the widget checks
+ * before it sends a save. A host's own file viewer (ChatGPT and Codex
+ * desktop) moves the bytes itself, so this limit does not apply there.
  *
  * A document crosses the host as one base64 message (4/3 of its size). The
  * MCP TypeScript SDK client closes a stdio connection on any message over
