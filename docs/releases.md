@@ -80,15 +80,13 @@ repository. `.github/workflows/sync-release.yml` then does steps 1 to 3:
 2. It opens a pull request and merges it after `lint`, `test`, `build`, and
    `history` pass. If a check fails, the pull request stays open, and `main`
    does not change.
-3. It tags `v<version>`. The tag builds the packages into a draft release.
+3. It tags `v<version>`. The tag builds the packages, publishes the release
+   as the latest, and promotes the Codex package to the `stable` branch.
 
 A person does the rest:
 
-4. Inspect the draft release and its package checks.
-5. Record the host acceptance results.
-6. Publish the release. Publishing promotes the Codex package to the `stable`
-   branch.
-7. Submit the same packages for directory review. For more information, see
+4. Record the host acceptance results.
+5. Submit the same packages for directory review. For more information, see
    [Local directory submissions](submission/README.md).
 
 If a check fails, fix the problem on `main`. Then run the **Sync library

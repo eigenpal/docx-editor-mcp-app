@@ -9,8 +9,8 @@ run-name: ${{ github.event_name == 'repository_dispatch' && format('upstream-rel
 #
 # This run pins the editor, sets the plugin version, opens a pull request,
 # merges it only when its checks pass, and pushes v<version>. The tag starts
-# release-packages.yml, which builds a DRAFT release. Publishing it stays a
-# person's decision: host acceptance and directory review are manual.
+# release-packages.yml, which publishes the release and promotes the stable
+# marketplace. Host acceptance and directory review stay manual.
 #
 # A daily run repeats the sync for the newest editor on npm. The dispatch
 # fails when the editor pins a dependency younger than bunfig.toml's
@@ -152,7 +152,7 @@ jobs:
             `react` to it and sets the plugin version to the same number.
 
             Opened by `.github/workflows/sync-release.yml`. It merges only after
-            the checks pass, then tags `v${{ env.VERSION }}` to build a draft release.
+            the checks pass, then tags `v${{ env.VERSION }}` to publish the release.
           labels: automated
 
       # Wait for every required check by name. Waiting for "all checks" is not
@@ -238,5 +238,5 @@ jobs:
           gh api "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/tags/v$VERSION" -f sha="$sha" >/dev/null
           {
             echo "Tagged \`v$VERSION\` at \`$sha\`."
-            echo "release-packages.yml now builds the draft release. Publish it after host acceptance."
+            echo "release-packages.yml now builds and publishes the release."
           } >> "$GITHUB_STEP_SUMMARY"
