@@ -187,6 +187,9 @@ jobs:
           done
 
       # Mergeability settles asynchronously after the pull request opens.
+      # The main ruleset requires an approving review, and release-pal is on
+      # its bypass list. GitHub applies a bypass only when the merge asks for
+      # it, so the merge needs --admin; without it, the review rule blocks it.
       - name: Merge the pull request
         id: merge
         if: steps.plan.outputs.action == 'sync'
@@ -195,7 +198,7 @@ jobs:
           PR_URL: ${{ steps.cpr.outputs.pull-request-url }}
         run: |
           for i in $(seq 1 12); do
-            if gh pr merge "$PR_URL" --squash --delete-branch; then
+            if gh pr merge "$PR_URL" --squash --admin --delete-branch; then
               echo "sha=$(gh pr view "$PR_URL" --json mergeCommit --jq .mergeCommit.oid)" >> "$GITHUB_OUTPUT"
               exit 0
             fi
