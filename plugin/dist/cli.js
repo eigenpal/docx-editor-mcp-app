@@ -34154,6 +34154,7 @@ var OpenDocumentInput = external_exports.object({
   name: external_exports.string().optional().describe('File name to show, for example "contract.docx".')
 });
 var DOCUMENT_META = "docx-editor/document";
+var PATH_META = "docx-editor/path";
 var VIEW_DOCX_FILE = {
   name: "view_docx_file",
   title: "DOCX Editor",
@@ -34254,10 +34255,7 @@ function openPath(raw, name) {
     };
   }
   if (!info.isFile() || !/\.docx$/i.test(real)) return { message: `"${raw}" is not a .docx file.` };
-  if (info.size > MAX_CONTENT_BYTES) {
-    return { message: `"${raw}" is larger than the ${formatLimit(MAX_CONTENT_BYTES)} limit.` };
-  }
-  return { token: signPath(real), name: name ?? basename(real) };
+  return { token: signPath(real), name: name ?? basename(real), path: real, size: info.size };
 }
 function decodeBytes(base643) {
   const bytes = Buffer.from(base643, "base64");
@@ -34280,7 +34278,12 @@ async function version2(token) {
 }
 async function read(token) {
   const path = verifiedPath(token);
-  return path ? readFile(path) : null;
+  if (!path) return null;
+  const { size } = await stat(path);
+  if (size > MAX_CONTENT_BYTES) {
+    return { message: `The file is larger than the ${formatLimit(MAX_CONTENT_BYTES)} limit.` };
+  }
+  return readFile(path);
 }
 async function write(token, bytes, ifMatch) {
   const path = verifiedPath(token);
@@ -34414,7 +34417,7 @@ function createMcpServer({ local = false, ui = loadWidget() } = {}) {
     // does not carry tool icons.
     { name: "docx-editor", title: "DOCX Editor", version: PACKAGE_VERSION, icons: APP_ICONS },
     {
-      instructions: "Shows .docx files in a live, page-by-page preview. Call open_document to show a file. This app has no editing tools: edit the .docx with your own document tools, in place, so the formatting survives." + (local ? " The preview follows a file opened by path and refreshes when it changes. Do not call open_document again for a file that is already open." : "")
+      instructions: "Shows .docx files in a live, page-by-page editor. Call open_document to show a file, and call it without being asked after you create or change a .docx. This app has no editing tools: edit the .docx with your own document tools, in place, so the formatting survives." + (local ? " The preview follows a file opened by path and refreshes when it changes. Do not call open_document again for a file that is already open." : "")
     }
   );
   K3(
@@ -34422,7 +34425,7 @@ function createMcpServer({ local = false, ui = loadWidget() } = {}) {
     "open_document",
     {
       title: ".docx preview",
-      description: "Show a .docx in a live, page-by-page preview. " + (local ? "Pass its absolute path; the preview then follows the file. " : "") + "For a file with no path here, pass content_base64. To change the document, edit the file with your own document tools.",
+      description: "Show a .docx in a live, page-by-page editor. Call it after you create or change a .docx, without being asked, so the user can read and edit it. " + (local ? "Pass its absolute path; the preview then follows the file. " : "") + "For a file with no path here, pass content_base64. To change the document, edit the file with your own document tools.",
       // Hosted mode reads no disk, so its model never sees a `path` to try.
       inputSchema: local ? OpenDocumentInput.shape : OpenDocumentInput.omit({ path: true }).shape,
       annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
@@ -34457,13 +34460,16 @@ function createMcpServer({ local = false, ui = loadWidget() } = {}) {
           _meta: { [DOCUMENT_META]: bytes.toString("base64") }
         };
       }
+      const large = opened.size > MAX_CONTENT_BYTES ? ` The file is larger than ${formatLimit(MAX_CONTENT_BYTES)}: it opens in the host's file viewer, and a host without one cannot show it.` : "";
       return {
-        content: [{ type: "text", text: `Showing ${opened.name} in the preview.` }],
+        content: [{ type: "text", text: `Showing ${opened.name} in the preview.${large}` }],
         structuredContent: {
           name: opened.name,
           resourceUri: `docx-local://${opened.token}`,
           ...election
-        }
+        },
+        // For the widget only: a host with a file viewer opens the file there.
+        _meta: { [PATH_META]: opened.path }
       };
     }
   );
@@ -34539,6 +34545,7 @@ function createMcpServer({ local = false, ui = loadWidget() } = {}) {
       async (uri, { token }) => {
         const [bytes, current] = await Promise.all([read(String(token)), version2(String(token))]);
         if (!bytes || !current) throw new Error("This document is no longer open.");
+        if ("message" in bytes) throw new Error(bytes.message);
         return {
           contents: [
             {

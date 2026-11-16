@@ -1,6 +1,6 @@
 ---
 name: docx-editor
-description: Show a .docx in a live, page-by-page preview while you edit it with your own document skill. Use when the user asks to see a .docx, or when you change a .docx that is open in the preview.
+description: Show a .docx in a live, page-by-page editor while you edit it with your own document skill. Use every time you create or change a .docx, and when the user asks to see one.
 ---
 
 # Live preview for .docx files
@@ -10,6 +10,10 @@ When the file changes, the preview updates in place and highlights the
 changed paragraphs. DOCX Editor has no editing tools.
 
 ## Show the file once
+
+Show every `.docx` that you create or change, without being asked. The user
+reads and edits it in DOCX Editor. Show it right after the first save, before
+more changes, so the user can follow your work.
 
 Use the first option that applies:
 
