@@ -7,7 +7,7 @@ This package bundles the following packages. Their licenses follow. The propriet
 License: MIT
 
 
-## @docx-editor.dev/core@2.35.0
+## @docx-editor.dev/core@2.37.0
 
 License: Apache-2.0
 
@@ -200,7 +200,7 @@ Apache License
       same "printed page" as the copyright notice for easier
       identification within third-party archives.
 
-   Copyright 2026 EigenPal Inc.
+   Copyright 2026 Eigenpal, Inc.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -215,7 +215,7 @@ Apache License
    limitations under the License.
 ```
 
-## @docx-editor.dev/i18n@2.35.0
+## @docx-editor.dev/i18n@2.37.0
 
 License: Apache-2.0
 
@@ -408,7 +408,7 @@ Apache License
       same "printed page" as the copyright notice for easier
       identification within third-party archives.
 
-   Copyright 2026 EigenPal Inc.
+   Copyright 2026 Eigenpal, Inc.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -423,14 +423,14 @@ Apache License
    limitations under the License.
 ```
 
-## @docx-editor.dev/pro@2.35.0
+## @docx-editor.dev/pro@2.37.0
 
 License: EigenPal Pro License; additional plugin permission in LICENSE-PLUGIN.md
 
 ```text
 # EigenPal Pro Evaluation License 1.0
 
-Copyright (c) 2026 EigenPal, Inc. All rights reserved.
+Copyright (c) 2026 Eigenpal, Inc. All rights reserved.
 
 By copying, modifying, or using the Software, you agree to these terms.
 
@@ -438,12 +438,13 @@ By copying, modifying, or using the Software, you agree to these terms.
 
 “Software” means all source code, object code, documentation, assets, and other
 materials contained in the “packages/pro/” directory of the EigenPal DOCX
-Editor repository, except for any material that expressly states that it is
+Editor repository, and in every copy of the `@docx-editor.dev/pro` npm package
+published from it, except for any material that expressly states that it is
 subject to a different license.
 
 ## 2. Evaluation Permission; Modifications
 
-Subject to these terms, EigenPal, Inc. grants you a limited, non-exclusive,
+Subject to these terms, Eigenpal, Inc. grants you a limited, non-exclusive,
 non-transferable, non-sublicensable, royalty-free license to:
 
 1. view, clone, and copy the Software;
@@ -454,11 +455,11 @@ non-transferable, non-sublicensable, royalty-free license to:
 
 For any such modification, the following applies:
 
-You may keep any modification to yourself. If you do not disclose it to EigenPal, Inc. or to anyone else, it remains yours
-If you disclose a modification to EigenPal, Inc. or to any third party, in any form, you assign all right, title, and interest in it to EigenPal, Inc. at the moment of disclosure. The same applies to any feedback you give EigenPal, Inc. You will promptly send EigenPal, Inc. the source code of any modification you disclose, and will sign any document needed to record the assignment.
+You may keep any modification to yourself. If you do not disclose it to Eigenpal, Inc. or to anyone else, it remains yours.
+If you disclose a modification to Eigenpal, Inc. or to any third party, in any form, you assign all right, title, and interest in it to Eigenpal, Inc. at the moment of disclosure. The same applies to any feedback you give Eigenpal, Inc. You will promptly send Eigenpal, Inc. the source code of any modification you disclose, and will sign any document needed to record the assignment.
 Disclosing a modification to a third party grants that third party no rights in it or in the Software. You will not license or purport to license any modification to anyone.
-You may continue using an assigned modification for the internal, non-production evaluation permitted by Section 2 for as long as this license is in effect. EigenPal, Inc. is not obliged to use or support any modification or feedback, and owes you nothing for it.
-You confirm that any modification or feedback you disclose is yours to assign and is not subject to any license that would impose obligations on EigenPal, Inc. or grant rights to any third party.
+You may continue using an assigned modification for the internal, non-production evaluation permitted by Section 2 for as long as this license is in effect. Eigenpal, Inc. is not obliged to use or support any modification or feedback, and owes you nothing for it.
+You confirm that any modification or feedback you disclose is yours to assign and is not subject to any license that would impose obligations on Eigenpal, Inc. or grant rights to any third party.
 
 
 No other rights are granted.
@@ -492,17 +493,17 @@ as these terms. You are responsible for their compliance.
 ## 5. Commercial Rights
 
 Production Use and any rights not expressly granted by this license require a
-separate written commercial agreement signed by EigenPal, Inc.
+separate written commercial agreement signed by Eigenpal, Inc.
 
 Commercial licenses are available by contacting licensing@eigenpal.com.
 
-Access to the Software, correspondence with EigenPal, Inc., or payment of an
+Access to the Software, correspondence with Eigenpal, Inc., or payment of an
 invoice does not by itself grant production or commercial rights unless those
-rights are set out in a written agreement signed by EigenPal, Inc.
+rights are set out in a written agreement signed by Eigenpal, Inc.
 
 ## 6. Ownership
 
-EigenPal, Inc. and its licensors retain all rights, title, and interest in the
+Eigenpal, Inc. and its licensors retain all rights, title, and interest in the
 Software. This license does not transfer ownership or grant any rights by
 implication.
 
@@ -516,7 +517,7 @@ terms or if EigenPal terminates this license.
 
 Following termination, you must stop using the Software and delete your copies
 and modifications, except for copies that you are legally required to retain.
-EigenPal, Inc. may reinstate your rights in writing.
+Eigenpal, Inc. may reinstate your rights in writing.
 
 ## 8. No Warranty
 
@@ -532,7 +533,7 @@ TO THE MAXIMUM EXTENT PERMITTED BY LAW, EIGENPAL, INC. AND ITS LICENSORS WILL NO
 ## 10. Trademarks
 
 This license does not grant permission to use the names, trademarks, service
-marks, or logos of EigenPal, Inc., except to identify the origin of an
+marks, or logos of Eigenpal, Inc., except to identify the origin of an
 unmodified copy of the Software.
 
 ## 11. Governing Law and Jurisdiction
@@ -546,12 +547,12 @@ and you consent to their jurisdiction.
 
 ## 12. Separate Commercial Agreements
 
-If EigenPal, Inc. and you enter into a separate written commercial agreement,
+If Eigenpal, Inc. and you enter into a separate written commercial agreement,
 that agreement controls to the extent it grants additional rights or conflicts
 with this license.
 ```
 
-## @docx-editor.dev/react@2.35.0
+## @docx-editor.dev/react@2.37.0
 
 License: Apache-2.0
 
@@ -744,7 +745,7 @@ Apache License
       same "printed page" as the copyright notice for easier
       identification within third-party archives.
 
-   Copyright 2026 EigenPal Inc.
+   Copyright 2026 Eigenpal, Inc.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -1146,7 +1147,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-## @nodable/entities@3.0.0
+## @nodable/entities@3.1.0
 
 License: MIT
 
@@ -2442,7 +2443,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-## emf-converter@2.0.2
+## emf-converter@4.28.0
 
 License: Apache-2.0
 
@@ -2743,7 +2744,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-## fast-xml-parser@5.11.0
+## fast-xml-parser@5.12.0
 
 License: MIT
 
@@ -2855,7 +2856,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-## is-unsafe@2.0.2
+## is-unsafe@2.0.3
 
 License: MIT
 
@@ -3348,7 +3349,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-## strnum@2.4.2
+## strnum@2.5.1
 
 License: MIT
 
