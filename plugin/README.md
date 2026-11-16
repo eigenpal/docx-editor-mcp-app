@@ -1,7 +1,7 @@
-# docx-editor for ChatGPT desktop
+# DOCX Editor for ChatGPT desktop
 
 Install this plugin through the desktop plugin directory after OpenAI approves the listing.
-You need no account or API key for docx-editor.
+You need no account or API key for DOCX Editor.
 Your desktop host starts the bundled MCP server over stdio.
 The server uses Node.js 22 or later.
 The package includes all server dependencies and editor assets.
@@ -9,7 +9,7 @@ You do not run an HTTP server or install npm packages.
 
 ## Open a document
 
-Ask your agent to open a local `.docx` file in docx-editor.
+Ask your agent to open a local `.docx` file in DOCX Editor.
 Use an absolute file path.
 Select **Open editor** to expand the preview.
 You can also open a `.docx` through the host's file viewer when available.

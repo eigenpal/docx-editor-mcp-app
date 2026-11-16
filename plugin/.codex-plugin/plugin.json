@@ -1,7 +1,7 @@
 {
   "name": "docx-editor",
-  "version": "1.0.1",
-  "description": "A live, Word-faithful preview of the .docx files your agent edits.",
+  "version": "2.33.0",
+  "description": "A live, page-by-page preview of the .docx files your agent edits.",
   "author": {
     "name": "Eigenpal",
     "email": "docx-editor@eigenpal.com",
@@ -13,9 +13,9 @@
   "skills": "./skills/",
   "mcpServers": "./.mcp.json",
   "interface": {
-    "displayName": "docx-editor",
-    "shortDescription": "Live .docx preview",
-    "longDescription": "See Word documents with real pages, fonts, tables, headers, footers, tracked changes, and comments, next to the conversation. Ask your agent to show a .docx, and it opens in the preview. In the ChatGPT and Codex desktop apps, a .docx you open stays in the viewer: when your agent edits the file with its document skill, the viewer updates in place and highlights what changed, and your own edits in the viewer save back to the file. docx-editor has no editing tools of its own.",
+    "displayName": "DOCX Editor",
+    "shortDescription": "Live .docx preview and editing",
+    "longDescription": "See any .docx beside the conversation, page by page: fonts, tables, images, headers, footers, comments, and tracked changes. Ask your agent to show a document, or open one from the chat. When your agent edits the file with its own document skill, the preview updates in place and highlights what changed. Your own edits, comment replies, and accepted changes save back to the same file. DOCX Editor runs on your computer and needs no account. To open every .docx in DOCX Editor, go to Settings > File viewers and choose DOCX Editor for .docx.",
     "developerName": "Eigenpal",
     "category": "Productivity",
     "capabilities": ["Interactive", "Read", "Write"],
@@ -24,7 +24,7 @@
     "privacyPolicyURL": "https://www.docx-editor.dev/mcp-app/privacy",
     "termsOfServiceURL": "https://www.docx-editor.dev/mcp-app/terms",
     "defaultPrompt": [
-      "Show the attached .docx in docx-editor.",
+      "Show the attached .docx in DOCX Editor.",
       "Tighten the summary in the attached .docx and show me the result.",
       "Draft a one-page memo as a .docx and show it."
     ],

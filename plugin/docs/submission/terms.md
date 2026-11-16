@@ -1,8 +1,8 @@
-# docx-editor terms of use
+# DOCX Editor terms of use
 
 Effective date: October 27, 2026
 
-These terms cover the docx-editor MCP plugin from Eigenpal, Inc.
+These terms cover the DOCX Editor MCP plugin from Eigenpal, Inc.
 
 ## Plugin use
 

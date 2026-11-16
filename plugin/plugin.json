@@ -1,8 +1,8 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "docx-editor",
-  "version": "1.0.1",
-  "description": "A live, Word-faithful preview of the .docx files your agent edits.",
+  "version": "2.33.0",
+  "description": "A live, page-by-page preview of the .docx files your agent edits.",
   "author": {
     "name": "Eigenpal",
     "email": "docx-editor@eigenpal.com",
@@ -21,9 +21,9 @@
     "com.openai": {
       "requires_local_executor": true,
       "interface": {
-        "displayName": "docx-editor",
-        "shortDescription": "Live .docx preview",
-        "longDescription": "See Word documents with real pages, fonts, tables, headers, footers, tracked changes, and comments, next to the conversation. Ask your agent to show a .docx, and it opens in the preview. In the ChatGPT and Codex desktop apps, a .docx you open stays in the viewer: when your agent edits the file with its document skill, the viewer updates in place and highlights what changed, and your own edits in the viewer save back to the file. docx-editor has no editing tools of its own.",
+        "displayName": "DOCX Editor",
+        "shortDescription": "Live .docx preview and editing",
+        "longDescription": "See any .docx beside the conversation, page by page: fonts, tables, images, headers, footers, comments, and tracked changes. Ask your agent to show a document, or open one from the chat. When your agent edits the file with its own document skill, the preview updates in place and highlights what changed. Your own edits, comment replies, and accepted changes save back to the same file. DOCX Editor runs on your computer and needs no account. To open every .docx in DOCX Editor, go to Settings > File viewers and choose DOCX Editor for .docx.",
         "developerName": "Eigenpal",
         "category": "Productivity",
         "capabilities": [
@@ -36,7 +36,7 @@
         "privacyPolicyURL": "https://www.docx-editor.dev/mcp-app/privacy",
         "termsOfServiceURL": "https://www.docx-editor.dev/mcp-app/terms",
         "defaultPrompt": [
-          "Show the attached .docx in docx-editor.",
+          "Show the attached .docx in DOCX Editor.",
           "Tighten the summary in the attached .docx and show me the result.",
           "Draft a one-page memo as a .docx and show it."
         ],
@@ -50,25 +50,25 @@
           "positive": [
             {
               "description": "Open an attached .docx in the viewer.",
-              "prompt": "Show the attached proposal.docx in docx-editor.",
+              "prompt": "Show the attached proposal.docx in DOCX Editor.",
               "tools_triggered": "open_document or view_docx_file",
-              "expected_behavior": "The docx-editor preview shows the document with its pages, headings, table, and image."
+              "expected_behavior": "The DOCX Editor preview shows the document with its pages, headings, table, and image."
             },
             {
-              "description": "Follow an agent edit in the open viewer. ChatGPT or Codex desktop only. Before the prompt, open proposal.docx from the conversation's files so it shows in the docx-editor viewer.",
+              "description": "Follow an agent edit in the open viewer. ChatGPT or Codex desktop only. Before the prompt, open proposal.docx from the conversation's files so it shows in the DOCX Editor viewer.",
               "prompt": "Shorten the first paragraph of proposal.docx.",
               "tools_triggered": "None from the prompt. The host calls view_docx_file when the file opens.",
               "expected_behavior": "The agent edits the file with its document skill. The open viewer updates in place and highlights the changed paragraph. No second preview opens."
             },
             {
               "description": "Show a document the agent creates.",
-              "prompt": "Draft a one-page memo about the office move as a .docx and show it in docx-editor.",
+              "prompt": "Draft a one-page memo about the office move as a .docx and show it in DOCX Editor.",
               "tools_triggered": "open_document",
               "expected_behavior": "The agent creates a local .docx and calls open_document with its absolute path. A preview card appears; Open editor shows the full page."
             },
             {
               "description": "Show tracked changes and comments.",
-              "prompt": "Show the attached contract.docx in docx-editor so I can review its tracked changes.",
+              "prompt": "Show the attached contract.docx in DOCX Editor so I can review its tracked changes.",
               "tools_triggered": "open_document or view_docx_file",
               "expected_behavior": "The preview shows the insertions, deletions, and comments in the document, and the card shows the comment count."
             },
@@ -81,7 +81,7 @@
           ],
           "negative": [
             {
-              "description": "A PDF is not a Word document.",
+              "description": "A PDF is not a .docx file.",
               "prompt": "Summarize the attached report.pdf."
             },
             {
@@ -93,7 +93,8 @@
               "prompt": "What is the difference between the .doc and .docx formats?"
             }
           ]
-        }
+        },
+        "demo_recording_url": "https://www.loom.com/share/67dce6c4032841469d4b617e8fdee1a3"
       }
     }
   }
