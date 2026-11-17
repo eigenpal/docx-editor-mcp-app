@@ -12,6 +12,7 @@
  */
 
 import { build } from 'esbuild';
+import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { copyFile, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
@@ -71,8 +72,18 @@ for (const name of ['core', 'pro', 'react']) {
 }
 if (new Set(Object.values(engine)).size !== 1)
   throw new Error('Editor package versions must match.');
+// The commit the bundle came from, so a package names its own source. Null
+// outside a git checkout; scripts/prepare-release.mjs refuses that build.
+let source = { commit: null, dirty: null };
+try {
+  const git = (...args) =>
+    execFileSync('git', args, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+  source = { commit: git('rev-parse', 'HEAD').trim(), dirty: git('status', '--porcelain') !== '' };
+} catch {
+  // Not a git checkout.
+}
 await writeFile(
   join(out, 'build.json'),
-  `${JSON.stringify({ version: require('../package.json').version, engine }, null, 2)}\n`
+  `${JSON.stringify({ version: require('../package.json').version, engine, source }, null, 2)}\n`
 );
 console.log(`built dist/app/editor.html (${Math.round(html.length / 1024)} KB)`);

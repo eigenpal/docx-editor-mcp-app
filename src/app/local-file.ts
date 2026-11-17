@@ -49,6 +49,8 @@ export function localSyncFile(app: App, uri: string): SyncFile {
       if (bytes.byteLength > MAX_CONTENT_BYTES) {
         return { outcome: 'too-large', maxBytes: MAX_CONTENT_BYTES };
       }
+      // The server always versions its files and has no unconditional save.
+      if (!ifMatch) throw new Error('The file version is unknown. Reload the file.');
       const result = await app.callServerTool({
         name: WRITE_LOCAL_FILE.name,
         arguments: { token, blob: bytesToBase64(bytes), ifMatch },

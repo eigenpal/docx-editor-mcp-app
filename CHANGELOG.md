@@ -2,11 +2,16 @@
 
 ## Unreleased
 
-- Describe conditional saves and explicit `ifMatch: null` overwrites in the tool description and schema.
-- Clarify the save and refresh limits of previews opened with document bytes.
+- Require the etag of the replaced version for every `write_local_file` save. There is no unconditional save.
+- Detect same-size file edits that restore the old modification time.
+- Never read, version, or save through a symlink that replaces an opened file.
+- Report a deleted file as deleted instead of failing.
+- Check the version again just before a save replaces the file.
 - Check the bytes returned by a file read, including files that grow during the read.
+- Clarify the save and refresh limits of previews opened with document bytes.
+- Remove references to paths from the hosted `open_document` description.
 - Display binary file limits in MiB.
-- Record the source commit and matching tag in review metadata, and identify uncommitted changes.
+- Record the source commit in each package, and refuse release metadata for a different or uncommitted build.
 - Update the submission guide to match the current release workflow.
 
 ## 2.38.0

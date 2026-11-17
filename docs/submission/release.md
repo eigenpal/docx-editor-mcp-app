@@ -28,14 +28,17 @@ A version tag publishes the GitHub release and promotes the Codex package to the
 A manual workflow run uploads artifacts without publishing a release.
 Neither action submits a host listing.
 
-Publishing the reviewed stable GitHub release promotes its Codex archive to the `stable` marketplace branch.
+A stable release that a person publishes by hand also promotes its Codex archive.
 Keep the version, source commit, package checksums, host versions, and test results together.
 Never replace assets for a published version.
+Give each package that you send to a reviewer a new version number.
+Two different archives must never share a version.
 
-For an untagged review build, use the source commit and package checksum as its identity.
+Each archive records its source commit in `dist/app/build.json`.
 `release.json` records `sourceCommit`, `sourceDirty`, and the matching version tag, or `null` when none matches.
-Commit your source changes and build again before you share a package.
-Confirm that `sourceDirty` is `false` and keep the exact ZIP that you tested.
+`scripts/prepare-release.mjs` refuses packages built from a different commit or from uncommitted changes.
+For a local package that you do not share, set `RELEASE_ALLOW_DIRTY=1`.
+Send `release.json` and `SHA256SUMS` with the archive, so that the reviewer can match it to its source.
 Describe manual desktop checks as passed only after you observe their results.
 
 ## Update the host listings

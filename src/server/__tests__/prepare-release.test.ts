@@ -4,6 +4,18 @@ import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSy
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+/** What scripts/build-app.mjs writes: the build's own source commit. */
+function built(root: string, commit: string, dirty = false) {
+  writeFileSync(
+    join(root, 'dist/app/build.json'),
+    JSON.stringify({
+      version: '2.38.0',
+      engine: { core: '2.38.0', pro: '2.38.0', react: '2.38.0' },
+      source: { commit, dirty },
+    })
+  );
+}
+
 function fixture(run: (root: string, git: (...args: string[]) => string) => void) {
   const root = mkdtempSync(join(tmpdir(), 'docx release metadata '));
   const git = (...args: string[]) =>
@@ -18,13 +30,6 @@ function fixture(run: (root: string, git: (...args: string[]) => string) => void
     );
     writeFileSync(join(root, '.gitignore'), 'dist/\n');
     writeFileSync(join(root, 'package.json'), JSON.stringify({ version: '2.38.0' }));
-    writeFileSync(
-      join(root, 'dist/app/build.json'),
-      JSON.stringify({
-        version: '2.38.0',
-        engine: { core: '2.38.0', pro: '2.38.0', react: '2.38.0' },
-      })
-    );
     for (const name of [
       'docx-editor-chatgpt-2.38.0.zip',
       'docx-editor-codex-2.38.0.zip',
@@ -39,14 +44,22 @@ function fixture(run: (root: string, git: (...args: string[]) => string) => void
     git('init', '-q');
     git('add', '.');
     git('-c', 'user.name=Test', '-c', 'user.email=test@example.com', 'commit', '-qm', 'Initial');
+    built(root, git('rev-parse', 'HEAD'));
     run(root, git);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
 }
 
-function prepare(root: string) {
-  const result = Bun.spawnSync(['node', join(root, 'scripts/prepare-release.mjs')]);
+function run(root: string, env: Record<string, string> = {}) {
+  return Bun.spawnSync(['node', join(root, 'scripts/prepare-release.mjs')], {
+    env: { ...process.env, RELEASE_ALLOW_DIRTY: '', ...env },
+  });
+}
+
+function prepare(root: string, env: Record<string, string> = {}) {
+  const result = run(root, env);
+  expect(result.stderr.toString()).toBe('');
   expect(result.exitCode).toBe(0);
   return JSON.parse(readFileSync(join(root, 'dist/local-packages/release.json'), 'utf8'));
 }
@@ -89,6 +102,7 @@ describe('review package provenance', () => {
       writeFileSync(join(root, 'fix.txt'), 'New fix');
       git('add', '.');
       git('-c', 'user.name=Test', '-c', 'user.email=test@example.com', 'commit', '-qm', 'Fix');
+      built(root, git('rev-parse', 'HEAD'));
       expect(prepare(root)).toMatchObject({
         sourceCommit: git('rev-parse', 'HEAD'),
         sourceDirty: false,
@@ -97,11 +111,48 @@ describe('review package provenance', () => {
     });
   });
 
-  it('marks uncommitted changes and omits the matching tag', () => {
+  it('refuses packages built from another commit', () => {
+    fixture((root, git) => {
+      writeFileSync(join(root, 'fix.txt'), 'New fix');
+      git('add', '.');
+      git('-c', 'user.name=Test', '-c', 'user.email=test@example.com', 'commit', '-qm', 'Fix');
+      const result = run(root);
+      expect(result.exitCode).not.toBe(0);
+      expect(result.stderr.toString()).toContain('Build again.');
+    });
+  });
+
+  it('refuses packages built without a source commit', () => {
+    fixture((root) => {
+      writeFileSync(
+        join(root, 'dist/app/build.json'),
+        JSON.stringify({ version: '2.38.0', engine: {} })
+      );
+      expect(run(root).exitCode).not.toBe(0);
+    });
+  });
+
+  it('refuses uncommitted changes, at build time or now', () => {
+    fixture((root, git) => {
+      git('tag', 'v2.38.0');
+      built(root, git('rev-parse', 'HEAD'), true);
+      expect(run(root).stderr.toString()).toContain('uncommitted changes');
+      built(root, git('rev-parse', 'HEAD'));
+      writeFileSync(join(root, 'package.json'), '{"version":"2.38.0","description":"Uncommitted"}');
+      const result = run(root);
+      expect(result.exitCode).not.toBe(0);
+      expect(result.stderr.toString()).toContain('uncommitted changes');
+    });
+  });
+
+  it('marks an allowed local build with uncommitted changes and omits the tag', () => {
     fixture((root, git) => {
       git('tag', 'v2.38.0');
       writeFileSync(join(root, 'package.json'), '{"version":"2.38.0","description":"Uncommitted"}');
-      expect(prepare(root)).toMatchObject({ sourceDirty: true, tag: null });
+      expect(prepare(root, { RELEASE_ALLOW_DIRTY: '1' })).toMatchObject({
+        sourceDirty: true,
+        tag: null,
+      });
     });
   });
 });

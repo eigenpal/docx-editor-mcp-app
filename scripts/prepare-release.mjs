@@ -17,10 +17,25 @@ const git = (...args) =>
   }).trim();
 const sourceCommit = git('rev-parse', 'HEAD');
 const sourceDirty = git('status', '--porcelain') !== '';
+// The packages were built before this step: they must come from this commit.
+if (built.source?.commit !== sourceCommit) {
+  throw new Error(
+    `The build came from ${built.source?.commit ?? 'no commit'}, not ${sourceCommit}. Build again.`
+  );
+}
+// A shared package must match a commit that others can check out.
+const allowDirty = process.env.RELEASE_ALLOW_DIRTY === '1';
+if ((sourceDirty || built.source.dirty) && !allowDirty) {
+  throw new Error(
+    'The source has uncommitted changes. Commit them and build again, ' +
+      'or set RELEASE_ALLOW_DIRTY=1 for a local package that you will not share.'
+  );
+}
+const dirty = sourceDirty || built.source.dirty;
 let tag = null;
 try {
   // A version number alone cannot identify an untagged review build.
-  if (!sourceDirty && git('rev-parse', `v${pkg.version}^{commit}`) === sourceCommit) {
+  if (!dirty && git('rev-parse', `v${pkg.version}^{commit}`) === sourceCommit) {
     tag = `v${pkg.version}`;
   }
 } catch {
@@ -29,7 +44,7 @@ try {
 const metadata = {
   version: pkg.version,
   sourceCommit,
-  sourceDirty,
+  sourceDirty: dirty,
   tag,
   engine: built.engine,
   sourceLicense: 'Apache-2.0',

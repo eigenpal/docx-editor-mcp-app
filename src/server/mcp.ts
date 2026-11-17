@@ -29,6 +29,7 @@ import {
   DOCUMENT_META,
   PATH_META,
   LOCAL_FILE_VERSION,
+  HostedOpenDocumentInput,
   OpenDocumentInput,
   VIEW_DOCX_FILE,
   WRITE_LOCAL_FILE,
@@ -98,13 +99,14 @@ export function createMcpServer({ local = false, ui = loadWidget() }: McpServerO
       description:
         'Show a .docx in a live, page-by-page editor. Call it after you create or change a ' +
         '.docx, without being asked, so the user can read and edit it. ' +
-        (local ? 'Pass its absolute path; the preview then follows the file. ' : '') +
-        'For a file with no path here, pass content_base64. ' +
+        (local
+          ? 'Pass its absolute path; the preview then follows the file. ' +
+            'For a file with no path here, pass content_base64. '
+          : 'Pass its bytes as content_base64. ') +
         'A content_base64 preview does not follow or save back to a file. Show it again after each edit. ' +
         'To change the document, ' +
         'edit the file with your own document tools.',
-      // Hosted mode reads no disk, so its model never sees a `path` to try.
-      inputSchema: local ? OpenDocumentInput.shape : OpenDocumentInput.omit({ path: true }).shape,
+      inputSchema: local ? OpenDocumentInput.shape : HostedOpenDocumentInput.shape,
       annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
       _meta: { ui: { resourceUri: ui.uri } },
     },
@@ -243,6 +245,7 @@ export function createMcpServer({ local = false, ui = loadWidget() }: McpServerO
         const [bytes, current] = await Promise.all([read(String(token)), version(String(token))]);
         if (!bytes || !current) throw new Error('This document is no longer open.');
         if ('message' in bytes) throw new Error(bytes.message);
+        if ('message' in current) throw new Error(current.message);
         return {
           contents: [
             {
@@ -268,7 +271,10 @@ export function createMcpServer({ local = false, ui = loadWidget() }: McpServerO
       },
       async ({ token }) => {
         const current = await version(token);
-        if (!current) return { content: [{ type: 'text', text: 'Unknown file.' }], isError: true };
+        if (!current || 'message' in current) {
+          const text = current?.message ?? 'This document is not open.';
+          return { content: [{ type: 'text', text }], isError: true };
+        }
         return {
           content: [{ type: 'text', text: current.etag }],
           structuredContent: { ...current },

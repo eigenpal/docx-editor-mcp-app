@@ -25,19 +25,21 @@ async function withClient(local: boolean, run: (client: Client) => Promise<void>
 }
 
 describe('advertised tool contracts', () => {
-  it('describes conditional writes and explicit null overwrites in tools/list', async () => {
+  it('advertises a conditional save with a required etag in tools/list', async () => {
     await withClient(true, async (client) => {
       const { tools } = await client.listTools();
       const write = tools.find((t) => t.name === 'write_local_file')!;
-      expect(write.description).toContain('mismatch returns conflict without saving');
-      expect(write.description).toContain('null ifMatch skips the version check and overwrites');
+      expect(write.description).toContain('only if the file is unchanged');
+      expect(write.description).toContain('There is no unconditional save.');
+      expect(write.description).not.toContain('null');
       expect(write.inputSchema.required).toContain('ifMatch');
       const schema = write.inputSchema.properties?.ifMatch as {
         description: string;
-        anyOf: { type: string }[];
+        type: string;
+        minLength: number;
       };
-      expect(schema.anyOf.map((item) => item.type)).toEqual(['string', 'null']);
-      expect(schema.description).toContain('Null skips the version check and overwrites');
+      expect(schema).toMatchObject({ type: 'string', minLength: 1 });
+      expect(schema.description).toContain('Required.');
       expect(write.annotations).toMatchObject({
         readOnlyHint: false,
         destructiveHint: true,
@@ -46,6 +48,9 @@ describe('advertised tool contracts', () => {
       expect(write._meta).toMatchObject({ ui: { visibility: ['app'] } });
       const version = tools.find((t) => t.name === 'local_file_version')!;
       expect(version.description).toContain('etag and write permission');
+      const open = tools.find((t) => t.name === 'open_document')!;
+      const bytes = open.inputSchema.properties?.content_base64 as { description: string };
+      expect(bytes.description).toContain('A path that opens here takes priority');
     });
   });
 
@@ -59,13 +64,15 @@ describe('advertised tool contracts', () => {
       const open = tools.find((t) => t.name === 'open_document')!;
       expect(open.description).toContain('does not follow or save back to a file');
       expect(open.description).toContain('Show it again after each edit');
+      expect(open.description).not.toContain('path');
       expect(open.inputSchema.properties).not.toHaveProperty('path');
       const bytes = open.inputSchema.properties?.content_base64 as { description: string };
       expect(bytes.description).toContain(`${MAX_CONTENT_BYTES} bytes (7 MiB)`);
+      expect(bytes.description).not.toContain('path');
     });
   });
 
-  it('refuses a stale version and overwrites only when the caller explicitly passes null', async () => {
+  it('refuses a stale version, a missing etag, and null, and saves over a seen version', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'docx-contract-'));
     const path = join(dir, 'contract.docx');
     const initial = Buffer.from([0x50, 0x4b, 0x03, 0x04]);
@@ -84,28 +91,30 @@ describe('advertised tool contracts', () => {
         const blob = replacement.toString('base64');
         const save = (ifMatch: unknown) =>
           client.callTool({ name: 'write_local_file', arguments: { token, blob, ifMatch } });
-        expect((await save(etag)).structuredContent).toMatchObject({ outcome: 'conflict' });
+        const conflict = await save(etag);
+        expect(conflict.structuredContent).toMatchObject({ outcome: 'conflict' });
         expect(readFileSync(path)).toEqual(external);
         const missing = await client.callTool({
           name: 'write_local_file',
           arguments: { token, blob },
         });
         expect(missing.isError).toBe(true);
-        expect((await save(42)).isError).toBe(true);
+        for (const invalid of [null, '', 42]) expect((await save(invalid)).isError).toBe(true);
         expect(readFileSync(path)).toEqual(external);
-        const overwritten = await save(null);
+        // "Keep my version": the etag of the newer file the reader chose to replace.
+        const newer = (conflict.structuredContent as { etag: string }).etag;
+        const overwritten = await save(newer);
         expect(overwritten.structuredContent).toMatchObject({ outcome: 'saved' });
         expect(readFileSync(path)).toEqual(replacement);
         const latest = await client.callTool({ name: 'local_file_version', arguments: { token } });
-        expect((overwritten.structuredContent as { etag: string }).etag).toBe(
-          (latest.structuredContent as { etag: string }).etag
-        );
+        const saved = (overwritten.structuredContent as { etag: string }).etag;
+        expect(saved).toBe((latest.structuredContent as { etag: string }).etag);
         const tooLarge = await client.callTool({
           name: 'write_local_file',
           arguments: {
             token,
             blob: Buffer.alloc(MAX_CONTENT_BYTES + 1).toString('base64'),
-            ifMatch: null,
+            ifMatch: saved,
           },
         });
         expect(tooLarge.structuredContent).toEqual({
@@ -113,6 +122,12 @@ describe('advertised tool contracts', () => {
           maxBytes: MAX_CONTENT_BYTES,
         });
         expect(readFileSync(path)).toEqual(replacement);
+        rmSync(path);
+        const gone = await client.callTool({ name: 'local_file_version', arguments: { token } });
+        expect(gone).toMatchObject({
+          isError: true,
+          content: [{ text: 'The file no longer exists at its path.' }],
+        });
       });
     } finally {
       rmSync(dir, { recursive: true, force: true });
