@@ -13,6 +13,7 @@ Use [license scope](licensing.md) when you describe the source and bundled edito
 5. Run `bun run release:verify`.
 6. Run the official Claude validator listed in `README.md` in this folder.
 7. Record clean host installation, file updates, manual edits, conflicts, and upgrade results.
+   Run the [desktop conflict tests](conflict-tests.md).
 
 Read the candidate version and editor pins from `package.json`.
 Retest clicks and typing after file updates when you change the engine version.
