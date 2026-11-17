@@ -216,10 +216,6 @@
   display: none;
 }
 
-.mcp-font-notice {
-  flex: none;
-}
-
 .mcp-workspace {
   --mcp-card-top: 24px;
   position: relative;
@@ -309,7 +305,6 @@
 
 /* The thumbnail keeps the same Content mount without interactive controls. */
 .mcp-editor[data-chrome='false'] .mcp-chrome,
-.mcp-editor[data-chrome='false'] .mcp-font-notice,
 .mcp-editor[data-chrome='false'] .mcp-zoom,
 .mcp-editor[data-chrome='false'] .mcp-navigation,
 .mcp-editor[data-chrome='false'] .mcp-navigation-toggle,
@@ -352,7 +347,6 @@
 
 @media print {
   .mcp-chrome,
-  .mcp-font-notice,
   .mcp-navigation,
   .mcp-navigation-toggle,
   .mcp-page-number,

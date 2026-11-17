@@ -2,8 +2,8 @@
  * Smoke test of the built package over stdio, the path desktop hosts use:
  * start `dist/cli.js stdio`, list the tools, read the inline widget and the
  * wasm resource, open a file, and save through the message a preview
- * autosave sends: a document under the cap saves, and a 12 MB one gets a
- * `too-large` answer. The SDK's default 10 MB message limit once made a save
+ * autosave sends: a save without an etag is refused, a document under the cap
+ * saves, and a 12 MiB one gets a `too-large` answer. The SDK's default 10 MiB message limit once made a save
  * that size end the server.
  */
 
@@ -56,12 +56,16 @@ const save = (bytes, ifMatch) =>
     name: 'write_local_file',
     arguments: { token, blob: bytes.toString('base64'), ifMatch },
   });
-const saved = await save(doc(6 * 1024 * 1024), null);
+// Every save names the version it replaces; there is no unconditional save.
+const unconditional = await save(doc(128), null);
+if (!unconditional.isError) fail('a save without an etag was accepted');
+const current = await client.callTool({ name: 'local_file_version', arguments: { token } });
+const saved = await save(doc(6 * 1024 * 1024), current.structuredContent?.etag);
 if (saved.structuredContent?.outcome !== 'saved')
-  fail(`6 MB save: ${JSON.stringify(saved.structuredContent)}`);
+  fail(`6 MiB save: ${JSON.stringify(saved.structuredContent)}`);
 const tooLarge = await save(doc(12 * 1024 * 1024), saved.structuredContent.etag);
 if (tooLarge.structuredContent?.outcome !== 'too-large')
-  fail(`12 MB save: ${JSON.stringify(tooLarge.structuredContent)}`);
+  fail(`12 MiB save: ${JSON.stringify(tooLarge.structuredContent)}`);
 
 // A file over the cap opens, for a host's own file viewer, but this server
 // never sends it: the read is refused before its base64 could exceed the

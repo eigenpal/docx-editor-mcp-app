@@ -83,6 +83,8 @@ so that a base64 message never passes the host's 10 MiB stdio limit.
 - Never replace the editor's document while it has unsaved edits. Hold the
   newer version and let the reader choose.
 - Every write carries the last etag. Without etags, compare content hashes.
+  `write_local_file` has no unconditional save: "Keep my version" passes the
+  etag of the newer file the reader chose to replace.
 - Flush before anything unmounts the editor: the engine detaches it before
   `FileSync`'s cleanup runs, so a flush there finds no document.
 

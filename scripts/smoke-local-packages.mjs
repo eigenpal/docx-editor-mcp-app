@@ -67,6 +67,8 @@ try {
     assert.equal(meta.version, pkg.version);
     const built = JSON.parse(Buffer.from(files['dist/app/build.json']).toString());
     assert.equal(built.version, pkg.version);
+    // The archive names its own source commit.
+    assert.match(built.source?.commit ?? '', /^[0-9a-f]{40}$/);
     for (const [name, version] of Object.entries(built.engine)) {
       assert.equal(version, pkg.devDependencies[`@docx-editor.dev/${name}`]);
     }

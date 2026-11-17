@@ -9,6 +9,17 @@
  */
 
 import { z } from 'zod';
+import { formatLimit, MAX_CONTENT_BYTES } from './limits.js';
+
+const contentBase64 = (local: boolean) =>
+  z
+    .string()
+    .optional()
+    .describe(
+      `Base64 of the .docx bytes. Maximum decoded size: ${MAX_CONTENT_BYTES} bytes (${formatLimit(MAX_CONTENT_BYTES)}). ` +
+        'This preview does not follow or save back to a file.' +
+        (local ? ' A path that opens here takes priority over these bytes.' : '')
+    );
 
 /** Shows a .docx in the preview. The only tool the model sees. */
 export const OpenDocumentInput = z.object({
@@ -19,11 +30,13 @@ export const OpenDocumentInput = z.object({
       "Absolute path of a .docx on the user's computer. The preview follows the file: " +
         "it updates when the file changes and saves the reader's edits to it."
     ),
-  content_base64: z
-    .string()
-    .optional()
-    .describe('Base64 of the .docx bytes, for a file with no path here (a code sandbox).'),
+  content_base64: contentBase64(true),
   name: z.string().optional().describe('File name to show, for example "contract.docx".'),
+});
+
+/** Hosted mode reads no disk, so its model never sees a `path` to try. */
+export const HostedOpenDocumentInput = OpenDocumentInput.omit({ path: true }).extend({
+  content_base64: contentBase64(false),
 });
 
 /** The `open_document` result `_meta` key carrying bytes passed as `content_base64`. */
@@ -52,7 +65,8 @@ export const VIEW_DOCX_FILE = {
 const LocalToken = z
   .string()
   .max(16_384)
-  .regex(/^[\w-]+\.[\w-]{43}$/);
+  .regex(/^[\w-]+\.[\w-]{43}$/)
+  .describe('The signed token after docx-local:// in the open_document result resourceUri.');
 
 /**
  * Local mode's file sync, called by the WIDGET: the preview watches the file
@@ -60,16 +74,30 @@ const LocalToken = z
  */
 export const LOCAL_FILE_VERSION = {
   name: 'local_file_version',
-  description: 'Returns the version token of a document the preview opened from disk.',
+  description: 'Return the current etag and write permission for a document opened from disk.',
   input: z.object({ token: LocalToken }),
 } as const;
 
 export const WRITE_LOCAL_FILE = {
   name: 'write_local_file',
-  description: "Saves the preview's document over the file it opened, if the file is unchanged.",
+  description:
+    "Save the preview's document over its opened file, only if the file is unchanged. " +
+    'ifMatch must be the etag of the version the save replaces; ' +
+    'a different current version returns conflict and the file is not changed. ' +
+    'There is no unconditional save. Size and write-permission checks still apply.',
   input: z.object({
     token: LocalToken,
-    blob: z.string().min(1).describe('Base64 of the .docx bytes.'),
-    ifMatch: z.string().nullable(),
+    blob: z
+      .string()
+      .min(1)
+      .describe(
+        `Base64 of the .docx bytes. Maximum decoded size: ${MAX_CONTENT_BYTES} bytes (${formatLimit(MAX_CONTENT_BYTES)}).`
+      ),
+    ifMatch: z
+      .string()
+      .min(1)
+      .describe(
+        'The etag from local_file_version, or from a conflict result, of the version this save replaces. Required.'
+      ),
   }),
 } as const;

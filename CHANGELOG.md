@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased
+
+- Require the etag of the replaced version for every `write_local_file` save. There is no unconditional save.
+- Detect same-size file edits that restore the old modification time.
+- Never read, version, or save through a symlink that replaces an opened file.
+- Report a deleted file as deleted instead of failing.
+- Check the version again just before a save replaces the file, and report a save that lands right after it as a conflict.
+- Send each document with the etag of exactly the bytes read, not of a separate later check.
+- Check the bytes returned by a file read, including files that grow during the read.
+- Clarify the save and refresh limits of previews opened with document bytes.
+- Remove references to paths from the hosted `open_document` description.
+- Display binary file limits in MiB.
+- Hide the font substitution notice. The editor still shows substitute fonts.
+- Record the source commit in each package, and refuse release metadata for a different or uncommitted build.
+- Serve the preview at widget URIs from earlier builds. Codex desktop pins that URI for its preferred `.docx` viewer, so an update no longer shows "Couldn't display DOCX Editor".
+- Update the submission guide to match the current release workflow.
+
 ## 2.38.0
 
 - Update the editor packages to `2.38.0`.

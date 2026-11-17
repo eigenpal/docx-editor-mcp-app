@@ -10,8 +10,10 @@ import {
   mkdtempSync,
   readFileSync,
   realpathSync,
+  rmSync,
   statSync,
   symlinkSync,
+  utimesSync,
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -31,13 +33,21 @@ function token(opened: ReturnType<typeof openPath>): string {
   if ('message' in opened) throw new Error(opened.message);
   return opened.token;
 }
+async function etag(t: string): Promise<string> {
+  const current = await version(t);
+  if (!current || 'message' in current) throw new Error('not versioned');
+  return current.etag;
+}
 
 describe('openPath', () => {
   it('opens an absolute .docx path and reads it fresh', async () => {
     const path = file('a.docx');
     const t = token(openPath(path));
     writeFileSync(path, Buffer.concat([DOCX, Buffer.from([9])]));
-    expect((await read(t)) as Buffer).toHaveProperty('length', DOCX.length + 1);
+    const result = (await read(t)) as { bytes: Buffer; etag: string };
+    expect(result.bytes).toHaveProperty('length', DOCX.length + 1);
+    // The etag names exactly the bytes read with it.
+    expect(result.etag).toBe(((await version(t)) as { etag: string }).etag);
   });
 
   it('refuses relative paths, missing files, and other types', () => {
@@ -71,7 +81,33 @@ describe('openPath', () => {
     const forged = `${Buffer.from(file('other.docx')).toString('base64url')}.${signature}`;
     expect(await read(forged)).toBeNull();
     expect(await version(forged)).toBeNull();
-    expect((await write(forged, DOCX, null)).outcome).toBe('refused');
+    expect((await write(forged, DOCX, 'any')).outcome).toBe('refused');
+  });
+
+  it('never reads, versions, or writes through a symlink swapped in after the open', async () => {
+    const path = file('swapped.docx');
+    const t = token(openPath(path));
+    const before = await etag(t);
+    const secret = file('swapped-secret.txt', Buffer.from('secret'));
+    rmSync(path);
+    symlinkSync(secret, path);
+    expect(await read(t)).toHaveProperty('message');
+    expect(await version(t)).toHaveProperty('message');
+    expect((await write(t, DOCX, before)).outcome).toBe('refused');
+    expect(readFileSync(secret, 'utf8')).toBe('secret');
+  });
+
+  it('says that a deleted file is gone, and does not throw', async () => {
+    const path = file('deleted.docx');
+    const t = token(openPath(path));
+    const before = await etag(t);
+    rmSync(path);
+    expect(await read(t)).toEqual({ message: 'The file no longer exists at its path.' });
+    expect(await version(t)).toEqual({ message: 'The file no longer exists at its path.' });
+    expect(await write(t, DOCX, before)).toEqual({
+      outcome: 'refused',
+      message: 'The file no longer exists at its path.',
+    });
   });
 });
 
@@ -85,24 +121,45 @@ describe('decodeBytes', () => {
 describe('write', () => {
   it('saves only over the version the preview last saw', async () => {
     const t = token(openPath(file('b.docx')));
-    const before = (await version(t))!;
-    await new Promise((resolve) => setTimeout(resolve, 5)); // a new modification time
-    const saved = await write(t, DOCX, before.etag);
+    const before = await etag(t);
+    const saved = await write(t, DOCX, before);
     if (saved.outcome !== 'saved') throw new Error(saved.outcome);
-    expect(saved.etag).not.toBe(before.etag);
-    expect((await write(t, DOCX, before.etag)).outcome).toBe('conflict');
+    expect(saved.etag).not.toBe(before);
+    expect(saved.etag).toBe(await etag(t));
+    expect((await write(t, DOCX, before)).outcome).toBe('conflict');
+  });
+
+  it('has no unconditional save', async () => {
+    const path = file('unconditional.docx');
+    const t = token(openPath(path));
+    expect((await write(t, Buffer.concat([DOCX, DOCX]), '')).outcome).toBe('refused');
+    expect(readFileSync(path)).toEqual(DOCX);
+  });
+
+  it('notices a same-size edit that restores the old modification time', async () => {
+    const path = file('restored-time.docx', Buffer.concat([DOCX, Buffer.from('AAAA')]));
+    const t = token(openPath(path));
+    const before = await etag(t);
+    const { atime, mtime } = statSync(path);
+    writeFileSync(path, Buffer.concat([DOCX, Buffer.from('BBBB')]));
+    utimesSync(path, atime, mtime); // as `cp -p`, `rsync -t`, and sync clients do
+    expect(await etag(t)).not.toBe(before);
+    expect((await write(t, Buffer.concat([DOCX, Buffer.from('MINE')]), before)).outcome).toBe(
+      'conflict'
+    );
+    expect(readFileSync(path, 'latin1').endsWith('BBBB')).toBe(true);
   });
 
   it('keeps a private file private, and refuses non-.docx and oversized bytes', async () => {
     const path = file('private.docx');
     chmodSync(path, 0o600);
     const t = token(openPath(path));
-    expect((await write(t, DOCX, null)).outcome).toBe('saved');
+    expect((await write(t, DOCX, await etag(t))).outcome).toBe('saved');
     expect(statSync(path).mode & 0o777).toBe(0o600);
-    expect((await write(t, Buffer.from('hello'), null)).outcome).toBe('refused');
+    expect((await write(t, Buffer.from('hello'), await etag(t))).outcome).toBe('refused');
     const huge = Buffer.alloc(MAX_CONTENT_BYTES + 1);
     DOCX.copy(huge);
-    expect(await write(t, huge, null)).toEqual({
+    expect(await write(t, huge, await etag(t))).toEqual({
       outcome: 'too-large',
       maxBytes: MAX_CONTENT_BYTES,
     });
@@ -114,14 +171,14 @@ describe('write', () => {
     chmodSync(path, 0o444);
     const t = token(openPath(path));
     expect(await version(t)).toMatchObject({ writable: false });
-    expect((await write(t, DOCX, null)).outcome).toBe('refused');
+    expect((await write(t, DOCX, await etag(t))).outcome).toBe('refused');
   });
 });
 
 describe('formatLimit', () => {
   it('reads as megabytes or bytes', () => {
-    expect(formatLimit(7 * 1024 * 1024)).toBe('7 MB');
-    expect(formatLimit(1.5 * 1024 * 1024)).toBe('1.5 MB');
+    expect(formatLimit(7 * 1024 * 1024)).toBe('7 MiB');
+    expect(formatLimit(1.5 * 1024 * 1024)).toBe('1.5 MiB');
     expect(formatLimit(10)).toBe('10 bytes');
   });
 });

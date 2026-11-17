@@ -1,7 +1,7 @@
 # Release and update DOCX Editor
 
 Use [the release guide](../releases.md) for versioning, package preparation, publication, updates, and recovery.
-Use [publication status](publication-status.md) for the current candidate checks and remaining work.
+Use [publication status](publication-status.md) for historical submission results.
 Use [license scope](licensing.md) when you describe the source and bundled editor components.
 
 ## Prepare the candidate
@@ -13,10 +13,10 @@ Use [license scope](licensing.md) when you describe the source and bundled edito
 5. Run `bun run release:verify`.
 6. Run the official Claude validator listed in `README.md` in this folder.
 7. Record clean host installation, file updates, manual edits, conflicts, and upgrade results.
+   Run the [desktop conflict tests](conflict-tests.md).
 
-The current candidate is `1.0.0` with editor `2.33.0`.
-The engine fix keeps clicks and typing available after file updates.
-Retest those actions after an engine change.
+Read the candidate version and editor pins from `package.json`.
+Retest clicks and typing after file updates when you change the engine version.
 A successful text refresh alone does not prove that pointer input works.
 
 ## Build the review artifacts
@@ -25,12 +25,22 @@ Use the **Release packages** workflow on the reviewed commit or version tag.
 Supply a public demonstration URL when you have the recording.
 The workflow runs package verification with Node.js 22 and validates the Claude manifest.
 It uploads the `docx-editor-release` artifact.
-A version tag also creates a draft GitHub release.
-Neither action publishes a public release or submits a host listing.
+A version tag publishes the GitHub release and promotes the Codex package to the `stable` branch.
+A manual workflow run uploads artifacts without publishing a release.
+Neither action submits a host listing.
 
-Publishing the reviewed stable GitHub release promotes its Codex archive to the `stable` marketplace branch.
+A stable release that a person publishes by hand also promotes its Codex archive.
 Keep the version, source commit, package checksums, host versions, and test results together.
 Never replace assets for a published version.
+Give each package that you send to a reviewer a new version number.
+Two different archives must never share a version.
+
+Each archive records its source commit in `dist/app/build.json`.
+`release.json` records `sourceCommit`, `sourceDirty`, and the matching version tag, or `null` when none matches.
+`scripts/prepare-release.mjs` refuses packages built from a different commit or from uncommitted changes.
+For a local package that you do not share, set `RELEASE_ALLOW_DIRTY=1`.
+Send `release.json` and `SHA256SUMS` with the archive, so that the reviewer can match it to its source.
+Describe manual desktop checks as passed only after you observe their results.
 
 ## Update the host listings
 

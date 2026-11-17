@@ -29,6 +29,7 @@ import {
   DOCUMENT_META,
   PATH_META,
   LOCAL_FILE_VERSION,
+  HostedOpenDocumentInput,
   OpenDocumentInput,
   VIEW_DOCX_FILE,
   WRITE_LOCAL_FILE,
@@ -45,7 +46,10 @@ const checkUpdates = createUpdateChecker(PACKAGE_VERSION);
 const DOCX_MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 const appOnly = { ui: { visibility: ['app' as const] } };
 
-/** The built widget, read once. The URI carries a hash so hosts never serve a stale build. */
+/**
+ * The built widget, read once. The URI carries a hash so hosts reload it after an
+ * update; a URI from an earlier build still serves this build.
+ */
 let widget: { uri: string; html: string } | null = null;
 function loadWidget() {
   if (widget) return widget;
@@ -72,6 +76,17 @@ interface McpServerOptions {
 }
 
 export function createMcpServer({ local = false, ui = loadWidget() }: McpServerOptions = {}) {
+  const widgetContents = (uri: string) => ({
+    contents: [
+      {
+        uri,
+        mimeType: RESOURCE_MIME_TYPE,
+        text: ui.html,
+        // No CSP domains: the widget fetches nothing.
+        _meta: { ui: { prefersBorder: true } },
+      },
+    ],
+  });
   const server = new McpServer(
     // Hosts fall back to the server icon for entrypoints: the SDK's registerTool
     // does not carry tool icons.
@@ -84,8 +99,9 @@ export function createMcpServer({ local = false, ui = loadWidget() }: McpServerO
         'place, so the formatting survives.' +
         (local
           ? ' The preview follows a file opened by path and refreshes when it changes. ' +
-            'Do not call open_document again for a file that is already open.'
-          : ''),
+            'Do not reopen a file that the preview already follows.'
+          : '') +
+        ' A content_base64 preview does not follow or save back to a file. Show it again after each edit.',
     }
   );
 
@@ -97,11 +113,14 @@ export function createMcpServer({ local = false, ui = loadWidget() }: McpServerO
       description:
         'Show a .docx in a live, page-by-page editor. Call it after you create or change a ' +
         '.docx, without being asked, so the user can read and edit it. ' +
-        (local ? 'Pass its absolute path; the preview then follows the file. ' : '') +
-        'For a file with no path here, pass content_base64. To change the document, ' +
+        (local
+          ? 'Pass its absolute path; the preview then follows the file. ' +
+            'For a file with no path here, pass content_base64. '
+          : 'Pass its bytes as content_base64. ') +
+        'A content_base64 preview does not follow or save back to a file. Show it again after each edit. ' +
+        'To change the document, ' +
         'edit the file with your own document tools.',
-      // Hosted mode reads no disk, so its model never sees a `path` to try.
-      inputSchema: local ? OpenDocumentInput.shape : OpenDocumentInput.omit({ path: true }).shape,
+      inputSchema: local ? OpenDocumentInput.shape : HostedOpenDocumentInput.shape,
       annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
       _meta: { ui: { resourceUri: ui.uri } },
     },
@@ -192,17 +211,16 @@ export function createMcpServer({ local = false, ui = loadWidget() }: McpServerO
     'docx-editor',
     ui.uri,
     { description: 'A live, page-by-page .docx preview.', mimeType: RESOURCE_MIME_TYPE },
-    async () => ({
-      contents: [
-        {
-          uri: ui.uri,
-          mimeType: RESOURCE_MIME_TYPE,
-          text: ui.html,
-          // No CSP domains: the widget fetches nothing.
-          _meta: { ui: { prefersBorder: true } },
-        },
-      ],
-    })
+    async () => widgetContents(ui.uri)
+  );
+
+  // Codex desktop pins the widget URI of the preferred .docx viewer in its config.
+  // After an update, that hash is stale; serve the current build instead of "not found".
+  server.registerResource(
+    'docx-editor-pinned',
+    new ResourceTemplate('ui://docx-editor/editor.html{?v}', { list: undefined }),
+    { description: 'The preview at an earlier build URI.', mimeType: RESOURCE_MIME_TYPE },
+    async (uri) => widgetContents(uri.href)
   );
 
   server.registerResource(
@@ -237,17 +255,19 @@ export function createMcpServer({ local = false, ui = loadWidget() }: McpServerO
       new ResourceTemplate('docx-local://{token}', { list: undefined }),
       { title: 'Opened document', mimeType: DOCX_MIME },
       async (uri, { token }) => {
-        const [bytes, current] = await Promise.all([read(String(token)), version(String(token))]);
-        if (!bytes || !current) throw new Error('This document is no longer open.');
-        if ('message' in bytes) throw new Error(bytes.message);
+        const [file, current] = await Promise.all([read(String(token)), version(String(token))]);
+        if (!file || !current) throw new Error('This document is no longer open.');
+        if ('message' in file) throw new Error(file.message);
+        if ('message' in current) throw new Error(current.message);
         return {
           contents: [
             {
               uri: uri.href,
               mimeType: DOCX_MIME,
-              blob: bytes.toString('base64'),
+              blob: file.bytes.toString('base64'),
               // The OpenAI host's metadata shape, so one sync session handles both kinds of file.
-              _meta: { 'openai/resource': current },
+              // The etag is the one read with these bytes, never a separate later lookup.
+              _meta: { 'openai/resource': { etag: file.etag, writable: current.writable } },
             },
           ],
         };
@@ -265,7 +285,10 @@ export function createMcpServer({ local = false, ui = loadWidget() }: McpServerO
       },
       async ({ token }) => {
         const current = await version(token);
-        if (!current) return { content: [{ type: 'text', text: 'Unknown file.' }], isError: true };
+        if (!current || 'message' in current) {
+          const text = current?.message ?? 'This document is not open.';
+          return { content: [{ type: 'text', text }], isError: true };
+        }
         return {
           content: [{ type: 'text', text: current.etag }],
           structuredContent: { ...current },

@@ -1,5 +1,6 @@
 /** Gather release metadata and checksums after the package verification commands pass. */
 import { createHash } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
 import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -8,9 +9,43 @@ const out = join(root, 'dist/local-packages');
 const pkg = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'));
 const built = JSON.parse(await readFile(join(root, 'dist/app/build.json'), 'utf8'));
 if (pkg.version !== built.version) throw new Error('The package and built versions differ.');
+const git = (...args) =>
+  execFileSync('git', args, {
+    cwd: root,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  }).trim();
+const sourceCommit = git('rev-parse', 'HEAD');
+const sourceDirty = git('status', '--porcelain') !== '';
+// The packages were built before this step: they must come from this commit.
+if (built.source?.commit !== sourceCommit) {
+  throw new Error(
+    `The build came from ${built.source?.commit ?? 'no commit'}, not ${sourceCommit}. Build again.`
+  );
+}
+// A shared package must match a commit that others can check out.
+const allowDirty = process.env.RELEASE_ALLOW_DIRTY === '1';
+if ((sourceDirty || built.source.dirty) && !allowDirty) {
+  throw new Error(
+    'The source has uncommitted changes. Commit them and build again, ' +
+      'or set RELEASE_ALLOW_DIRTY=1 for a local package that you will not share.'
+  );
+}
+const dirty = sourceDirty || built.source.dirty;
+let tag = null;
+try {
+  // A version number alone cannot identify an untagged review build.
+  if (!dirty && git('rev-parse', `v${pkg.version}^{commit}`) === sourceCommit) {
+    tag = `v${pkg.version}`;
+  }
+} catch {
+  // A review branch need not have a release tag yet.
+}
 const metadata = {
   version: pkg.version,
-  tag: `v${pkg.version}`,
+  sourceCommit,
+  sourceDirty: dirty,
+  tag,
   engine: built.engine,
   sourceLicense: 'Apache-2.0',
   bundledProLicense: 'LICENSE-PLUGIN.md',
