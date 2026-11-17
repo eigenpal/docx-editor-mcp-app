@@ -210,6 +210,24 @@ export function createMcpServer({ local = false, ui = loadWidget() }: McpServerO
     })
   );
 
+  // Codex desktop pins the widget URI of the preferred .docx viewer in its config.
+  // After an update, that hash is stale; serve the current build instead of "not found".
+  server.registerResource(
+    'docx-editor-pinned',
+    new ResourceTemplate('ui://docx-editor/editor.html{?v}', { list: undefined }),
+    { description: 'The preview at an earlier build URI.', mimeType: RESOURCE_MIME_TYPE },
+    async (uri) => ({
+      contents: [
+        {
+          uri: uri.href,
+          mimeType: RESOURCE_MIME_TYPE,
+          text: ui.html,
+          _meta: { ui: { prefersBorder: true } },
+        },
+      ],
+    })
+  );
+
   server.registerResource(
     'plugin-updates',
     UPDATE_RESOURCE,

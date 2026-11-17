@@ -45,6 +45,18 @@ describe('tools', () => {
   });
 });
 
+describe('widget resource', () => {
+  it('serves the current build at a URI a host pinned before an update', async () => {
+    const client = await connect(true);
+    for (const uri of [ui.uri, 'ui://docx-editor/editor.html?v=f2b384b09424']) {
+      const content = (await client.readResource({ uri })).contents[0]!;
+      expect(content).toMatchObject({ uri, text: ui.html });
+    }
+    const { resources } = await client.listResources();
+    expect(resources.filter((r) => r.uri.startsWith('ui://')).map((r) => r.uri)).toEqual([ui.uri]);
+  });
+});
+
 describe('open_document', () => {
   it('hands bytes to the widget in _meta, keeping no state', async () => {
     const result = await (

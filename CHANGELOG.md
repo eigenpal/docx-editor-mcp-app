@@ -13,6 +13,7 @@
 - Display binary file limits in MiB.
 - Hide the font substitution notice. The editor still shows substitute fonts.
 - Record the source commit in each package, and refuse release metadata for a different or uncommitted build.
+- Serve the preview at widget URIs from earlier builds. Codex desktop pins that URI for its preferred `.docx` viewer, so an update no longer shows "Couldn't display DOCX Editor".
 - Update the submission guide to match the current release workflow.
 
 ## 2.38.0
