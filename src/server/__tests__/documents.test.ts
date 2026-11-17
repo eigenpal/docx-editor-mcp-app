@@ -44,7 +44,10 @@ describe('openPath', () => {
     const path = file('a.docx');
     const t = token(openPath(path));
     writeFileSync(path, Buffer.concat([DOCX, Buffer.from([9])]));
-    expect((await read(t)) as Buffer).toHaveProperty('length', DOCX.length + 1);
+    const result = (await read(t)) as { bytes: Buffer; etag: string };
+    expect(result.bytes).toHaveProperty('length', DOCX.length + 1);
+    // The etag names exactly the bytes read with it.
+    expect(result.etag).toBe(((await version(t)) as { etag: string }).etag);
   });
 
   it('refuses relative paths, missing files, and other types', () => {

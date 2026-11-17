@@ -84,8 +84,12 @@ async function current(
   let info: BigIntStats;
   try {
     info = await lstat(path, { bigint: true });
-  } catch {
-    return { message: 'The file no longer exists at its path.' };
+  } catch (cause) {
+    const code = (cause as NodeJS.ErrnoException).code;
+    if (code === 'ENOENT' || code === 'ENOTDIR') {
+      return { message: 'The file no longer exists at its path.' };
+    }
+    return { message: `The file cannot be checked (${code ?? 'unknown error'}).` };
   }
   if (!info.isFile()) return { message: 'The path no longer holds a regular file.' };
   return { path, info };
@@ -113,13 +117,18 @@ export async function version(token: string): Promise<Version | Refusal | null> 
 // Windows has neither flag; the `lstat` in `current` is the check there.
 const OPEN_FLAGS = constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0) | (constants.O_NONBLOCK ?? 0);
 
+const READ_ATTEMPTS = 3;
+
 /**
- * A token's file, or why it cannot travel. A file over the cap is refused
- * here: its base64 would exceed the host's message limit, and the host would
- * drop the connection. The read stops one byte past the cap, so a file that
- * grows after the size check is refused too, and never fills memory.
+ * A token's file and the etag of exactly those bytes, or why it cannot travel.
+ * A file over the cap is refused here: its base64 would exceed the host's
+ * message limit, and the host would drop the connection. The etag comes from
+ * the opened descriptor, checked before and after the read, so a save that
+ * lands during the read can never pair old bytes with the new etag.
  */
-export async function read(token: string): Promise<Buffer | Refusal | null> {
+export async function read(
+  token: string
+): Promise<{ bytes: Buffer; etag: string } | Refusal | null> {
   const file = await current(token);
   if (!file || 'message' in file) return file;
   const tooLarge = {
@@ -133,17 +142,25 @@ export async function read(token: string): Promise<Buffer | Refusal | null> {
     return { message: 'The file could not be opened.' };
   }
   try {
-    // The node opened may differ from the one `lstat` saw.
-    if (!(await handle.stat()).isFile())
-      return { message: 'The path no longer holds a regular file.' };
-    const buffer = Buffer.alloc(MAX_CONTENT_BYTES + 1);
-    let length = 0;
-    while (length < buffer.byteLength) {
-      const { bytesRead } = await handle.read(buffer, length, buffer.byteLength - length, null);
-      if (bytesRead === 0) break;
-      length += bytesRead;
+    for (let attempt = 0; attempt < READ_ATTEMPTS; attempt++) {
+      // The node opened may differ from the one `lstat` saw.
+      const before = await handle.stat({ bigint: true });
+      if (!before.isFile()) return { message: 'The path no longer holds a regular file.' };
+      if (before.size > BigInt(MAX_CONTENT_BYTES)) return tooLarge;
+      // One byte more than the size: a read that fills it means the file grew.
+      const buffer = Buffer.allocUnsafe(Number(before.size) + 1);
+      let length = 0;
+      while (length < buffer.byteLength) {
+        const { bytesRead } = await handle.read(buffer, length, buffer.byteLength - length, length);
+        if (bytesRead === 0) break;
+        length += bytesRead;
+      }
+      const after = await handle.stat({ bigint: true });
+      if (BigInt(length) === before.size && etagOf(after) === etagOf(before)) {
+        return { bytes: buffer.subarray(0, length), etag: etagOf(before) };
+      }
     }
-    return length > MAX_CONTENT_BYTES ? tooLarge : buffer.subarray(0, length);
+    return { message: 'The file kept changing during the read. Try again.' };
   } finally {
     await handle.close();
   }
@@ -163,23 +180,30 @@ export async function write(
   bytes: Uint8Array,
   ifMatch: string
 ): Promise<WriteResult> {
-  const before = await version(token);
-  if (!before) return { outcome: 'refused', message: 'This document is not open.' };
-  if ('message' in before) return { outcome: 'refused', message: before.message };
+  const file = await current(token);
+  if (!file) return { outcome: 'refused', message: 'This document is not open.' };
+  if ('message' in file) return { outcome: 'refused', message: file.message };
   if (bytes.byteLength > MAX_CONTENT_BYTES) {
     return { outcome: 'too-large', maxBytes: MAX_CONTENT_BYTES };
   }
   if (!isDocx(bytes)) return { outcome: 'refused', message: 'The bytes are not a .docx file.' };
-  if (!before.writable) return { outcome: 'refused', message: 'The file is read-only.' };
+  const writable = await access(file.path, constants.W_OK).then(
+    () => true,
+    () => false
+  );
+  if (!writable) return { outcome: 'refused', message: 'The file is read-only.' };
   if (!ifMatch)
     return { outcome: 'refused', message: 'A save needs the etag of the file it replaces.' };
-  if (before.etag !== ifMatch) return { outcome: 'conflict', etag: before.etag };
-  const path = verifiedPath(token)!;
-  const { mode } = await lstat(path);
+  if (etagOf(file.info) !== ifMatch) return { outcome: 'conflict', etag: etagOf(file.info) };
+  const { path } = file;
+  // The mode of the version that passed the check, not of a later lookup.
+  const mode = Number(file.info.mode & 0o777n);
+  let written: BigIntStats;
   const temporary = `${path}.${randomUUID()}.tmp`;
   try {
     await writeFile(temporary, bytes, { mode: 0o600, flag: 'wx' });
-    await chmod(temporary, mode & 0o777); // exactly: writeFile's mode passes the umask
+    await chmod(temporary, mode); // exactly: writeFile's mode passes the umask
+    written = await lstat(temporary, { bigint: true });
     const now = await version(token);
     if (!now || 'message' in now || now.etag !== ifMatch) {
       await unlink(temporary);
@@ -192,10 +216,18 @@ export async function write(
     await unlink(temporary).catch(() => undefined);
     throw cause;
   }
-  const after = await version(token);
+  const after = await current(token);
   if (!after || 'message' in after) {
     // Saved, but the file is gone or replaced already: the reader must look.
     return { outcome: 'refused', message: 'The file changed right after the save. Reload it.' };
   }
-  return { outcome: 'saved', etag: after.etag };
+  // The rename can move the change time, so match the node we wrote by inode,
+  // size, and modification time. Anything else is a newer save: report it, so
+  // its etag never passes for ours.
+  const ours =
+    after.info.ino === written.ino &&
+    after.info.size === written.size &&
+    after.info.mtimeNs === written.mtimeNs;
+  if (!ours) return { outcome: 'conflict', etag: etagOf(after.info) };
+  return { outcome: 'saved', etag: etagOf(after.info) };
 }

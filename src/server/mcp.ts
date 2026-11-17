@@ -46,7 +46,10 @@ const checkUpdates = createUpdateChecker(PACKAGE_VERSION);
 const DOCX_MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 const appOnly = { ui: { visibility: ['app' as const] } };
 
-/** The built widget, read once. The URI carries a hash so hosts never serve a stale build. */
+/**
+ * The built widget, read once. The URI carries a hash so hosts reload it after an
+ * update; a URI from an earlier build still serves this build.
+ */
 let widget: { uri: string; html: string } | null = null;
 function loadWidget() {
   if (widget) return widget;
@@ -73,6 +76,17 @@ interface McpServerOptions {
 }
 
 export function createMcpServer({ local = false, ui = loadWidget() }: McpServerOptions = {}) {
+  const widgetContents = (uri: string) => ({
+    contents: [
+      {
+        uri,
+        mimeType: RESOURCE_MIME_TYPE,
+        text: ui.html,
+        // No CSP domains: the widget fetches nothing.
+        _meta: { ui: { prefersBorder: true } },
+      },
+    ],
+  });
   const server = new McpServer(
     // Hosts fall back to the server icon for entrypoints: the SDK's registerTool
     // does not carry tool icons.
@@ -197,17 +211,7 @@ export function createMcpServer({ local = false, ui = loadWidget() }: McpServerO
     'docx-editor',
     ui.uri,
     { description: 'A live, page-by-page .docx preview.', mimeType: RESOURCE_MIME_TYPE },
-    async () => ({
-      contents: [
-        {
-          uri: ui.uri,
-          mimeType: RESOURCE_MIME_TYPE,
-          text: ui.html,
-          // No CSP domains: the widget fetches nothing.
-          _meta: { ui: { prefersBorder: true } },
-        },
-      ],
-    })
+    async () => widgetContents(ui.uri)
   );
 
   // Codex desktop pins the widget URI of the preferred .docx viewer in its config.
@@ -216,16 +220,7 @@ export function createMcpServer({ local = false, ui = loadWidget() }: McpServerO
     'docx-editor-pinned',
     new ResourceTemplate('ui://docx-editor/editor.html{?v}', { list: undefined }),
     { description: 'The preview at an earlier build URI.', mimeType: RESOURCE_MIME_TYPE },
-    async (uri) => ({
-      contents: [
-        {
-          uri: uri.href,
-          mimeType: RESOURCE_MIME_TYPE,
-          text: ui.html,
-          _meta: { ui: { prefersBorder: true } },
-        },
-      ],
-    })
+    async (uri) => widgetContents(uri.href)
   );
 
   server.registerResource(
@@ -260,18 +255,19 @@ export function createMcpServer({ local = false, ui = loadWidget() }: McpServerO
       new ResourceTemplate('docx-local://{token}', { list: undefined }),
       { title: 'Opened document', mimeType: DOCX_MIME },
       async (uri, { token }) => {
-        const [bytes, current] = await Promise.all([read(String(token)), version(String(token))]);
-        if (!bytes || !current) throw new Error('This document is no longer open.');
-        if ('message' in bytes) throw new Error(bytes.message);
+        const [file, current] = await Promise.all([read(String(token)), version(String(token))]);
+        if (!file || !current) throw new Error('This document is no longer open.');
+        if ('message' in file) throw new Error(file.message);
         if ('message' in current) throw new Error(current.message);
         return {
           contents: [
             {
               uri: uri.href,
               mimeType: DOCX_MIME,
-              blob: bytes.toString('base64'),
+              blob: file.bytes.toString('base64'),
               // The OpenAI host's metadata shape, so one sync session handles both kinds of file.
-              _meta: { 'openai/resource': current },
+              // The etag is the one read with these bytes, never a separate later lookup.
+              _meta: { 'openai/resource': { etag: file.etag, writable: current.writable } },
             },
           ],
         };

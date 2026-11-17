@@ -6,7 +6,8 @@
 - Detect same-size file edits that restore the old modification time.
 - Never read, version, or save through a symlink that replaces an opened file.
 - Report a deleted file as deleted instead of failing.
-- Check the version again just before a save replaces the file.
+- Check the version again just before a save replaces the file, and report a save that lands right after it as a conflict.
+- Send each document with the etag of exactly the bytes read, not of a separate later check.
 - Check the bytes returned by a file read, including files that grow during the read.
 - Clarify the save and refresh limits of previews opened with document bytes.
 - Remove references to paths from the hosted `open_document` description.
