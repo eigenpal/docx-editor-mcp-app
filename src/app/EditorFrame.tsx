@@ -124,9 +124,6 @@ export function EditorFrame({
           panelOpen={showPanel}
           onPanelToggle={() => setPanelOpen((open) => !open)}
         />
-        <div className="mcp-font-notice">
-          <DocxEditor.FontNotice t={t} />
-        </div>
         <div className="mcp-workspace">
           <section className="mcp-docpane">
             <DocxEditor.Navigation

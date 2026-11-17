@@ -11,6 +11,7 @@
 - Clarify the save and refresh limits of previews opened with document bytes.
 - Remove references to paths from the hosted `open_document` description.
 - Display binary file limits in MiB.
+- Hide the font substitution notice. The editor still shows substitute fonts.
 - Record the source commit in each package, and refuse release metadata for a different or uncommitted build.
 - Update the submission guide to match the current release workflow.
 
