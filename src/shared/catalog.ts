@@ -9,6 +9,7 @@
  */
 
 import { z } from 'zod';
+import { formatLimit, MAX_CONTENT_BYTES } from './limits.js';
 
 /** Shows a .docx in the preview. The only tool the model sees. */
 export const OpenDocumentInput = z.object({
@@ -22,7 +23,11 @@ export const OpenDocumentInput = z.object({
   content_base64: z
     .string()
     .optional()
-    .describe('Base64 of the .docx bytes, for a file with no path here (a code sandbox).'),
+    .describe(
+      `Base64 of the .docx bytes. Maximum decoded size: ${MAX_CONTENT_BYTES} bytes (${formatLimit(MAX_CONTENT_BYTES)}). ` +
+        'This preview does not follow or save back to a file. ' +
+        'In local mode, a valid path takes priority over these bytes.'
+    ),
   name: z.string().optional().describe('File name to show, for example "contract.docx".'),
 });
 
@@ -52,7 +57,8 @@ export const VIEW_DOCX_FILE = {
 const LocalToken = z
   .string()
   .max(16_384)
-  .regex(/^[\w-]+\.[\w-]{43}$/);
+  .regex(/^[\w-]+\.[\w-]{43}$/)
+  .describe('The signed token after docx-local:// in the open_document result resourceUri.');
 
 /**
  * Local mode's file sync, called by the WIDGET: the preview watches the file
@@ -60,16 +66,31 @@ const LocalToken = z
  */
 export const LOCAL_FILE_VERSION = {
   name: 'local_file_version',
-  description: 'Returns the version token of a document the preview opened from disk.',
+  description: 'Return the current etag and write permission for a document opened from disk.',
   input: z.object({ token: LocalToken }),
 } as const;
 
 export const WRITE_LOCAL_FILE = {
   name: 'write_local_file',
-  description: "Saves the preview's document over the file it opened, if the file is unchanged.",
+  description:
+    "Save the preview's document over its opened file. " +
+    'A string ifMatch checks the current file version; a mismatch returns conflict without saving. ' +
+    'A null ifMatch skips the version check and overwrites the file. ' +
+    'Size and write-permission checks still apply.',
   input: z.object({
     token: LocalToken,
-    blob: z.string().min(1).describe('Base64 of the .docx bytes.'),
-    ifMatch: z.string().nullable(),
+    blob: z
+      .string()
+      .min(1)
+      .describe(
+        `Base64 of the .docx bytes. Maximum decoded size: ${MAX_CONTENT_BYTES} bytes (${formatLimit(MAX_CONTENT_BYTES)}).`
+      ),
+    ifMatch: z
+      .string()
+      .nullable()
+      .describe(
+        'Expected etag from local_file_version. A string requires a matching file version. ' +
+          'Null skips the version check and overwrites the file.'
+      ),
   }),
 } as const;

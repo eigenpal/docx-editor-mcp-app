@@ -120,8 +120,8 @@ describe('write', () => {
 
 describe('formatLimit', () => {
   it('reads as megabytes or bytes', () => {
-    expect(formatLimit(7 * 1024 * 1024)).toBe('7 MB');
-    expect(formatLimit(1.5 * 1024 * 1024)).toBe('1.5 MB');
+    expect(formatLimit(7 * 1024 * 1024)).toBe('7 MiB');
+    expect(formatLimit(1.5 * 1024 * 1024)).toBe('1.5 MiB');
     expect(formatLimit(10)).toBe('10 bytes');
   });
 });

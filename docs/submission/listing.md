@@ -41,7 +41,7 @@ The plugin does not send your documents to Eigenpal servers.
 Your assistant provider processes content under its own policies.
 
 In ChatGPT and Codex desktop, the plugin opens `.docx` files of any size in the file viewer.
-In Claude, it previews files up to 7 MB.
+In Claude, it previews files up to 7 MiB.
 It does not convert PDFs or open legacy `.doc` files.
 The assistant needs its own document tools to make changes from a prompt.
 
@@ -73,7 +73,7 @@ Send a synthetic example when a document causes the problem.
 Do not send private documents or account credentials.
 
 If the preview does not open, confirm that the plugin is enabled and the file uses the `.docx` format.
-In Claude, confirm that the file is no larger than 7 MB.
+In Claude, confirm that the file is no larger than 7 MiB.
 Close and reopen the desktop app if installation requires a restart.
 
 If the file changes during your edits, choose which version to keep in the preview.

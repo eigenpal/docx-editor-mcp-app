@@ -84,8 +84,9 @@ export function createMcpServer({ local = false, ui = loadWidget() }: McpServerO
         'place, so the formatting survives.' +
         (local
           ? ' The preview follows a file opened by path and refreshes when it changes. ' +
-            'Do not call open_document again for a file that is already open.'
-          : ''),
+            'Do not reopen a file that the preview already follows.'
+          : '') +
+        ' A content_base64 preview does not follow or save back to a file. Show it again after each edit.',
     }
   );
 
@@ -98,7 +99,9 @@ export function createMcpServer({ local = false, ui = loadWidget() }: McpServerO
         'Show a .docx in a live, page-by-page editor. Call it after you create or change a ' +
         '.docx, without being asked, so the user can read and edit it. ' +
         (local ? 'Pass its absolute path; the preview then follows the file. ' : '') +
-        'For a file with no path here, pass content_base64. To change the document, ' +
+        'For a file with no path here, pass content_base64. ' +
+        'A content_base64 preview does not follow or save back to a file. Show it again after each edit. ' +
+        'To change the document, ' +
         'edit the file with your own document tools.',
       // Hosted mode reads no disk, so its model never sees a `path` to try.
       inputSchema: local ? OpenDocumentInput.shape : OpenDocumentInput.omit({ path: true }).shape,

@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- Describe conditional saves and explicit `ifMatch: null` overwrites in the tool description and schema.
+- Clarify the save and refresh limits of previews opened with document bytes.
+- Check the bytes returned by a file read, including files that grow during the read.
+- Display binary file limits in MiB.
+- Record the source commit and matching tag in review metadata, and identify uncommitted changes.
+- Update the submission guide to match the current release workflow.
+
 ## 2.38.0
 
 - Update the editor packages to `2.38.0`.

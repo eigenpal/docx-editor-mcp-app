@@ -25,6 +25,6 @@ Attach a sample document without private content.
 
 ## A file does not open
 
-Check that the file is a `.docx` file. In Claude, the file must be 7 MB or
+Check that the file is a `.docx` file. In Claude, the file must be 7 MiB or
 less. Then ask your agent
 to open it by its absolute path, for example `/Users/you/report.docx`.

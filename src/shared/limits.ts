@@ -8,14 +8,14 @@
  * MCP TypeScript SDK client closes a stdio connection on any message over
  * 10 MiB (`STDIO_DEFAULT_MAX_BUFFER_SIZE`), and a host that keeps that default
  * loses the plugin for the session. 7 MiB stays under it with the envelope;
- * a 12 MB file through the SDK client closed the connection. Raising this
+ * a 12 MiB file through the SDK client closed the connection. Raising this
  * needs chunked transfer, not a bigger number.
  */
 export const MAX_CONTENT_BYTES = 7 * 1024 * 1024;
 
-/** A byte limit as people read it: `7 MB`, `1.5 MB`, or `512 bytes`. */
+/** A byte limit as people read it: `7 MiB`, `1.5 MiB`, or `512 bytes`. */
 export const formatLimit = (bytes: number): string =>
-  bytes < 1024 * 1024 ? `${bytes} bytes` : `${Number((bytes / 1024 / 1024).toFixed(1))} MB`;
+  bytes < 1024 * 1024 ? `${bytes} bytes` : `${Number((bytes / 1024 / 1024).toFixed(1))} MiB`;
 
 /**
  * The largest message the server reads. Over stdio the SDK closes the

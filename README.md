@@ -57,7 +57,7 @@ The plugin tells you when a new version is available.
   your computer.
 - The ChatGPT, Codex, and Claude directory listings are in review.
 - The plugin is not tested on Windows.
-- In Claude, the plugin opens `.docx` files up to 7 MB. In ChatGPT and Codex
+- In Claude, the plugin opens `.docx` files up to 7 MiB. In ChatGPT and Codex
   desktop, the file viewer opens files of any size.
 
 ## Use

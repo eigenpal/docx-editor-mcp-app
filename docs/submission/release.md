@@ -1,7 +1,7 @@
 # Release and update DOCX Editor
 
 Use [the release guide](../releases.md) for versioning, package preparation, publication, updates, and recovery.
-Use [publication status](publication-status.md) for the current candidate checks and remaining work.
+Use [publication status](publication-status.md) for historical submission results.
 Use [license scope](licensing.md) when you describe the source and bundled editor components.
 
 ## Prepare the candidate
@@ -14,9 +14,8 @@ Use [license scope](licensing.md) when you describe the source and bundled edito
 6. Run the official Claude validator listed in `README.md` in this folder.
 7. Record clean host installation, file updates, manual edits, conflicts, and upgrade results.
 
-The current candidate is `1.0.0` with editor `2.33.0`.
-The engine fix keeps clicks and typing available after file updates.
-Retest those actions after an engine change.
+Read the candidate version and editor pins from `package.json`.
+Retest clicks and typing after file updates when you change the engine version.
 A successful text refresh alone does not prove that pointer input works.
 
 ## Build the review artifacts
@@ -25,12 +24,19 @@ Use the **Release packages** workflow on the reviewed commit or version tag.
 Supply a public demonstration URL when you have the recording.
 The workflow runs package verification with Node.js 22 and validates the Claude manifest.
 It uploads the `docx-editor-release` artifact.
-A version tag also creates a draft GitHub release.
-Neither action publishes a public release or submits a host listing.
+A version tag publishes the GitHub release and promotes the Codex package to the `stable` branch.
+A manual workflow run uploads artifacts without publishing a release.
+Neither action submits a host listing.
 
 Publishing the reviewed stable GitHub release promotes its Codex archive to the `stable` marketplace branch.
 Keep the version, source commit, package checksums, host versions, and test results together.
 Never replace assets for a published version.
+
+For an untagged review build, use the source commit and package checksum as its identity.
+`release.json` records `sourceCommit`, `sourceDirty`, and the matching version tag, or `null` when none matches.
+Commit your source changes and build again before you share a package.
+Confirm that `sourceDirty` is `false` and keep the exact ZIP that you tested.
+Describe manual desktop checks as passed only after you observe their results.
 
 ## Update the host listings
 

@@ -103,13 +103,16 @@ export async function read(token: string): Promise<Buffer | Refusal | null> {
   if (size > MAX_CONTENT_BYTES) {
     return { message: `The file is larger than the ${formatLimit(MAX_CONTENT_BYTES)} limit.` };
   }
-  return readFile(path);
+  // An external write can change the size after stat.
+  const bytes = await readFile(path);
+  return bytes.byteLength > MAX_CONTENT_BYTES
+    ? { message: `The file is larger than the ${formatLimit(MAX_CONTENT_BYTES)} limit.` }
+    : bytes;
 }
 
 /**
- * Save over a token's file, only if it is still the version the preview last
- * saw. A temporary file in the same directory, given the original's mode, is
- * renamed into place: no reader sees half a file, and a private file stays private.
+ * Check the supplied etag before saving. Null explicitly skips that check.
+ * A same-directory temporary file preserves the mode and prevents partial reads.
  */
 export async function write(
   token: string,
