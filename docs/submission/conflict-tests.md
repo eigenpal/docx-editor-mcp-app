@@ -155,6 +155,10 @@ Install the packed build as described in `AGENTS.md`, then restart the app.
 Ask the agent to open `~/Documents/conflict-test/conflict.docx` in DOCX Editor.
 Click **Open** to show the file in the host's file viewer.
 
+The Codex sandbox cannot write to `~/Documents`.
+Run `disk` and `storm` in your own terminal, not through the agent.
+For X3, give the agent write access to the test folder first.
+
 ### X1. An external change with no unsaved edits
 
 Repeat C2. Expected: The viewer updates and highlights the change.
