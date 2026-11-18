@@ -1,7 +1,8 @@
 # Changelog
 
-## Unreleased
+## 2.39.0
 
+- Update the editor packages to `2.39.0`.
 - Require the etag of the replaced version for every `write_local_file` save. There is no unconditional save.
 - Detect same-size file edits that restore the old modification time.
 - Never read, version, or save through a symlink that replaces an opened file.
