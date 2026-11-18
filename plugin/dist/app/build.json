@@ -1,8 +1,12 @@
 {
-  "version": "2.38.0",
+  "version": "2.39.0",
   "engine": {
-    "core": "2.38.0",
-    "pro": "2.38.0",
-    "react": "2.38.0"
+    "core": "2.39.0",
+    "pro": "2.39.0",
+    "react": "2.39.0"
+  },
+  "source": {
+    "commit": "fef4caa3c244f4a404e0e6e0045a1d07fa546138",
+    "dirty": false
   }
 }

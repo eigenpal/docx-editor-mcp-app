@@ -22129,14 +22129,14 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 function findRoot(from) {
-  let current = from;
+  let current2 = from;
   for (; ; ) {
-    if (existsSync(join(current, "package.json"))) return current;
-    const parent = dirname(current);
-    if (parent === current) {
+    if (existsSync(join(current2, "package.json"))) return current2;
+    const parent = dirname(current2);
+    if (parent === current2) {
       throw new Error(`no package.json above ${from}; cannot locate the repository root`);
     }
-    current = parent;
+    current2 = parent;
   }
 }
 var REPO_ROOT = findRoot(dirname(fileURLToPath(import.meta.url)));
@@ -23785,12 +23785,12 @@ var StdioServerTransport = class {
 
 // src/shared/limits.ts
 var MAX_CONTENT_BYTES = 7 * 1024 * 1024;
-var formatLimit = (bytes) => bytes < 1024 * 1024 ? `${bytes} bytes` : `${Number((bytes / 1024 / 1024).toFixed(1))} MB`;
+var formatLimit = (bytes) => bytes < 1024 * 1024 ? `${bytes} bytes` : `${Number((bytes / 1024 / 1024).toFixed(1))} MiB`;
 var MAX_MESSAGE_BYTES = 32 * 1024 * 1024;
 
 // src/server/http.ts
 import { createServer } from "node:http";
-import { readFile as readFile2 } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { extname, join as join5, normalize } from "node:path";
 
 // node_modules/@hono/node-server/dist/constants-BLSFu_RU.mjs
@@ -34146,12 +34146,18 @@ var OpenAIFileEntrypointInputSchema = external_exports.object({
 });
 
 // src/shared/catalog.ts
+var contentBase64 = (local) => external_exports.string().optional().describe(
+  `Base64 of the .docx bytes. Maximum decoded size: ${MAX_CONTENT_BYTES} bytes (${formatLimit(MAX_CONTENT_BYTES)}). This preview does not follow or save back to a file.` + (local ? " A path that opens here takes priority over these bytes." : "")
+);
 var OpenDocumentInput = external_exports.object({
   path: external_exports.string().optional().describe(
     "Absolute path of a .docx on the user's computer. The preview follows the file: it updates when the file changes and saves the reader's edits to it."
   ),
-  content_base64: external_exports.string().optional().describe("Base64 of the .docx bytes, for a file with no path here (a code sandbox)."),
+  content_base64: contentBase64(true),
   name: external_exports.string().optional().describe('File name to show, for example "contract.docx".')
+});
+var HostedOpenDocumentInput = OpenDocumentInput.omit({ path: true }).extend({
+  content_base64: contentBase64(false)
 });
 var DOCUMENT_META = "docx-editor/document";
 var PATH_META = "docx-editor/path";
@@ -34160,35 +34166,30 @@ var VIEW_DOCX_FILE = {
   title: "DOCX Editor",
   description: "Shows a .docx file the user opened, page by page. The view updates when the file changes. The user's own edits in the viewer save through the host."
 };
-var LocalToken = external_exports.string().max(16384).regex(/^[\w-]+\.[\w-]{43}$/);
+var LocalToken = external_exports.string().max(16384).regex(/^[\w-]+\.[\w-]{43}$/).describe("The signed token after docx-local:// in the open_document result resourceUri.");
 var LOCAL_FILE_VERSION = {
   name: "local_file_version",
-  description: "Returns the version token of a document the preview opened from disk.",
+  description: "Return the current etag and write permission for a document opened from disk.",
   input: external_exports.object({ token: LocalToken })
 };
 var WRITE_LOCAL_FILE = {
   name: "write_local_file",
-  description: "Saves the preview's document over the file it opened, if the file is unchanged.",
+  description: "Save the preview's document over its opened file, only if the file is unchanged. ifMatch must be the etag of the version the save replaces; a different current version returns conflict and the file is not changed. There is no unconditional save. Size and write-permission checks still apply.",
   input: external_exports.object({
     token: LocalToken,
-    blob: external_exports.string().min(1).describe("Base64 of the .docx bytes."),
-    ifMatch: external_exports.string().nullable()
+    blob: external_exports.string().min(1).describe(
+      `Base64 of the .docx bytes. Maximum decoded size: ${MAX_CONTENT_BYTES} bytes (${formatLimit(MAX_CONTENT_BYTES)}).`
+    ),
+    ifMatch: external_exports.string().min(1).describe(
+      "The etag from local_file_version, or from a conflict result, of the version this save replaces. Required."
+    )
   })
 };
 
 // src/server/documents.ts
 import { randomUUID } from "node:crypto";
 import { realpathSync, statSync } from "node:fs";
-import {
-  access,
-  chmod,
-  constants as constants2,
-  readFile,
-  rename,
-  stat,
-  unlink,
-  writeFile
-} from "node:fs/promises";
+import { access, chmod, constants as constants2, lstat, open, rename, unlink, writeFile } from "node:fs/promises";
 import { homedir as homedir2 } from "node:os";
 import { basename, isAbsolute, resolve } from "node:path";
 
@@ -34266,48 +34267,112 @@ function decodeBytes(base643) {
   }
   return isDocx(bytes) ? bytes : { message: "content_base64 is not a .docx file." };
 }
-async function version2(token) {
+async function current(token) {
   const path = verifiedPath(token);
   if (!path) return null;
-  const info = await stat(path);
-  const writable = await access(path, constants2.W_OK).then(
+  let info;
+  try {
+    info = await lstat(path, { bigint: true });
+  } catch (cause) {
+    const code = cause.code;
+    if (code === "ENOENT" || code === "ENOTDIR") {
+      return { message: "The file no longer exists at its path." };
+    }
+    return { message: `The file cannot be checked (${code ?? "unknown error"}).` };
+  }
+  if (!info.isFile()) return { message: "The path no longer holds a regular file." };
+  return { path, info };
+}
+var etagOf = (info) => `${info.ino}-${info.size}-${info.mtimeNs}-${info.ctimeNs}`;
+async function version2(token) {
+  const file2 = await current(token);
+  if (!file2 || "message" in file2) return file2;
+  const writable = await access(file2.path, constants2.W_OK).then(
     () => true,
     () => false
   );
-  return { etag: `${info.mtimeMs}-${info.size}`, writable };
+  return { etag: etagOf(file2.info), writable };
 }
+var OPEN_FLAGS = constants2.O_RDONLY | (constants2.O_NOFOLLOW ?? 0) | (constants2.O_NONBLOCK ?? 0);
+var READ_ATTEMPTS = 3;
 async function read(token) {
-  const path = verifiedPath(token);
-  if (!path) return null;
-  const { size } = await stat(path);
-  if (size > MAX_CONTENT_BYTES) {
-    return { message: `The file is larger than the ${formatLimit(MAX_CONTENT_BYTES)} limit.` };
+  const file2 = await current(token);
+  if (!file2 || "message" in file2) return file2;
+  const tooLarge = {
+    message: `The file is larger than the ${formatLimit(MAX_CONTENT_BYTES)} limit.`
+  };
+  if (file2.info.size > BigInt(MAX_CONTENT_BYTES)) return tooLarge;
+  let handle;
+  try {
+    handle = await open(file2.path, OPEN_FLAGS);
+  } catch {
+    return { message: "The file could not be opened." };
   }
-  return readFile(path);
+  try {
+    for (let attempt = 0; attempt < READ_ATTEMPTS; attempt++) {
+      const before = await handle.stat({ bigint: true });
+      if (!before.isFile()) return { message: "The path no longer holds a regular file." };
+      if (before.size > BigInt(MAX_CONTENT_BYTES)) return tooLarge;
+      const buffer = Buffer.allocUnsafe(Number(before.size) + 1);
+      let length = 0;
+      while (length < buffer.byteLength) {
+        const { bytesRead } = await handle.read(buffer, length, buffer.byteLength - length, length);
+        if (bytesRead === 0) break;
+        length += bytesRead;
+      }
+      const after = await handle.stat({ bigint: true });
+      if (BigInt(length) === before.size && etagOf(after) === etagOf(before)) {
+        return { bytes: buffer.subarray(0, length), etag: etagOf(before) };
+      }
+    }
+    return { message: "The file kept changing during the read. Try again." };
+  } finally {
+    await handle.close();
+  }
 }
 async function write(token, bytes, ifMatch) {
-  const path = verifiedPath(token);
-  const current = await version2(token);
-  if (!path || !current) return { outcome: "refused", message: "This document is not open." };
+  const file2 = await current(token);
+  if (!file2) return { outcome: "refused", message: "This document is not open." };
+  if ("message" in file2) return { outcome: "refused", message: file2.message };
   if (bytes.byteLength > MAX_CONTENT_BYTES) {
     return { outcome: "too-large", maxBytes: MAX_CONTENT_BYTES };
   }
   if (!isDocx(bytes)) return { outcome: "refused", message: "The bytes are not a .docx file." };
-  if (!current.writable) return { outcome: "refused", message: "The file is read-only." };
-  if (ifMatch !== null && current.etag !== ifMatch) {
-    return { outcome: "conflict", etag: current.etag };
-  }
-  const { mode } = await stat(path);
+  const writable = await access(file2.path, constants2.W_OK).then(
+    () => true,
+    () => false
+  );
+  if (!writable) return { outcome: "refused", message: "The file is read-only." };
+  if (!ifMatch)
+    return { outcome: "refused", message: "A save needs the etag of the file it replaces." };
+  if (etagOf(file2.info) !== ifMatch) return { outcome: "conflict", etag: etagOf(file2.info) };
+  const { path } = file2;
+  const mode = Number(file2.info.mode & 0o777n);
+  let written;
   const temporary = `${path}.${randomUUID()}.tmp`;
   try {
-    await writeFile(temporary, bytes, { mode: 384 });
-    await chmod(temporary, mode & 511);
+    await writeFile(temporary, bytes, { mode: 384, flag: "wx" });
+    await chmod(temporary, mode);
+    written = await lstat(temporary, { bigint: true });
+    const now = await version2(token);
+    if (!now || "message" in now || now.etag !== ifMatch) {
+      await unlink(temporary);
+      if (!now) return { outcome: "refused", message: "This document is not open." };
+      if ("message" in now) return { outcome: "refused", message: now.message };
+      return { outcome: "conflict", etag: now.etag };
+    }
     await rename(temporary, path);
   } catch (cause) {
     await unlink(temporary).catch(() => void 0);
     throw cause;
   }
-  return { outcome: "saved", etag: (await version2(token)).etag };
+  const after = await current(token);
+  if (!after || "message" in after) {
+    return { outcome: "refused", message: "The file changed right after the save. Reload it." };
+  }
+  const ours = after.info.ino === written.ino && after.info.size === written.size && after.info.mtimeNs === written.mtimeNs;
+  if (!ours) return { outcome: "conflict", etag: etagOf(after.info) };
+  return { outcome: "saved", etag: etagOf(after.info) };
 }
 
 // src/server/icons.ts
@@ -34332,11 +34397,11 @@ var UpdateInfo = external_exports.object({
   current: StableVersion,
   latest: StableVersion.nullable()
 });
-function isNewer(candidate, current) {
-  if (!StableVersion.safeParse(candidate).success || !StableVersion.safeParse(current).success)
+function isNewer(candidate, current2) {
+  if (!StableVersion.safeParse(candidate).success || !StableVersion.safeParse(current2).success)
     return false;
   const left = candidate.split(".").map(BigInt);
-  const right = current.split(".").map(BigInt);
+  const right = current2.split(".").map(BigInt);
   for (let index = 0; index < 3; index++) {
     if (left[index] !== right[index]) return left[index] > right[index];
   }
@@ -34346,18 +34411,18 @@ function isNewer(candidate, current) {
 // src/server/updates.ts
 var DAY = 24 * 60 * 60 * 1e3;
 var MAX_BYTES = 256 * 1024;
-function createUpdateChecker(current, request = fetch, now = Date.now) {
+function createUpdateChecker(current2, request = fetch, now = Date.now) {
   let expires = 0;
-  let cached2 = { current, latest: null };
+  let cached2 = { current: current2, latest: null };
   let pending = null;
   const check2 = async () => {
     try {
       const response = await request(UPDATE_API, {
-        headers: { Accept: "application/vnd.github+json", "User-Agent": `docx-editor/${current}` },
+        headers: { Accept: "application/vnd.github+json", "User-Agent": `docx-editor/${current2}` },
         signal: AbortSignal.timeout(3e3),
         redirect: "error"
       });
-      if (!response.ok || !response.body) return { current, latest: null };
+      if (!response.ok || !response.body) return { current: current2, latest: null };
       const reader = response.body.getReader();
       const chunks = [];
       let length = 0;
@@ -34366,7 +34431,7 @@ function createUpdateChecker(current, request = fetch, now = Date.now) {
           const { done, value } = await reader.read();
           if (done) break;
           length += value.length;
-          if (length > MAX_BYTES) return { current, latest: null };
+          if (length > MAX_BYTES) return { current: current2, latest: null };
           chunks.push(value);
         }
       } finally {
@@ -34376,14 +34441,14 @@ function createUpdateChecker(current, request = fetch, now = Date.now) {
       const candidate = typeof data.tag_name === "string" ? data.tag_name.replace(/^v/, "") : "";
       const stable = StableVersion.safeParse(candidate);
       if (data.draft !== false || data.prerelease !== false || !stable.success)
-        return { current, latest: null };
-      return { current, latest: isNewer(candidate, current) ? candidate : null };
+        return { current: current2, latest: null };
+      return { current: current2, latest: isNewer(candidate, current2) ? candidate : null };
     } catch {
-      return { current, latest: null };
+      return { current: current2, latest: null };
     }
   };
   return async () => {
-    if (process.env.DOCX_EDITOR_UPDATE_CHECK === "0") return { current, latest: null };
+    if (process.env.DOCX_EDITOR_UPDATE_CHECK === "0") return { current: current2, latest: null };
     if (now() < expires) return cached2;
     if (!pending) {
       pending = check2().then((result) => {
@@ -34412,12 +34477,23 @@ var wasm = null;
 var loadWasm = () => wasm ??= readFileSync4(join4(REPO_ROOT, "dist/app/harfbuzz.wasm")).toString("base64");
 var seq = 0;
 function createMcpServer({ local = false, ui = loadWidget() } = {}) {
+  const widgetContents = (uri) => ({
+    contents: [
+      {
+        uri,
+        mimeType: p,
+        text: ui.html,
+        // No CSP domains: the widget fetches nothing.
+        _meta: { ui: { prefersBorder: true } }
+      }
+    ]
+  });
   const server = new McpServer(
     // Hosts fall back to the server icon for entrypoints: the SDK's registerTool
     // does not carry tool icons.
     { name: "docx-editor", title: "DOCX Editor", version: PACKAGE_VERSION, icons: APP_ICONS },
     {
-      instructions: "Shows .docx files in a live, page-by-page editor. Call open_document to show a file, and call it without being asked after you create or change a .docx. This app has no editing tools: edit the .docx with your own document tools, in place, so the formatting survives." + (local ? " The preview follows a file opened by path and refreshes when it changes. Do not call open_document again for a file that is already open." : "")
+      instructions: "Shows .docx files in a live, page-by-page editor. Call open_document to show a file, and call it without being asked after you create or change a .docx. This app has no editing tools: edit the .docx with your own document tools, in place, so the formatting survives." + (local ? " The preview follows a file opened by path and refreshes when it changes. Do not reopen a file that the preview already follows." : "") + " A content_base64 preview does not follow or save back to a file. Show it again after each edit."
     }
   );
   K3(
@@ -34425,9 +34501,8 @@ function createMcpServer({ local = false, ui = loadWidget() } = {}) {
     "open_document",
     {
       title: ".docx preview",
-      description: "Show a .docx in a live, page-by-page editor. Call it after you create or change a .docx, without being asked, so the user can read and edit it. " + (local ? "Pass its absolute path; the preview then follows the file. " : "") + "For a file with no path here, pass content_base64. To change the document, edit the file with your own document tools.",
-      // Hosted mode reads no disk, so its model never sees a `path` to try.
-      inputSchema: local ? OpenDocumentInput.shape : OpenDocumentInput.omit({ path: true }).shape,
+      description: "Show a .docx in a live, page-by-page editor. Call it after you create or change a .docx, without being asked, so the user can read and edit it. " + (local ? "Pass its absolute path; the preview then follows the file. For a file with no path here, pass content_base64. " : "Pass its bytes as content_base64. ") + "A content_base64 preview does not follow or save back to a file. Show it again after each edit. To change the document, edit the file with your own document tools.",
+      inputSchema: local ? OpenDocumentInput.shape : HostedOpenDocumentInput.shape,
       annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
       _meta: { ui: { resourceUri: ui.uri } }
     },
@@ -34501,17 +34576,13 @@ function createMcpServer({ local = false, ui = loadWidget() } = {}) {
     "docx-editor",
     ui.uri,
     { description: "A live, page-by-page .docx preview.", mimeType: p },
-    async () => ({
-      contents: [
-        {
-          uri: ui.uri,
-          mimeType: p,
-          text: ui.html,
-          // No CSP domains: the widget fetches nothing.
-          _meta: { ui: { prefersBorder: true } }
-        }
-      ]
-    })
+    async () => widgetContents(ui.uri)
+  );
+  server.registerResource(
+    "docx-editor-pinned",
+    new ResourceTemplate("ui://docx-editor/editor.html{?v}", { list: void 0 }),
+    { description: "The preview at an earlier build URI.", mimeType: p },
+    async (uri) => widgetContents(uri.href)
   );
   server.registerResource(
     "plugin-updates",
@@ -34543,17 +34614,19 @@ function createMcpServer({ local = false, ui = loadWidget() } = {}) {
       new ResourceTemplate("docx-local://{token}", { list: void 0 }),
       { title: "Opened document", mimeType: DOCX_MIME },
       async (uri, { token }) => {
-        const [bytes, current] = await Promise.all([read(String(token)), version2(String(token))]);
-        if (!bytes || !current) throw new Error("This document is no longer open.");
-        if ("message" in bytes) throw new Error(bytes.message);
+        const [file2, current2] = await Promise.all([read(String(token)), version2(String(token))]);
+        if (!file2 || !current2) throw new Error("This document is no longer open.");
+        if ("message" in file2) throw new Error(file2.message);
+        if ("message" in current2) throw new Error(current2.message);
         return {
           contents: [
             {
               uri: uri.href,
               mimeType: DOCX_MIME,
-              blob: bytes.toString("base64"),
+              blob: file2.bytes.toString("base64"),
               // The OpenAI host's metadata shape, so one sync session handles both kinds of file.
-              _meta: { "openai/resource": current }
+              // The etag is the one read with these bytes, never a separate later lookup.
+              _meta: { "openai/resource": { etag: file2.etag, writable: current2.writable } }
             }
           ]
         };
@@ -34569,11 +34642,14 @@ function createMcpServer({ local = false, ui = loadWidget() } = {}) {
         _meta: appOnly
       },
       async ({ token }) => {
-        const current = await version2(token);
-        if (!current) return { content: [{ type: "text", text: "Unknown file." }], isError: true };
+        const current2 = await version2(token);
+        if (!current2 || "message" in current2) {
+          const text = current2?.message ?? "This document is not open.";
+          return { content: [{ type: "text", text }], isError: true };
+        }
         return {
-          content: [{ type: "text", text: current.etag }],
-          structuredContent: { ...current }
+          content: [{ type: "text", text: current2.etag }],
+          structuredContent: { ...current2 }
         };
       }
     );
@@ -34654,7 +34730,7 @@ async function handleMcp(req, res) {
 async function handleHarness(path, res) {
   const file2 = normalize(join5(HARNESS, path.slice("/__harness/".length) || "host.html"));
   if (!file2.startsWith(HARNESS)) return json3(res, 404, { error: "not found" });
-  const body = await readFile2(file2).catch(() => null);
+  const body = await readFile(file2).catch(() => null);
   if (!body) return json3(res, 404, { error: "not found" });
   res.writeHead(200, { "Content-Type": TYPES[extname(file2)] ?? "application/octet-stream" }).end(body);
 }
