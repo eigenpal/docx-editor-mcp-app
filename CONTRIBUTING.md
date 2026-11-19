@@ -21,11 +21,18 @@ Use this repository for MCP tools, the widget, the server, and deployment.
 
 ```bash
 bun install
+bun run build:native
 bun run dev
 ```
 
 The MCP endpoint is `http://localhost:3000/mcp`.
 The development server rebuilds changed files.
+
+You need a C compiler to build the native atomic swap module on macOS or Linux.
+On macOS, install the Xcode Command Line Tools. On Linux, install your system's C compiler and development headers.
+
+Release packages include prebuilt modules for macOS and Linux on x64 and arm64.
+You need no compiler to use release packages. Local saves refuse replacement when atomic swaps are unavailable.
 
 For harness tests, run `bun run build:harness` and open `http://localhost:3000/__harness/host.html`.
 For Codex desktop tests, install the packed build:

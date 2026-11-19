@@ -1,22 +1,11 @@
-import { constants, copyFile, link, mkdtemp, rename, rmdir, unlink } from 'node:fs/promises';
+import { mkdtemp, rename, rmdir } from 'node:fs/promises';
 import { basename, dirname, join } from 'node:path';
 import { fileVersion } from './file-version.js';
+import { swapFiles } from './atomic-swap.js';
 
-type Result =
-  { outcome: 'installed'; recoveryPath: string } | { outcome: 'conflict'; recoveryPath: string };
+type Result = { outcome: 'installed' | 'conflict'; recoveryPath: string };
 
-/** Restore without replacing a file that another app creates during recovery. */
-async function restore(previous: string, path: string): Promise<void> {
-  try {
-    await link(previous, path);
-  } catch (cause) {
-    if ((cause as NodeJS.ErrnoException).code === 'EEXIST') return;
-    // Some file systems have no hard links. Keep the original and restore a copy.
-    await copyFile(previous, path, constants.COPYFILE_EXCL).catch(() => undefined);
-  }
-}
-
-/** Preserve the exact destination before installing bytes without overwriting another save. */
+/** Keep the exact displaced file even when another app saves after the final check. */
 export async function preserveSave(
   path: string,
   temporary: string,
@@ -24,41 +13,26 @@ export async function preserveSave(
 ): Promise<Result> {
   const directory = await mkdtemp(join(dirname(path), '.docx-recovery-'));
   const recoveryPath = join(directory, basename(path));
-  let moved = false;
-  let installed = false;
+  let prepared = false;
   try {
-    await rename(path, recoveryPath);
-    moved = true;
+    // Put new bytes at the recovery name first. After the swap, it holds the old file.
+    await rename(temporary, recoveryPath);
+    prepared = true;
+    swapFiles(path, recoveryPath);
     const previous = await fileVersion(recoveryPath);
-    if (previous.etag !== ifMatch) {
-      // Exclusive links restore the old path only when another app has not claimed it.
-      await restore(recoveryPath, path);
-      return { outcome: 'conflict', recoveryPath };
-    }
-    try {
-      await link(temporary, path);
-      installed = true;
-    } catch (cause) {
-      if ((cause as NodeJS.ErrnoException).code === 'EEXIST') {
-        return { outcome: 'conflict', recoveryPath };
-      }
-      throw cause;
-    }
-    if ((await fileVersion(recoveryPath)).etag !== ifMatch) {
-      return { outcome: 'conflict', recoveryPath };
-    }
-    // Keep the displaced file: another app can still write through an open descriptor.
-    return { outcome: 'installed', recoveryPath };
+    return { outcome: previous.etag === ifMatch ? 'installed' : 'conflict', recoveryPath };
   } catch (cause) {
-    if (moved) {
-      if (!installed) await restore(recoveryPath, path);
-      throw new Error(`The save failed. The previous file is preserved at ${recoveryPath}.`, {
-        cause,
-      });
+    // Never remove either name after a native error: a remote file system can report an uncertain result.
+    if (prepared) {
+      throw new Error(
+        `The save could not be verified. A recovery file remains at ${recoveryPath}.`,
+        {
+          cause,
+        }
+      );
     }
     throw cause;
   } finally {
-    if (!moved) await rmdir(directory).catch(() => undefined);
-    await unlink(temporary).catch(() => undefined);
+    if (!prepared) await rmdir(directory).catch(() => undefined);
   }
 }

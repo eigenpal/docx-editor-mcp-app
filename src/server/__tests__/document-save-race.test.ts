@@ -11,9 +11,9 @@ import {
   writeFileSync,
   writeSync,
 } from 'node:fs';
-import * as fs from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import * as atomic from '../atomic-swap.js';
 import { contentEtag } from '../file-version.js';
 import { openPath, version, write } from '../documents.js';
 
@@ -35,47 +35,29 @@ function setup() {
   return { dir, path, token: opened.token };
 }
 
-it('preserves an edit between the last version check and the move', async () => {
+it('preserves the exact edit that arrives between the last check and the atomic swap', async () => {
   const { path, token } = setup();
-  const realRename = fs.rename;
-  const rename = spyOn(fs, 'rename').mockImplementationOnce(async (from, to) => {
+  const realSwap = atomic.swapFiles;
+  const swap = spyOn(atomic, 'swapFiles').mockImplementationOnce((left, right) => {
     writeFileSync(path, OTHER);
-    await realRename(from, to);
+    realSwap(left, right);
   });
   try {
     const result = await write(token, MINE, contentEtag(DOCX));
-    expect(result).toMatchObject({ outcome: 'conflict', etag: contentEtag(OTHER) });
+    expect(result).toMatchObject({ outcome: 'conflict', etag: contentEtag(MINE) });
     if (result.outcome !== 'conflict' || !result.recoveryPath) throw new Error('No recovery file');
     expect(readFileSync(result.recoveryPath)).toEqual(OTHER);
-    expect(readFileSync(path)).toEqual(OTHER);
+    expect(readFileSync(path)).toEqual(MINE);
   } finally {
-    rename.mockRestore();
+    swap.mockRestore();
   }
 });
 
-it('never overwrites a file created in the installation gap', async () => {
+it('detects a same-size edit after the swap with the saved modification time', async () => {
   const { path, token } = setup();
-  const realLink = fs.link;
-  const link = spyOn(fs, 'link').mockImplementationOnce(async (from, to) => {
-    writeFileSync(path, OTHER);
-    await realLink(from, to);
-  });
-  try {
-    const result = await write(token, MINE, contentEtag(DOCX));
-    expect(result).toMatchObject({ outcome: 'conflict', etag: contentEtag(OTHER) });
-    if (result.outcome !== 'conflict' || !result.recoveryPath) throw new Error('No recovery file');
-    expect(readFileSync(result.recoveryPath)).toEqual(DOCX);
-    expect(readFileSync(path)).toEqual(OTHER);
-  } finally {
-    link.mockRestore();
-  }
-});
-
-it('detects a same-size edit after installation with the saved modification time', async () => {
-  const { path, token } = setup();
-  const realLink = fs.link;
-  const link = spyOn(fs, 'link').mockImplementationOnce(async (from, to) => {
-    await realLink(from, to);
+  const realSwap = atomic.swapFiles;
+  const swap = spyOn(atomic, 'swapFiles').mockImplementationOnce((left, right) => {
+    realSwap(left, right);
     const { atime, mtime } = statSync(path);
     writeFileSync(path, OTHER);
     utimesSync(path, atime, mtime);
@@ -85,7 +67,7 @@ it('detects a same-size edit after installation with the saved modification time
     expect(result).toMatchObject({ outcome: 'conflict', etag: contentEtag(OTHER) });
     expect(readFileSync(path)).toEqual(OTHER);
   } finally {
-    link.mockRestore();
+    swap.mockRestore();
   }
 });
 
@@ -104,25 +86,27 @@ it('returns the hash of saved bytes and rejects a later edit on the next save', 
   expect(await version(token)).toMatchObject({ etag: contentEtag(OTHER) });
 });
 
-it('restores the previous file when installation fails', async () => {
-  const { path, token } = setup();
-  const link = spyOn(fs, 'link').mockRejectedValueOnce(new Error('Installation failed'));
+it('keeps the original path and both files when atomic swaps are unsupported', async () => {
+  const { dir, path, token } = setup();
+  const swap = spyOn(atomic, 'swapFiles').mockImplementationOnce(() => {
+    throw new Error('Atomic swaps are unsupported');
+  });
   try {
-    await expect(write(token, MINE, contentEtag(DOCX))).rejects.toThrow(
-      'previous file is preserved'
-    );
+    await expect(write(token, MINE, contentEtag(DOCX))).rejects.toThrow('recovery file remains');
     expect(readFileSync(path)).toEqual(DOCX);
+    const recovery = readdirSync(dir).find((name) => name.startsWith('.docx-recovery-'))!;
+    expect(readFileSync(join(dir, recovery, 'a.docx'))).toEqual(MINE);
   } finally {
-    link.mockRestore();
+    swap.mockRestore();
   }
 });
 
-it('preserves and reports an edit through the displaced file handle during installation', async () => {
+it('preserves and reports an edit through the displaced file handle during the swap', async () => {
   const { dir, path, token } = setup();
   const descriptor = openSync(path, 'r+');
-  const realLink = fs.link;
-  const link = spyOn(fs, 'link').mockImplementationOnce(async (from, to) => {
-    await realLink(from, to);
+  const realSwap = atomic.swapFiles;
+  const swap = spyOn(atomic, 'swapFiles').mockImplementationOnce((left, right) => {
+    realSwap(left, right);
     writeSync(descriptor, OTHER, 0, OTHER.length, 0);
   });
   try {
@@ -133,21 +117,23 @@ it('preserves and reports an edit through the displaced file handle during insta
     expect(readFileSync(path)).toEqual(MINE);
   } finally {
     closeSync(descriptor);
-    link.mockRestore();
+    swap.mockRestore();
   }
 });
 
-it('restores a copy when the file system refuses hard links', async () => {
-  const { path, token } = setup();
-  const link = spyOn(fs, 'link').mockRejectedValue(
-    Object.assign(new Error('No links'), { code: 'ENOTSUP' })
-  );
+it('retains the displaced file after an uncertain native result', async () => {
+  const { dir, path, token } = setup();
+  const realSwap = atomic.swapFiles;
+  const swap = spyOn(atomic, 'swapFiles').mockImplementationOnce((left, right) => {
+    realSwap(left, right);
+    throw new Error('Uncertain result');
+  });
   try {
-    await expect(write(token, MINE, contentEtag(DOCX))).rejects.toThrow(
-      'previous file is preserved'
-    );
-    expect(readFileSync(path)).toEqual(DOCX);
+    await expect(write(token, MINE, contentEtag(DOCX))).rejects.toThrow('recovery file remains');
+    const recovery = readdirSync(dir).find((name) => name.startsWith('.docx-recovery-'))!;
+    expect(readFileSync(join(dir, recovery, 'a.docx'))).toEqual(DOCX);
+    expect(readFileSync(path)).toEqual(MINE);
   } finally {
-    link.mockRestore();
+    swap.mockRestore();
   }
 });

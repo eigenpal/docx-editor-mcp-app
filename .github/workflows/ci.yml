@@ -1,6 +1,6 @@
 name: CI
 
-# `lint` and `test` run in parallel; `build needs: [lint, test]` so the widget
+# `lint` and `test` run in parallel; `build needs: [lint, test, native]` so the widget
 # can never be bundled before lint has passed.
 #
 # Dependabot PRs are handled by dependabot-lockfile.yml (which refreshes
@@ -19,6 +19,10 @@ permissions:
   contents: read
 
 jobs:
+  native:
+    if: github.actor != 'dependabot[bot]'
+    uses: ./.github/workflows/native.yml
+
   lint:
     if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
@@ -41,18 +45,27 @@ jobs:
         with:
           bun-version-file: .bun-version
       - run: bun install --frozen-lockfile
-      - run: bun test
+      - run: bun run test
 
   build:
     if: github.actor != 'dependabot[bot]'
-    needs: [lint, test]
+    needs: [lint, test, native]
     runs-on: ubuntu-latest
+    env:
+      DOCX_EDITOR_NATIVE_PREBUILT: '1'
     steps:
       - uses: actions/checkout@v7
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version-file: .bun-version
       - run: bun install --frozen-lockfile
+
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: native-*
+          path: dist/native
+          merge-multiple: true
+      - run: node scripts/verify-native.mjs
 
       # Builds the inline widget, the CLI bundle, and the third-party notices.
       - run: bun run build
@@ -64,7 +77,7 @@ jobs:
       - run: bun run smoke:packages
       - run: npm pack --dry-run 2>&1 | tee pack.txt
       - run: |
-          for f in .codex-plugin/plugin.json .agents/plugins/marketplace.json .mcp.json dist/cli.js dist/app/editor.html dist/app/editor.hash dist/app/harfbuzz.wasm THIRD_PARTY_NOTICES.md LICENSE-PLUGIN.md assets/icon.svg skills/docx-editor/SKILL.md; do
+          for f in .codex-plugin/plugin.json .agents/plugins/marketplace.json .mcp.json dist/cli.js dist/native/atomic-swap-darwin.node dist/native/atomic-swap-linux-x64.node dist/native/atomic-swap-linux-arm64.node dist/app/editor.html dist/app/editor.hash dist/app/harfbuzz.wasm THIRD_PARTY_NOTICES.md LICENSE-PLUGIN.md assets/icon.svg skills/docx-editor/SKILL.md; do
             grep -q " $f$" pack.txt || { echo "missing from the package: $f"; exit 1; }
           done
 

@@ -80,10 +80,14 @@ shows the recovery path when a change arrives during a save. These directories
 remain because another app can still write to the previous file through an open
 file handle. You can remove them after you close other apps and check your document.
 
-The local server moves the previous file before it installs your save without
-overwriting an existing file. Your document path is briefly absent between these
-operations. This method does not provide an atomic file swap. File viewers that
-save through the host use the host's save method instead.
+The local server uses native atomic swaps on macOS and Linux. Each swap keeps
+your document path present and preserves the exact file it replaces. The server
+checks the displaced file and the saved bytes for changes. Another app can still
+replace or delete your document independently.
+
+If the system or file system does not support atomic swaps, local saves refuse
+replacement. You can use **Save** to download a copy. File viewers that save
+through the host use the host's save method instead.
 
 ## How it works
 
