@@ -83,7 +83,7 @@ export const WRITE_LOCAL_FILE = {
   description:
     "Save the preview's document over its opened file, only if the file is unchanged. " +
     'ifMatch must be the etag of the version the save replaces; ' +
-    'a different current version returns conflict and the file is not changed. ' +
+    'a different version returns conflict. Saves preserve the previous file in a recovery directory. ' +
     'There is no unconditional save. Size and write-permission checks still apply.',
   input: z.object({
     token: LocalToken,

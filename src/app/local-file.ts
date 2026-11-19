@@ -6,7 +6,7 @@
  * resource, writes go through `write_local_file`, and changes are noticed by
  * polling `local_file_version`. Hosts do not forward resource subscriptions
  * from an app to its server reliably, so polling is the portable choice; the
- * check is a `stat`, not a read.
+ * check hashes the file through a bounded buffer.
  */
 
 import type { App } from '@modelcontextprotocol/ext-apps';

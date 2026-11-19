@@ -55,6 +55,7 @@ export class FileSyncSession {
   private pending: Settled | null = null;
   /** A write found a newer file; autosave waits for the reader's decision. */
   private blocked = false;
+  private recoveryReason: string | undefined;
   /** The newer file's etag from that refused write, for "Keep my version". */
   private conflictEtag: string | null = null;
   /** The newer file's content hash, for "Keep my version" on hosts without etags. */
@@ -242,6 +243,7 @@ export class FileSyncSession {
    * or a revert. Any conflict held against another version is moot.
    */
   private async isCurrent(next: Settled): Promise<boolean> {
+    if (this.recoveryReason) return false;
     const sameEtag = next.version.etag !== null && next.version.etag === this.etag;
     if (!sameEtag && next.digest !== (await this.digest)) return false;
     this.etag = next.version.etag;
@@ -294,7 +296,7 @@ export class FileSyncSession {
     this.pending = next;
     this.conflictEtag = null;
     this.conflictDigest = null;
-    this.show({ kind: 'conflict', reason });
+    this.show({ kind: 'conflict', reason: this.recoveryReason ?? reason });
   }
 
   /** The editor now matches this version of the file. */
@@ -308,6 +310,7 @@ export class FileSyncSession {
     this.conflictEtag = null;
     this.conflictDigest = null;
     this.tooLarge = false;
+    this.recoveryReason = undefined;
   }
 
   private async write(
@@ -340,7 +343,11 @@ export class FileSyncSession {
     this.show({ kind: 'saving' });
     const result = await this.file.write(bytes, expected);
     if (result.outcome === 'conflict') {
-      return this.refused(result.etag || null, mode === 'overwrite' ? CHANGED_AGAIN : undefined);
+      if (result.recoveryPath) {
+        this.recoveryReason = `The file changed during the save. The previous file is preserved at ${result.recoveryPath}.`;
+      }
+      const reason = mode === 'overwrite' ? CHANGED_AGAIN : undefined;
+      return this.refused(result.etag || null, reason);
     }
     clearTimeout(this.autosaveTimer);
     if (result.outcome === 'too-large') {
@@ -357,6 +364,7 @@ export class FileSyncSession {
     this.conflictEtag = null;
     this.conflictDigest = null;
     this.tooLarge = false;
+    this.recoveryReason = undefined;
     this.show({ kind: 'updated', summary: 'Saved to the file.' });
     // Edits made while the write was in flight still need their own save.
     if (this.dirty()) this.scheduleAutosave();
@@ -368,7 +376,7 @@ export class FileSyncSession {
     clearTimeout(this.autosaveTimer);
     this.blocked = true;
     if (newerEtag !== null) this.conflictEtag = newerEtag;
-    this.show({ kind: 'conflict', reason });
+    this.show({ kind: 'conflict', reason: this.recoveryReason ?? reason });
     return 'conflict';
   }
 }

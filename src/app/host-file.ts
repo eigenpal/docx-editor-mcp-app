@@ -27,7 +27,7 @@ export interface HostFileVersion {
 
 export type HostFileWriteResult =
   | { outcome: 'saved'; etag: string }
-  | { outcome: 'conflict'; etag: string }
+  | { outcome: 'conflict'; etag: string; recoveryPath?: string }
   | { outcome: 'too-large'; maxBytes: number };
 
 const extensions = new WeakMap<App, OpenAIExtensions>();

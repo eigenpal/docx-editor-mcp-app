@@ -122,7 +122,7 @@ describe('write', () => {
   it('saves only over the version the preview last saw', async () => {
     const t = token(openPath(file('b.docx')));
     const before = await etag(t);
-    const saved = await write(t, DOCX, before);
+    const saved = await write(t, Buffer.concat([DOCX, DOCX]), before);
     if (saved.outcome !== 'saved') throw new Error(saved.outcome);
     expect(saved.etag).not.toBe(before);
     expect(saved.etag).toBe(await etag(t));

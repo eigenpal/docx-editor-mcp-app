@@ -74,6 +74,17 @@ In ChatGPT and Codex, you can open every `.docx` in DOCX Editor: go to
 If the file and your unsaved edits both change, the preview asks which
 version to keep.
 
+For files that the local server saves, each save preserves the previous file
+in a private `.docx-recovery-*` directory beside your document. A conflict message
+shows the recovery path when a change arrives during a save. These directories
+remain because another app can still write to the previous file through an open
+file handle. You can remove them after you close other apps and check your document.
+
+The local server moves the previous file before it installs your save without
+overwriting an existing file. Your document path is briefly absent between these
+operations. This method does not provide an atomic file swap. File viewers that
+save through the host use the host's save method instead.
+
 ## How it works
 
 The model gets one tool, `open_document`. Your desktop host starts a small

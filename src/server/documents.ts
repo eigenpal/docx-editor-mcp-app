@@ -2,7 +2,7 @@
  * Files `open_document` opened by path (local mode only), behind signed
  * tokens (`tokens.ts`). The widget reads a token as the `docx-local://<token>`
  * MCP resource; nothing accepts a raw path. Files are read fresh on every
- * request, versioned by `lstat`, and written back atomically.
+ * request, versioned by content hashes, and saved with recovery files.
  *
  * Bytes passed in a call (`content_base64`) are only validated here: they go
  * back to the widget in the tool result, so the server keeps no document state.
@@ -11,20 +11,23 @@
 import { randomUUID } from 'node:crypto';
 import { realpathSync, statSync } from 'node:fs';
 import type { BigIntStats } from 'node:fs';
-import { access, chmod, constants, lstat, open, rename, unlink, writeFile } from 'node:fs/promises';
+import { access, chmod, constants, lstat, open, unlink, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { basename, isAbsolute, resolve } from 'node:path';
 import { formatLimit, MAX_CONTENT_BYTES } from '../shared/limits.js';
 import { signPath, verifiedPath } from './tokens.js';
+import { contentEtag, fileVersion, metadataOf, OPEN_FLAGS } from './file-version.js';
+import { preserveSave } from './preserve-save.js';
 
 type Refusal = { message: string };
 interface Version {
-  /** Changes whenever the file changes; see `etagOf`. */
+  /** SHA-256 of the file contents. */
   etag: string;
   writable: boolean;
 }
 type WriteResult =
-  | { outcome: 'saved' | 'conflict'; etag: string }
+  | { outcome: 'saved'; etag: string }
+  | { outcome: 'conflict'; etag: string; recoveryPath?: string }
   | { outcome: 'too-large'; maxBytes: number }
   | { outcome: 'refused'; message: string };
 
@@ -95,14 +98,6 @@ async function current(
   return { path, info };
 }
 
-/**
- * Changes whenever the file changes. Modification time and size alone miss a
- * same-size edit whose tool restores the old time (`cp -p`, `rsync -t`, sync
- * clients). No program can set the change time, and an atomic save gives a
- * new inode, so those two catch it.
- */
-const etagOf = (info: BigIntStats) => `${info.ino}-${info.size}-${info.mtimeNs}-${info.ctimeNs}`;
-
 export async function version(token: string): Promise<Version | Refusal | null> {
   const file = await current(token);
   if (!file || 'message' in file) return file;
@@ -111,11 +106,12 @@ export async function version(token: string): Promise<Version | Refusal | null> 
     () => true,
     () => false
   );
-  return { etag: etagOf(file.info), writable };
+  try {
+    return { etag: (await fileVersion(file.path)).etag, writable };
+  } catch {
+    return { message: 'The file could not be versioned. Try again.' };
+  }
 }
-
-// Windows has neither flag; the `lstat` in `current` is the check there.
-const OPEN_FLAGS = constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0) | (constants.O_NONBLOCK ?? 0);
 
 const READ_ATTEMPTS = 3;
 
@@ -156,8 +152,8 @@ export async function read(
         length += bytesRead;
       }
       const after = await handle.stat({ bigint: true });
-      if (BigInt(length) === before.size && etagOf(after) === etagOf(before)) {
-        return { bytes: buffer.subarray(0, length), etag: etagOf(before) };
+      if (BigInt(length) === before.size && metadataOf(after) === metadataOf(before)) {
+        return { bytes: buffer.subarray(0, length), etag: contentEtag(buffer.subarray(0, length)) };
       }
     }
     return { message: 'The file kept changing during the read. Try again.' };
@@ -167,13 +163,8 @@ export async function read(
 }
 
 /**
- * Save over a token's file, only if it is still the version `ifMatch` names.
- * There is no unconditional save: "Keep my version" passes the etag of the
- * newer file the reader chose to replace. The new bytes go to a temporary file
- * in the same directory, given the original's mode, and are renamed into
- * place: no reader sees half a file, and a private file stays private. The
- * version check runs after the temporary file is written, just before the
- * rename, so a change during the write is not lost.
+ * Preserve the replaced file because another app can save after any version check.
+ * Recovery files remain beside the document in private directories.
  */
 export async function write(
   token: string,
@@ -194,16 +185,19 @@ export async function write(
   if (!writable) return { outcome: 'refused', message: 'The file is read-only.' };
   if (!ifMatch)
     return { outcome: 'refused', message: 'A save needs the etag of the file it replaces.' };
-  if (etagOf(file.info) !== ifMatch) return { outcome: 'conflict', etag: etagOf(file.info) };
+  const initial = await version(token);
+  if (!initial || 'message' in initial) {
+    return { outcome: 'refused', message: 'The file could not be versioned. Try again.' };
+  }
+  if (initial.etag !== ifMatch) return { outcome: 'conflict', etag: initial.etag };
   const { path } = file;
   // The mode of the version that passed the check, not of a later lookup.
   const mode = Number(file.info.mode & 0o777n);
-  let written: BigIntStats;
   const temporary = `${path}.${randomUUID()}.tmp`;
+  let recoveryPath: string | undefined;
   try {
     await writeFile(temporary, bytes, { mode: 0o600, flag: 'wx' });
     await chmod(temporary, mode); // exactly: writeFile's mode passes the umask
-    written = await lstat(temporary, { bigint: true });
     const now = await version(token);
     if (!now || 'message' in now || now.etag !== ifMatch) {
       await unlink(temporary);
@@ -211,23 +205,28 @@ export async function write(
       if ('message' in now) return { outcome: 'refused', message: now.message };
       return { outcome: 'conflict', etag: now.etag };
     }
-    await rename(temporary, path);
+    const result = await preserveSave(path, temporary, ifMatch);
+    recoveryPath = result.recoveryPath;
+    if (result.outcome === 'conflict') {
+      const now = await version(token);
+      return {
+        outcome: 'conflict',
+        etag: now && !('message' in now) ? now.etag : '',
+        recoveryPath: result.recoveryPath,
+      };
+    }
   } catch (cause) {
     await unlink(temporary).catch(() => undefined);
     throw cause;
   }
-  const after = await current(token);
+  const after = await version(token);
   if (!after || 'message' in after) {
-    // Saved, but the file is gone or replaced already: the reader must look.
-    return { outcome: 'refused', message: 'The file changed right after the save. Reload it.' };
+    return {
+      outcome: 'refused',
+      message: `The file changed after the save. The previous file is preserved at ${recoveryPath}.`,
+    };
   }
-  // The rename can move the change time, so match the node we wrote by inode,
-  // size, and modification time. Anything else is a newer save: report it, so
-  // its etag never passes for ours.
-  const ours =
-    after.info.ino === written.ino &&
-    after.info.size === written.size &&
-    after.info.mtimeNs === written.mtimeNs;
-  if (!ours) return { outcome: 'conflict', etag: etagOf(after.info) };
-  return { outcome: 'saved', etag: etagOf(after.info) };
+  const savedEtag = contentEtag(bytes);
+  if (after.etag !== savedEtag) return { outcome: 'conflict', etag: after.etag, recoveryPath };
+  return { outcome: 'saved', etag: savedEtag };
 }
