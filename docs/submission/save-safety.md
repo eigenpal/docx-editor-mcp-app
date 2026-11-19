@@ -18,10 +18,12 @@ So the server never replaces a file by name.
 
 1. The server reads the file and compares its SHA-256 with `ifMatch`.
 2. It writes the new bytes to a private directory beside the file.
-3. It moves the file at the path into that directory. The move is atomic: it takes the file that is there at that instant.
-4. It links the new file in at the path. A link fails if the path holds a file.
-5. It reads the file that it moved. If that file is the `ifMatch` version, the server removes it.
-6. If that file is another version, the server moves its own file out and links the other version back. The result is `conflict`.
+3. It checks the version again and keeps the file open. An open file keeps its identity, so the server can tell which file the next step takes.
+4. It moves the file at the path into that directory. The move is atomic: it takes the file that is there at that instant.
+5. If the move took another file than the one from step 3, the server links that file back at once. The result is `conflict`, and the new bytes never show at the path.
+6. It links the new file in at the path. A link fails if the path holds a file.
+7. It reads the file that it moved. If that file is the `ifMatch` version, the server removes it.
+8. If that file is another version, the server moves its own file out and links the other version back. The result is `conflict`.
 
 The server removes a file only after it read that file and found the `ifMatch` version or its own bytes.
 A file that is neither stays in the directory, and the result names the directory as `recoveryPath`.
@@ -41,9 +43,9 @@ So an edit that lands right after a save cannot pass for the saved version.
 
 ## Limits
 
-- The path is absent for about 0.2 ms between step 3 and step 4. A program that opens the path in that time gets "not found".
+- The path is absent for about 0.2 ms between step 4 and step 6. A program that opens the path in that time gets "not found".
 - If the server stops in that time, the document is in the `.docx-editor-save-*` directory beside its path. The next read and the next `open_document` name the copy.
-- A program that keeps a descriptor open on the old file, and writes through it after step 5, loses that write. Every atomic save has this limit. Only a lock that both programs honor removes it.
+- A program that keeps a descriptor open on the old file, and writes through it after step 7, loses that write. Every atomic save has this limit. Only a lock that both programs honor removes it.
 - A disk without hard links refuses saves. The preview then offers a download.
 - The plugin is not tested on Windows.
 
@@ -53,7 +55,7 @@ So an edit that lands right after a save cannot pass for the saved version.
 | --------------------------------------------------------------------- | ------------------------------------------------------------- | ------------------------------------ |
 | A 12 MiB document made a message over the 10 MiB limit of the host    | A 7 MiB limit on every read, show, and save                   | `review-findings.test.ts`, finding 1 |
 | `ifMatch: null` skipped the version check                             | `ifMatch` is required; there is no unconditional save         | `review-findings.test.ts`, finding 2 |
-| An edit after the last check, before the replacement, was overwritten | Steps 3 to 6: the server never replaces a file by name        | `review-findings.test.ts`, finding 3 |
+| An edit after the last check, before the replacement, was overwritten | Steps 3 to 8: the server never replaces a file by name        | `review-findings.test.ts`, finding 3 |
 | An edit right after the save was returned as the saved version        | Content hashes; `saved` carries the hash of the written bytes | `review-findings.test.ts`, finding 4 |
 
 ## Tests

@@ -1,5 +1,5 @@
 /**
- * The hosted server (`http`), as a real process on a real port. It serves
+ * The hosted server (`http`), on a real port. It serves
  * people who are not on this computer, so it must have no way to the disk:
  * no path, no file tools, no file resources, and no page outside `/mcp`.
  */
@@ -8,41 +8,29 @@ import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { mkdtempSync, writeFileSync } from 'node:fs';
-import { createServer } from 'node:net';
+import type { Server } from 'node:http';
+import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { MAX_CONTENT_BYTES, MAX_MESSAGE_BYTES } from '../../shared/limits.js';
+import { startHttp } from '../http.js';
 
-const CLI = join(import.meta.dir, '../cli.ts');
 const DOCX = Buffer.from([0x50, 0x4b, 0x03, 0x04]);
+const ui = { uri: 'ui://docx-editor/editor.html?v=test', html: '<!doctype html>' };
 let base = '';
-let server: ReturnType<typeof Bun.spawn> | undefined;
-
-const freePort = () =>
-  new Promise<number>((resolve) => {
-    const probe = createServer().listen(0, () => {
-      const { port } = probe.address() as { port: number };
-      probe.close(() => resolve(port));
-    });
-  });
+let server: Server | undefined;
 
 beforeAll(async () => {
-  const port = await freePort();
-  base = `http://127.0.0.1:${port}`;
-  const env = { ...process.env, DOCX_EDITOR_UPDATE_CHECK: '0' };
-  delete (env as Record<string, string | undefined>).DOCX_HARNESS;
-  server = Bun.spawn(['bun', CLI, 'http', '--port', String(port)], { env, stderr: 'ignore' });
-  for (let attempt = 0; attempt < 100; attempt++) {
-    const up = await fetch(`${base}/health`).then(
-      (response) => response.ok,
-      () => false
-    );
-    if (up) return;
-    await new Promise((resolve) => setTimeout(resolve, 50));
-  }
-  throw new Error('the http server did not start');
+  delete process.env.DOCX_HARNESS;
+  // Port 0: the system picks a free one.
+  server = startHttp(0, ui);
+  await new Promise((resolve) => server!.once('listening', resolve));
+  base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
 });
-afterAll(() => server?.kill());
+afterAll(() => {
+  server?.closeAllConnections();
+  server?.close();
+});
 
 async function connect() {
   const client = new Client({ name: 'test', version: '0' });

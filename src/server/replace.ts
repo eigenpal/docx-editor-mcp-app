@@ -28,13 +28,15 @@ import {
   linkSync,
   lstatSync,
   readdirSync,
+  readlinkSync,
   renameSync,
+  symlinkSync,
   unlinkSync,
   type BigIntStats,
 } from 'node:fs';
 import { link, lstat, mkdtemp, open, readdir, rmdir, unlink } from 'node:fs/promises';
 import { basename, dirname, join } from 'node:path';
-import { contentEtag, fileVersion, metadataOf } from './file-version.js';
+import { contentEtag, fileVersion, handleVersion, metadataOf, OPEN_FLAGS } from './file-version.js';
 
 export type Replaced =
   | { outcome: 'saved' }
@@ -51,6 +53,14 @@ const codeOf = (cause: unknown) => (cause as NodeJS.ErrnoException).code;
 
 /** The version of a regular file, or null when it cannot be read as one stable file. */
 const versionOf = (path: string) => fileVersion(path).catch(() => null);
+
+/**
+ * Which file, and whether it was written since: enough to tell, between two
+ * system calls, that a move took the file that was checked. Not proof of its
+ * contents; a program can put a modification time back. The read after the
+ * link is the proof.
+ */
+const identityOf = (info: BigIntStats) => `${info.dev}-${info.ino}-${info.size}-${info.mtimeNs}`;
 
 const metadataAt = (path: string) =>
   lstat(path, { bigint: true }).then(metadataOf, () => null as string | null);
@@ -89,14 +99,29 @@ export async function replaceFile(
     } catch {
       return { outcome: 'unsupported' };
     }
-    // Staging took time. A change since the check needs no move at all. Only
-    // the contents decide: a `touch` or a new tag is not another version.
-    if ((await metadataAt(path)) !== metadataOf(seen)) {
-      if ((await versionOf(path))?.etag !== ifMatch) return { outcome: 'conflict' };
+    // Staging took time: check the version again, and keep the file OPEN
+    // until it has moved. An open file keeps its inode number. A closed one
+    // can lose it to the next file made, and then "the same number" would
+    // pass for "the same file". Only the contents decide here: a `touch` or
+    // a new tag is not another version.
+    let held;
+    try {
+      held = await open(path, OPEN_FLAGS);
+    } catch (cause) {
+      return { outcome: codeOf(cause) === 'ENOENT' ? 'missing' : 'conflict' };
     }
-
-    const move = moveThenLink(path, aside, staged);
+    let move;
+    try {
+      const checked = await handleVersion(held).catch(() => null);
+      if (checked?.etag !== ifMatch) return { outcome: 'conflict' };
+      move = moveThenLink(path, aside, staged, identityOf(checked.info));
+    } finally {
+      await held.close();
+    }
     if (move === 'missing') return { outcome: 'missing' };
+    // Another file than the one checked: it is back at the path, or kept.
+    if (move === 'other') return { outcome: 'conflict' };
+    if (move === 'other-kept') return { outcome: 'conflict', recoveryPath: directory };
     // 'occupied': another program created the path in the gap. Its file is the newer one.
     const installed = move === 'installed';
     // Only now is it known WHICH file the move took.
@@ -179,13 +204,33 @@ export function leftBySave(path: string): string | null {
  * Move the file at `path` to `aside`, then link `from` in at `path`.
  * Synchronous, back to back: the path is absent only between these two calls,
  * and an `await` between them would widen that to a turn of the event loop.
+ *
+ * With `expected`, the new file goes in only if the move took that very file.
+ * Any other file goes straight back, and the new file never shows at the
+ * path. Without this, a second server could read this save's bytes there,
+ * save over them, and then lose its own save to this save's rollback.
  */
-function moveThenLink(path: string, aside: string, from: string) {
+function moveThenLink(path: string, aside: string, from: string, expected?: string) {
   try {
     renameSync(path, aside);
   } catch (cause) {
     if (codeOf(cause) === 'ENOENT') return 'missing' as const;
     throw cause;
+  }
+  if (expected !== undefined) {
+    const taken = lstatSync(aside, { bigint: true, throwIfNoEntry: false });
+    if (!taken || identityOf(taken) !== expected) {
+      try {
+        // Each way back fails at a path that holds a file; none overwrites.
+        if (taken?.isSymbolicLink()) symlinkSync(readlinkSync(aside), path);
+        else if (taken?.isDirectory()) renameSync(aside, path);
+        else linkSync(aside, path);
+        if (!taken?.isDirectory()) unlinkSync(aside);
+        return 'other' as const;
+      } catch {
+        return 'other-kept' as const;
+      }
+    }
   }
   try {
     linkSync(from, path);

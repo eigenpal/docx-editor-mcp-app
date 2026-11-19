@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { constants, open } from 'node:fs/promises';
+import { constants, open, type FileHandle } from 'node:fs/promises';
 import type { BigIntStats } from 'node:fs';
 
 export const OPEN_FLAGS =
@@ -14,6 +14,17 @@ export const contentEtag = (bytes: Uint8Array) => createHash('sha256').update(by
 export async function fileVersion(path: string): Promise<{ etag: string; info: BigIntStats }> {
   const handle = await open(path, OPEN_FLAGS);
   try {
+    return await handleVersion(handle);
+  } finally {
+    await handle.close();
+  }
+}
+
+/** The version of an open file. The caller keeps the handle, and with it the file's identity. */
+export async function handleVersion(
+  handle: FileHandle
+): Promise<{ etag: string; info: BigIntStats }> {
+  {
     for (let attempt = 0; attempt < 3; attempt++) {
       const before = await handle.stat({ bigint: true });
       if (!before.isFile()) throw new Error('The path no longer holds a regular file.');
@@ -34,7 +45,5 @@ export async function fileVersion(path: string): Promise<{ etag: string; info: B
       }
     }
     throw new Error('The file kept changing during the read. Try again.');
-  } finally {
-    await handle.close();
   }
 }

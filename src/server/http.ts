@@ -43,7 +43,9 @@ async function readBody(req: IncomingMessage): Promise<unknown> {
   }
 }
 
-async function handleMcp(req: IncomingMessage, res: ServerResponse): Promise<void> {
+type Ui = { uri: string; html: string };
+
+async function handleMcp(req: IncomingMessage, res: ServerResponse, ui?: Ui): Promise<void> {
   // Stateless: no session to stream on (GET) or close (DELETE).
   if (req.method !== 'POST') return json(res, 405, rpcError(-32000, 'Method not allowed'));
   let body: unknown;
@@ -59,13 +61,14 @@ async function handleMcp(req: IncomingMessage, res: ServerResponse): Promise<voi
         : rpcError(-32700, 'Parse error')
     );
   }
-  const server = createMcpServer();
-  const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
-  res.on('close', () => {
-    void transport.close();
-    void server.close();
-  });
   try {
+    // Inside the `try`: a server that cannot start must answer, not end the process.
+    const server = createMcpServer(ui ? { ui } : {});
+    const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
+    res.on('close', () => {
+      void transport.close();
+      void server.close();
+    });
     await server.connect(transport);
     await transport.handleRequest(req, res, body);
   } catch (error) {
@@ -85,10 +88,11 @@ async function handleHarness(path: string, res: ServerResponse): Promise<void> {
     .end(body);
 }
 
-export function startHttp(port: number): void {
-  createServer((req, res) => {
+/** @param ui The widget; tests pass one instead of the build. */
+export function startHttp(port: number, ui?: Ui) {
+  return createServer((req, res) => {
     const path = new URL(req.url ?? '/', 'http://localhost').pathname;
-    if (path === '/mcp') return void handleMcp(req, res);
+    if (path === '/mcp') return void handleMcp(req, res, ui);
     if (path === '/health') return json(res, 200, { ok: true });
     // The plugin directory's domain check: the token, exactly, as plain text.
     if (path === '/.well-known/openai-apps-challenge' && process.env.OPENAI_APPS_CHALLENGE) {

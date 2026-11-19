@@ -23,6 +23,7 @@ import {
   writeFileSync,
   writeSync,
 } from 'node:fs';
+import * as fsSync from 'node:fs';
 import * as fs from 'node:fs/promises';
 import { contentEtag } from '../file-version.js';
 import { version, write } from '../documents.js';
@@ -40,6 +41,7 @@ import {
 } from './save-steps.js';
 
 afterEach(cleanUp);
+const realLinkSync = fsSync.linkSync;
 
 // Each test runs a save some hundreds of times; a slow machine needs more than the default.
 setDefaultTimeout(120_000);
@@ -208,23 +210,68 @@ it('puts back a file that another program writes through an open descriptor', as
 
 it('keeps both versions when two foreign saves land during one save', async () => {
   const { dir, path, token } = setup();
+  const descriptor = openSync(path, 'r+');
   let renames = 0;
   intercept(
     (step, _count, args) => step === 'renameSync' && args[0] === path && ++renames > 0,
     () => {
-      // Before the move, and again before the rollback takes this save's file out.
-      const bytes = renames === 1 ? OTHER : THIRD;
-      writeFileSync(`${path}.theirs`, bytes);
+      if (renames === 1) return;
+      // Before the rollback takes this save's file out: a second program saves.
+      writeFileSync(`${path}.theirs`, THIRD);
       renameSync(`${path}.theirs`, path);
     }
   );
-  const result = await write(token, MINE, contentEtag(ORIGINAL));
-  if (result.outcome !== 'conflict' || !result.recoveryPath)
-    throw new Error(JSON.stringify(result));
-  expect(readFileSync(path)).toEqual(OTHER);
-  expect(kept(result.recoveryPath)).toEqual([THIRD]);
-  expect(statSync(result.recoveryPath).mode & 0o777).toBe(0o700);
-  expect(leftovers(dir)).toEqual([result.recoveryPath.split('/').pop()!]);
+  // The first one writes through a descriptor it held, right after the move.
+  // The file is the one that was checked, so only the read after the link tells.
+  let written = false;
+  const link = spyOn(fsSync, 'linkSync').mockImplementation(((...args: [string, string]) => {
+    if (!written) {
+      written = true;
+      writeSync(descriptor, OTHER, 0, OTHER.length, 0);
+    }
+    return realLinkSync(...args);
+  }) as never);
+  try {
+    const result = await write(token, MINE, contentEtag(ORIGINAL));
+    if (result.outcome !== 'conflict' || !result.recoveryPath)
+      throw new Error(JSON.stringify(result));
+    expect(readFileSync(path)).toEqual(OTHER);
+    expect(kept(result.recoveryPath)).toEqual([THIRD]);
+    expect(statSync(result.recoveryPath).mode & 0o777).toBe(0o700);
+    expect(leftovers(dir)).toEqual([result.recoveryPath.split('/').pop()!]);
+  } finally {
+    link.mockRestore();
+    closeSync(descriptor);
+  }
+});
+
+it('never shows its bytes at the path when the file changed before the move', async () => {
+  const { path, token } = setup();
+  const shown: Buffer[] = [];
+  let moved = false;
+  // Another server reads the path at every later step of this save.
+  intercept(
+    (step, _count, args) => {
+      if (step === 'renameSync' && args[0] === path && !moved) {
+        moved = true;
+        writeFileSync(`${path}.theirs`, OTHER);
+        renameSync(`${path}.theirs`, path);
+        return false;
+      }
+      return moved;
+    },
+    () => {
+      if (existsSync(path)) shown.push(readFileSync(path));
+    }
+  );
+  expect(await write(token, MINE, contentEtag(ORIGINAL))).toEqual({
+    outcome: 'conflict',
+    etag: contentEtag(OTHER),
+  });
+  expect(shown.length).toBeGreaterThan(0);
+  // A server that read this save's bytes there could save over them, and
+  // then lose that save to this save's rollback.
+  expect(shown.filter((bytes) => bytes.equals(MINE))).toEqual([]);
 });
 
 it('lets one of two saves of the same version win', async () => {

@@ -13,6 +13,8 @@
 - Send the token that reads and saves a file to the preview only. The model no longer receives it, so it cannot call the save tool in a host that ignores tool visibility.
 - Name the copy that an interrupted save left, in `open_document` too.
 - Leave a Claude Desktop configuration unchanged when `setup claude` does not understand it, and write the new one in one step.
+- Put the new file at the path only when the save moved the file that it checked. Before, a second server could read the new bytes there, save over them, and lose that save to a rollback.
+- Answer with an error, and keep running, when the hosted server cannot start for a request.
 - Test the built package against another program at each step of a save, and against a stop of the server at each step.
 
 ## 2.39.0

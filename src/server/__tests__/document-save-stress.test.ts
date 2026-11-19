@@ -169,20 +169,32 @@ describe('several servers save one file at the same time', () => {
     const won = saves.filter((save) => save.outcome === 'saved');
     // `saved` names the bytes that were sent.
     expect(won.filter((save) => save.etag !== save.sent)).toEqual([]);
+    // A save can land and still answer `conflict`: another server saw its bytes
+    // and saved over them before it looked at the file again. Such a save is
+    // part of the file's history, so count it: its bytes are a version that
+    // another save named, or the file on disk now.
+    const final = sha(readFileSync(path));
+    const named = new Set(saves.map((save) => save.ifMatch));
+    const landed = saves.filter(
+      (save) =>
+        save.outcome === 'saved' ||
+        (save.outcome === 'conflict' && (named.has(save.sent) || save.sent === final))
+    );
     // No two saves replaced the same version: a second one would be a lost update.
     const replaced = new Map<string, number>();
-    for (const save of won) replaced.set(save.ifMatch, (replaced.get(save.ifMatch) ?? 0) + 1);
+    for (const save of landed) replaced.set(save.ifMatch, (replaced.get(save.ifMatch) ?? 0) + 1);
     expect([...replaced.values()].filter((count) => count > 1)).toEqual([]);
-    // So the saves form one line, from the first version to the file on disk now.
-    const next = new Map(won.map((save) => [save.ifMatch, save.etag]));
+    // So the saves form one line, from the first version to the file on disk
+    // now, and every save that won is on it.
+    const next = new Map(landed.map((save) => [save.ifMatch, save.sent]));
+    const line = new Set<string>();
     let at = sha(doc('start'));
-    let length = 0;
     while (next.has(at)) {
       at = next.get(at)!;
-      length += 1;
+      line.add(at);
     }
-    expect(length).toBe(won.length);
-    expect(at).toBe(sha(readFileSync(path)));
+    expect(at).toBe(final);
+    expect(won.filter((save) => !line.has(save.sent))).toEqual([]);
     // A conflict never names the version that the save itself named.
     expect(
       saves.filter((save) => save.outcome === 'conflict' && save.etag === save.ifMatch)
