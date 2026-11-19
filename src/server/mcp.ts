@@ -28,6 +28,7 @@ import {
 import {
   DOCUMENT_META,
   PATH_META,
+  RESOURCE_META,
   LOCAL_FILE_VERSION,
   HostedOpenDocumentInput,
   OpenDocumentInput,
@@ -183,11 +184,14 @@ export function createMcpServer({ local = false, ui = loadWidget() }: McpServerO
         ],
         structuredContent: {
           name: shownName(opened.name),
-          resourceUri: `docx-local://${opened.token}`,
           ...election,
         },
-        // For the widget only: a host with a file viewer opens the file there.
-        _meta: { [PATH_META]: opened.path },
+        // For the widget only: the token that reads and saves the file, and
+        // the path that a host with a file viewer opens there.
+        _meta: {
+          [RESOURCE_META]: `docx-local://${opened.token}`,
+          [PATH_META]: opened.path,
+        },
       };
     }
   );

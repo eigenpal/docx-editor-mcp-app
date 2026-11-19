@@ -24,7 +24,14 @@
  * limit; only a lock that both programs honor removes it.
  */
 
-import { linkSync, renameSync, unlinkSync, type BigIntStats } from 'node:fs';
+import {
+  linkSync,
+  lstatSync,
+  readdirSync,
+  renameSync,
+  unlinkSync,
+  type BigIntStats,
+} from 'node:fs';
 import { link, lstat, mkdtemp, open, readdir, rmdir, unlink } from 'node:fs/promises';
 import { basename, dirname, join } from 'node:path';
 import { contentEtag, fileVersion, metadataOf } from './file-version.js';
@@ -155,11 +162,15 @@ async function sweep(path: string): Promise<void> {
  * itself when the server stopped between the move and the link, or a version
  * from a conflict. For the message about a file that is gone.
  */
-export async function leftBySave(path: string): Promise<string | null> {
-  const names = await readdir(dirname(path)).catch(() => [] as string[]);
-  for (const name of names.filter((entry) => entry.startsWith(PREFIX))) {
-    const copy = join(dirname(path), name, basename(path));
-    if ((await lstat(copy).catch(() => null))?.isFile()) return copy;
+export function leftBySave(path: string): string | null {
+  try {
+    for (const name of readdirSync(dirname(path))) {
+      if (!name.startsWith(PREFIX)) continue;
+      const copy = join(dirname(path), name, basename(path));
+      if (lstatSync(copy, { throwIfNoEntry: false })?.isFile()) return copy;
+    }
+  } catch {
+    // No directory to look in.
   }
   return null;
 }

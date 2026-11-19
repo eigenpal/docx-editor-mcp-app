@@ -10,6 +10,10 @@
 - Refuse to open a file that is named `.docx` but does not start as one, for example a hard link to another file.
 - Remove line breaks and direction overrides from file names in tool results.
 - Give one answer for a path that is not a `.docx`, whether the file is there or not.
+- Send the token that reads and saves a file to the preview only. The model no longer receives it, so it cannot call the save tool in a host that ignores tool visibility.
+- Name the copy that an interrupted save left, in `open_document` too.
+- Leave a Claude Desktop configuration unchanged when `setup claude` does not understand it, and write the new one in one step.
+- Test the built package against another program at each step of a save, and against a stop of the server at each step.
 
 ## 2.39.0
 

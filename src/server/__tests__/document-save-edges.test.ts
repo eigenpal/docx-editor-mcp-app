@@ -1,6 +1,6 @@
 /** The edges of a save that are not races: metadata, names, permissions, and what a stopped server leaves. */
 
-import { afterEach, expect, it, spyOn } from 'bun:test';
+import { afterEach, expect, it, setDefaultTimeout, spyOn } from 'bun:test';
 import {
   chmodSync,
   existsSync,
@@ -19,6 +19,9 @@ import { join } from 'node:path';
 import { MAX_CONTENT_BYTES } from '../../shared/limits.js';
 import { contentEtag } from '../file-version.js';
 import { openPath, version, write } from '../documents.js';
+
+// Each test runs a save some hundreds of times; a slow machine needs more than the default.
+setDefaultTimeout(120_000);
 
 const doc = (text: string) =>
   Buffer.concat([Buffer.from([0x50, 0x4b, 0x03, 0x04]), Buffer.from(text)]);
@@ -155,4 +158,33 @@ it('says where the document is when a save stopped between the move and the link
   expect(await version(token)).toEqual({
     message: `The file no longer exists at its path. A save left a copy at ${join(left, 'a.docx')}.`,
   });
+});
+
+it('saves, and puts back a foreign version, for every kind of file name', async () => {
+  const names = [
+    'with space.docx',
+    'Nástupní smlouva.docx',
+    'cafe\u0301 (decomposed).docx',
+    '契約書.docx',
+    '📄 emoji.docx',
+    '.hidden.docx',
+    'quote\'s "and" $(shell) `tick` %25 & ; .docx',
+    '.docx-editor-save-looks-like-ours.docx',
+    'UPPER.DOCX',
+    '-leading-dash.docx',
+    'new', // the server's own staging name, as a folder for the document
+  ];
+  for (const name of names) {
+    const file = name === 'new' ? 'new.docx' : name;
+    for (const foreign of [false, true]) {
+      const { dir, path, token } = setup(file);
+      if (foreign) beforeTheMove(() => writeFileSync(path, OTHER));
+      const result = await write(token, MINE, contentEtag(ORIGINAL));
+      for (const restore of restores.splice(0)) restore();
+      const where = `${JSON.stringify(file)}, foreign save: ${foreign}: ${JSON.stringify(result)}`;
+      expect(result.outcome, where).toBe(foreign ? 'conflict' : 'saved');
+      expect(readFileSync(path).equals(foreign ? OTHER : MINE), where).toBe(true);
+      expect(readdirSync(dir), where).toHaveLength(1);
+    }
+  }
 });

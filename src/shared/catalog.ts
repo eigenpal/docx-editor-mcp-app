@@ -49,6 +49,14 @@ export const DOCUMENT_META = 'docx-editor/document';
 export const PATH_META = 'docx-editor/path';
 
 /**
+ * The `open_document` result `_meta` key carrying the `docx-local://<token>`
+ * URI of a file opened by path. In `_meta`, which hosts give the widget and
+ * not the model: the token is what `write_local_file` takes, so a model that
+ * never sees it cannot save, even in a host that ignores tool visibility.
+ */
+export const RESOURCE_META = 'docx-editor/resource';
+
+/**
  * The file viewer entrypoint. The HOST calls it when the user opens a .docx in
  * ChatGPT or Codex desktop. Its input is the OpenAI SDK's
  * `OpenAIFileEntrypointInputSchema`.
@@ -66,7 +74,7 @@ const LocalToken = z
   .string()
   .max(16_384)
   .regex(/^[\w-]+\.[\w-]{43}$/)
-  .describe('The signed token after docx-local:// in the open_document result resourceUri.');
+  .describe('The signed token after docx-local:// in the open_document result _meta.');
 
 /**
  * Local mode's file sync, called by the WIDGET: the preview watches the file

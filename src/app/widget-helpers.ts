@@ -5,6 +5,7 @@
 import type { App } from '@modelcontextprotocol/ext-apps';
 import type { OpenedFile } from './host-file.js';
 import type { OpenRequest } from './load-document.js';
+import { RESOURCE_META } from '../shared/catalog.js';
 
 /**
  * The host's layout hints, as CSS variables. Insets are written only when the
@@ -33,4 +34,17 @@ export function applyHostContext(app: App): void {
  */
 export function adoptFile(current: OpenRequest | null, file: OpenedFile): OpenRequest {
   return current?.file?.resourceUri === file.resourceUri ? current : { name: file.name, file };
+}
+
+/**
+ * The `docx-local://` URI of a file `open_document` opened by path. It rides in
+ * `_meta`, which the model does not see. A result from an earlier version, in
+ * a conversation that reloads, carries it in `structuredContent`.
+ */
+export function localResource(
+  meta: Record<string, unknown> | undefined,
+  structured: { resourceUri?: string }
+): string | undefined {
+  const fromMeta = meta?.[RESOURCE_META];
+  return typeof fromMeta === 'string' ? fromMeta : structured.resourceUri;
 }

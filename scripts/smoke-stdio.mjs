@@ -49,7 +49,9 @@ const doc = (size) => {
 };
 writeFileSync(path, doc(64));
 const opened = await client.callTool({ name: 'open_document', arguments: { path } });
-const token = opened.structuredContent?.resourceUri?.split('//')[1];
+const token = opened._meta?.['docx-editor/resource']?.split('//')[1];
+if (JSON.stringify([opened.content, opened.structuredContent]).includes('docx-local'))
+  fail('the model sees the token that saves the file');
 if (!token) fail('open_document did not open the file');
 const save = (bytes, ifMatch) =>
   client.callTool({
@@ -75,7 +77,7 @@ const hugeBytes = Buffer.alloc(16 * 1024 * 1024);
 hugeBytes.set([0x50, 0x4b, 0x03, 0x04]);
 writeFileSync(huge, hugeBytes);
 const large = await client.callTool({ name: 'open_document', arguments: { path: huge } });
-const hugeUri = large.structuredContent?.resourceUri;
+const hugeUri = large._meta?.['docx-editor/resource'];
 if (large.isError || !hugeUri) fail('a large file did not open for the host viewer');
 if (large._meta?.['docx-editor/path'] === undefined) fail('a large file gave no path');
 const hugeRead = await client.readResource({ uri: hugeUri }).then(

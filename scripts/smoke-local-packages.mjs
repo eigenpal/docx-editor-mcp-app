@@ -138,7 +138,7 @@ try {
       await writeFile(path, docx);
       const opened = await client.callTool({ name: 'open_document', arguments: { path } });
       assert.ok(!opened.isError, JSON.stringify(opened));
-      const uri = opened.structuredContent.resourceUri;
+      const uri = opened._meta['docx-editor/resource'];
       assert.ok(uri.startsWith('docx-local://'));
       const content = await client.readResource({ uri });
       assert.deepEqual(Buffer.from(content.contents[0].blob, 'base64'), Buffer.from(docx));

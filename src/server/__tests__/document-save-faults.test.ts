@@ -7,70 +7,43 @@
  * its path, or the result says where it is.
  */
 
-import { describe, expect, it, spyOn } from 'bun:test';
-import * as fsSync from 'node:fs';
-import * as fs from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { afterEach, describe, expect, it, setDefaultTimeout } from 'bun:test';
+import { existsSync, readFileSync } from 'node:fs';
 import { contentEtag } from '../file-version.js';
-import { openPath, version, write } from '../documents.js';
+import { version, write } from '../documents.js';
+import { MINE, ORIGINAL, cleanUp, intercept, leftovers, release, setup } from './save-steps.js';
 
-const doc = (text: string) =>
-  Buffer.concat([Buffer.from([0x50, 0x4b, 0x03, 0x04]), Buffer.from(text)]);
-const ORIGINAL = doc('original');
-const MINE = doc('mine....');
+afterEach(cleanUp);
 
-const ASYNC_STEPS = ['lstat', 'access', 'open', 'mkdtemp', 'link', 'unlink', 'rmdir', 'readdir'];
-const SYNC_STEPS = ['renameSync', 'linkSync', 'unlinkSync'];
+// Each test runs a save some hundreds of times; a slow machine needs more than the default.
+setDefaultTimeout(120_000);
+
 /** A failure to remove a file can only leave that file behind. */
 const REMOVALS = new Set(['unlink', 'unlinkSync', 'rmdir']);
-// The test's own calls: the spies replace the module's exports while a save runs.
-const { existsSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, writeFileSync } =
-  fsSync;
 
 /** One save in which call number `failAt` fails. Returns null when the save made fewer calls. */
 async function saveWithFault(failAt: number, sticky: boolean, code: string) {
-  const dir = realpathSync(mkdtempSync(join(tmpdir(), 'docx-save-fault-')));
-  const path = join(dir, 'a.docx');
-  writeFileSync(path, ORIGINAL);
-  const opened = openPath(path);
-  if ('message' in opened) throw new Error(opened.message);
-  let count = 0;
+  const { dir, path, token } = setup();
   let failed = '';
-  const spies: { mockRestore(): void }[] = [];
-  const wrap = (target: Record<string, unknown>, name: string, sync: boolean) => {
-    const real = target[name] as (...args: unknown[]) => unknown;
-    const spy = spyOn(target, name).mockImplementation(((...args: unknown[]) => {
-      count += 1;
-      if (count === failAt) failed = name;
-      if (count === failAt || (sticky && failed === name && count > failAt)) {
-        const error = Object.assign(new Error(`${code}: injected`), { code });
-        if (sync) throw error;
-        return Promise.reject(error);
-      }
-      return real(...args);
-    }) as never);
-    spies.push(spy);
+  intercept(
+    () => false,
+    () => undefined,
+    (step, count) => {
+      if (count === failAt) failed = step;
+      return count === failAt || (sticky && failed === step && count > failAt) ? code : undefined;
+    }
+  );
+  const result = await write(token, MINE, contentEtag(ORIGINAL));
+  release();
+  if (!failed) return null;
+  return {
+    failed,
+    result,
+    text: JSON.stringify(result),
+    disk: existsSync(path) ? readFileSync(path) : null,
+    left: leftovers(dir),
+    next: await version(token),
   };
-  for (const name of ASYNC_STEPS) wrap(fs as never, name, false);
-  for (const name of SYNC_STEPS) wrap(fsSync as never, name, true);
-  try {
-    const result = await write(opened.token, MINE, contentEtag(ORIGINAL));
-    for (const spy of spies.splice(0)) spy.mockRestore();
-    if (!failed) return null;
-    const left = readdirSync(dir).filter((name) => name !== 'a.docx');
-    return {
-      failed,
-      result,
-      text: JSON.stringify(result),
-      disk: existsSync(path) ? readFileSync(path) : null,
-      left,
-      next: await version(opened.token),
-    };
-  } finally {
-    for (const spy of spies) spy.mockRestore();
-    rmSync(dir, { recursive: true, force: true });
-  }
 }
 
 describe('a save in which one file system call fails', () => {

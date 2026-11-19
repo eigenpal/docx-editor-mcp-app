@@ -8,16 +8,14 @@
  * names a version that is not this save's own bytes.
  */
 
-import { afterEach, describe, expect, it, spyOn } from 'bun:test';
+import { afterEach, describe, expect, it, setDefaultTimeout, spyOn } from 'bun:test';
 import {
   closeSync,
   existsSync,
   ftruncateSync,
-  mkdtempSync,
   openSync,
   readFileSync,
   readdirSync,
-  realpathSync,
   renameSync,
   rmSync,
   statSync,
@@ -25,80 +23,26 @@ import {
   writeFileSync,
   writeSync,
 } from 'node:fs';
-import * as fsSync from 'node:fs';
 import * as fs from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
 import { contentEtag } from '../file-version.js';
-import { openPath, version, write } from '../documents.js';
+import { version, write } from '../documents.js';
+import {
+  MINE,
+  ORIGINAL,
+  OTHER,
+  THIRD,
+  cleanUp,
+  intercept,
+  kept,
+  leftovers,
+  release,
+  setup,
+} from './save-steps.js';
 
-// One length: a same-size edit must not hide behind the size.
-const doc = (text: string) =>
-  Buffer.concat([Buffer.from([0x50, 0x4b, 0x03, 0x04]), Buffer.from(text)]);
-const ORIGINAL = doc('original');
-const MINE = doc('mine....');
-const OTHER = doc('other...');
-const THIRD = doc('third...');
+afterEach(cleanUp);
 
-// Every file system call a save makes. The move and the link are synchronous (`replace.ts`).
-const ASYNC_STEPS = ['lstat', 'access', 'open', 'mkdtemp', 'link', 'unlink', 'rmdir'] as const;
-const SYNC_STEPS = ['renameSync', 'linkSync', 'unlinkSync'] as const;
-type Step = (typeof ASYNC_STEPS)[number] | (typeof SYNC_STEPS)[number];
-
-const directories: string[] = [];
-const restores: (() => void)[] = [];
-afterEach(() => {
-  for (const restore of restores.splice(0)) restore();
-  for (const dir of directories.splice(0)) rmSync(dir, { recursive: true, force: true });
-});
-
-function setup() {
-  // The real path: the server resolves it, and the tests match its calls by path.
-  const dir = realpathSync(mkdtempSync(join(tmpdir(), 'docx-save-race-')));
-  directories.push(dir);
-  const path = join(dir, 'a.docx');
-  writeFileSync(path, ORIGINAL, { mode: 0o640 });
-  const opened = openPath(path);
-  if ('message' in opened) throw new Error(opened.message);
-  return { dir, path, token: opened.token };
-}
-
-/**
- * Runs `act` before the file system calls a save makes. `when` sees each call
- * and its count, and says whether to act now. Returns the count so far.
- */
-function intercept(when: (step: Step, count: number, args: unknown[]) => boolean, act: () => void) {
-  let count = 0;
-  // The foreign save uses the same calls; it must not count as a step of the save.
-  let acting = false;
-  const wrap = (target: Record<string, unknown>, step: Step) => {
-    const real = target[step] as (...args: unknown[]) => unknown;
-    const spy = spyOn(target, step).mockImplementation(((...args: unknown[]) => {
-      if (!acting) {
-        count += 1;
-        if (when(step, count, args)) {
-          acting = true;
-          try {
-            act();
-          } finally {
-            acting = false;
-          }
-        }
-      }
-      return real(...args);
-    }) as never);
-    restores.push(() => spy.mockRestore());
-  };
-  for (const step of ASYNC_STEPS) wrap(fs as never, step);
-  for (const step of SYNC_STEPS) wrap(fsSync as never, step);
-  return () => count;
-}
-
-const leftovers = (dir: string) => readdirSync(dir).filter((name) => name !== 'a.docx');
-const kept = (recoveryPath: string | undefined) =>
-  recoveryPath
-    ? readdirSync(recoveryPath).map((name) => readFileSync(join(recoveryPath, name)))
-    : [];
+// Each test runs a save some hundreds of times; a slow machine needs more than the default.
+setDefaultTimeout(120_000);
 
 /** How another program saves a file. */
 const FOREIGN: Record<string, (path: string, bytes: Buffer) => void> = {
@@ -131,7 +75,7 @@ describe('a foreign save at every step of a save', () => {
         etag: contentEtag(MINE),
       });
       const calls = counted();
-      for (const restore of restores.splice(0)) restore();
+      release();
       expect(calls).toBeGreaterThan(10);
 
       const outcomes = new Set<string>();
@@ -143,7 +87,7 @@ describe('a foreign save at every step of a save', () => {
           () => foreign(path, OTHER)
         );
         const result = await write(token, MINE, contentEtag(ORIGINAL));
-        for (const restore of restores.splice(0)) restore();
+        release();
         // Past the last call: the foreign save lands after the save returned.
         if (total() < at) foreign(path, OTHER);
         const where = `foreign save before call ${at}: ${JSON.stringify(result)}`;
@@ -186,7 +130,7 @@ describe('a foreign save at every step of a save', () => {
         () => rmSync(path, { force: true })
       );
       const result = await write(token, MINE, contentEtag(ORIGINAL));
-      for (const restore of restores.splice(0)) restore();
+      release();
       const where = `delete before call ${at}: ${JSON.stringify(result)}`;
       // Deleted before the move: nothing is written. Deleted in the gap or after: no trace.
       if (existsSync(path)) expect(readFileSync(path).equals(MINE), where).toBe(true);
@@ -301,12 +245,15 @@ it('refuses to save, and moves nothing, on a disk without hard links', async () 
   const link = spyOn(fs, 'link').mockRejectedValue(
     Object.assign(new Error('not supported'), { code: 'ENOTSUP' })
   );
-  restores.push(() => link.mockRestore());
-  const result = await write(token, MINE, contentEtag(ORIGINAL));
-  expect(result).toMatchObject({ outcome: 'refused' });
-  expect((result as { message: string }).message).toContain('download a copy');
-  expect(readFileSync(path)).toEqual(ORIGINAL);
-  expect(leftovers(dir)).toEqual([]);
+  try {
+    const result = await write(token, MINE, contentEtag(ORIGINAL));
+    expect(result).toMatchObject({ outcome: 'refused' });
+    expect((result as { message: string }).message).toContain('download a copy');
+    expect(readFileSync(path)).toEqual(ORIGINAL);
+    expect(leftovers(dir)).toEqual([]);
+  } finally {
+    link.mockRestore();
+  }
 });
 
 it('keeps the mode of the file it replaces and leaves no directory', async () => {

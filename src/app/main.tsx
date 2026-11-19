@@ -47,7 +47,7 @@ import {
 } from './host-file.js';
 import { HostViewerCard, showInHostViewer, type HostView } from './HostViewerCard.js';
 import { DOCUMENT_META, PATH_META } from '../shared/catalog.js';
-import { adoptFile, applyHostContext } from './widget-helpers.js';
+import { adoptFile, applyHostContext, localResource } from './widget-helpers.js';
 import { loadRequest, type LoadedDoc, type OpenRequest } from './load-document.js';
 import { EditorFrame } from './EditorFrame.js';
 import { usePluginUpdate } from './PluginUpdate.js';
@@ -103,11 +103,10 @@ function Widget() {
         fileActions.current?.flush();
         setRequest((current) => adoptFile(current, input.data.file));
       });
-      // The notification's params ARE the CallToolResult (the spec wraps
-      // nothing), so structuredContent sits directly on them.
+      // The params ARE the CallToolResult: structuredContent sits directly on them.
       app.addEventListener('toolresult', (params) => {
-        const structured = params.structuredContent as
-          { name?: string; resourceUri?: string; createdAt?: number; seq?: number } | undefined;
+        type Opened = { name?: string; resourceUri?: string; createdAt?: number; seq?: number };
+        const structured = params.structuredContent as Opened | undefined;
         if (!structured) return;
         fileActions.current?.flush();
         const opened = FileEntrypointInput.safeParse(structured);
@@ -120,14 +119,15 @@ function Widget() {
         const name = structured.name ?? 'document.docx';
         const base64 = params._meta?.[DOCUMENT_META];
         const path = params._meta?.[PATH_META];
+        const resource = localResource(params._meta, structured);
         if (typeof base64 === 'string') setRequest({ name, base64 });
-        else if (typeof path === 'string' && structured.resourceUri && hasHostFileViewer(app)) {
-          const view = { name, path, resource: structured.resourceUri };
+        else if (typeof path === 'string' && resource && hasHostFileViewer(app)) {
+          const view = { name, path, resource };
           setHostView(view);
           // Also a page thumbnail in the card, for a file small enough to cross this server.
-          setRequest({ name, resource: view.resource });
+          setRequest({ name, resource });
           showInHostViewer(app, view, structured.createdAt, fallBackFromHostView);
-        } else if (structured.resourceUri) setRequest({ name, resource: structured.resourceUri });
+        } else if (resource) setRequest({ name, resource });
         else return;
         // The server-minted election key: the newest open_document wins, and
         // every older widget instance in the conversation stands down.

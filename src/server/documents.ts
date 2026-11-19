@@ -61,6 +61,9 @@ export function openPath(
     // One answer for every path that is not a .docx, there or not: the tool
     // must not tell a model which other files exist.
     if (!/\.docx$/i.test(expanded)) return { message: `"${raw}" is not a .docx file.` };
+    // A server that stopped during a save can leave the document beside its path.
+    const copy = leftBySave(expanded);
+    if (copy) return { message: `"${raw}" is not at its path. A save left a copy at ${copy}.` };
     return {
       message:
         `"${raw}" does not exist on this computer. For a file in a code sandbox, ` +
@@ -151,7 +154,7 @@ async function current(
       if (code === 'ENOENT' && attempt < ABSENT_ATTEMPTS) {
         await pause();
       } else if (code === 'ENOENT' || code === 'ENOTDIR') {
-        const copy = await leftBySave(path);
+        const copy = leftBySave(path);
         return { message: copy ? `${GONE} A save left a copy at ${copy}.` : GONE };
       } else {
         return { message: `The file cannot be checked (${code ?? 'unknown error'}).` };

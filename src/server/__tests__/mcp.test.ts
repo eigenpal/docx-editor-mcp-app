@@ -84,9 +84,13 @@ describe('open_document', () => {
     const result = await (
       await connect(true)
     ).callTool({ name: 'open_document', arguments: { path, content_base64: DOCX } });
-    expect(result.structuredContent).toHaveProperty('resourceUri');
-    // The real path, for the host's file viewer; never the bytes.
-    expect(result._meta).toEqual({ 'docx-editor/path': realpathSync(path) });
+    // The real path, for the host's file viewer, and the token; never the bytes.
+    expect(result._meta).toEqual({
+      'docx-editor/path': realpathSync(path),
+      'docx-editor/resource': expect.stringMatching(/^docx-local:\/\//),
+    });
+    // The model sees no token: it cannot call the save tool, in any host.
+    expect(JSON.stringify([result.content, result.structuredContent])).not.toContain('docx-local');
   });
 
   it('shows a file name without line breaks or direction overrides', async () => {
@@ -128,7 +132,7 @@ describe('open_document', () => {
     writeFileSync(path, Buffer.from(DOCX, 'base64'));
     const client = await connect(true);
     const result = await client.callTool({ name: 'open_document', arguments: { path } });
-    const { resourceUri } = result.structuredContent as { resourceUri: string };
+    const resourceUri = result._meta!['docx-editor/resource'] as string;
     const content = (await client.readResource({ uri: resourceUri })).contents[0]!;
     expect(content).toMatchObject({ blob: DOCX, _meta: { 'openai/resource': { writable: true } } });
   });
