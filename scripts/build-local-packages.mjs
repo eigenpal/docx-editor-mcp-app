@@ -32,7 +32,6 @@ if (demo && new URL(demo).protocol !== 'https:') throw new Error('DEMO_URL must 
 
 const payload = [
   'dist/cli.js',
-  ...(await readdir(join(root, 'dist/native'))).map((name) => `dist/native/${name}`),
   'dist/app/editor.html',
   'dist/app/editor.hash',
   'dist/app/build.json',

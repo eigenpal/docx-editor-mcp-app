@@ -95,9 +95,17 @@ parse boundary. Do not undo that here; `eslint.config.js` bans `innerHTML`.
 
 Paths are attacker-controlled too. `src/server/documents.ts` is the boundary:
 it resolves the REAL path and checks `.docx` on it (a symlink must not open),
-caps the size, and saves through a same-directory temporary file that keeps
-the original's mode. Nothing accepts a raw path except `open_document` in
+and caps the size. Nothing accepts a raw path except `open_document` in
 local mode. Keep `src/server/__tests__/documents.test.ts` passing.
+
+A save never replaces a file by name: another program can save between any
+check and a `rename`. `src/server/replace.ts` moves the file aside, links the
+new file in (a link fails at a path that holds a file), and puts back a file
+that is not the version the save names. Etags are content hashes; a `saved`
+result carries the hash of the bytes written, never a later look at the path.
+`src/server/__tests__/document-save-race.test.ts` puts a foreign save before
+every file system call of a save. Keep it passing, and do not add a `rename`
+or `unlink` of a file that the code did not read first.
 
 A host can run the server more than once and send the open and the widget's
 reads to different processes (Claude Desktop does, between a chat and

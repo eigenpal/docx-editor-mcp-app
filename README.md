@@ -74,20 +74,13 @@ In ChatGPT and Codex, you can open every `.docx` in DOCX Editor: go to
 If the file and your unsaved edits both change, the preview asks which
 version to keep.
 
-For files that the local server saves, each save preserves the previous file
-in a private `.docx-recovery-*` directory beside your document. A conflict message
-shows the recovery path when a change arrives during a save. These directories
-remain because another app can still write to the previous file through an open
-file handle. You can remove them after you close other apps and check your document.
-
-The local server uses native atomic swaps on macOS and Linux. Each swap keeps
-your document path present and preserves the exact file it replaces. The server
-checks the displaced file and the saved bytes for changes. Another app can still
-replace or delete your document independently.
-
-If the system or file system does not support atomic swaps, local saves refuse
-replacement. You can use **Save** to download a copy. File viewers that save
-through the host use the host's save method instead.
+In Claude, the plugin saves your edits to the file only when the file still
+holds the version that the preview shows. If another program saves at the
+same moment, the plugin keeps that version and shows the conflict. In a rare
+case, the plugin cannot put a version back at the path. Then it keeps that
+version in a `.docx-editor-save-*` directory beside your document, and the
+conflict message names the directory. Saves need a disk with hard links;
+on other disks, use **Save** to download a copy.
 
 ## How it works
 

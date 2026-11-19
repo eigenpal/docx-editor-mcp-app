@@ -55,6 +55,7 @@ export class FileSyncSession {
   private pending: Settled | null = null;
   /** A write found a newer file; autosave waits for the reader's decision. */
   private blocked = false;
+  /** A save conflict left another version in a directory; the reader must see where. */
   private recoveryReason: string | undefined;
   /** The newer file's etag from that refused write, for "Keep my version". */
   private conflictEtag: string | null = null;
@@ -344,7 +345,7 @@ export class FileSyncSession {
     const result = await this.file.write(bytes, expected);
     if (result.outcome === 'conflict') {
       if (result.recoveryPath) {
-        this.recoveryReason = `The file changed during the save. The previous file is preserved at ${result.recoveryPath}.`;
+        this.recoveryReason = `The file changed during the save. Another version is kept in ${result.recoveryPath}.`;
       }
       const reason = mode === 'overwrite' ? CHANGED_AGAIN : undefined;
       return this.refused(result.etag || null, reason);

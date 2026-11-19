@@ -74,7 +74,10 @@ const LocalToken = z
  */
 export const LOCAL_FILE_VERSION = {
   name: 'local_file_version',
-  description: 'Return the current etag and write permission for a document opened from disk.',
+  description:
+    'Return the current etag and write permission for a document opened from disk. ' +
+    'The etag is the SHA-256 of the contents. For a file over the size limit it is not: ' +
+    'a save with that etag returns conflict, with an etag that a save accepts.',
   input: z.object({ token: LocalToken }),
 } as const;
 
@@ -82,8 +85,12 @@ export const WRITE_LOCAL_FILE = {
   name: 'write_local_file',
   description:
     "Save the preview's document over its opened file, only if the file is unchanged. " +
-    'ifMatch must be the etag of the version the save replaces; ' +
-    'a different version returns conflict. Saves preserve the previous file in a recovery directory. ' +
+    'ifMatch must be the etag (the SHA-256 of the contents) of the version the save replaces. ' +
+    'If the file holds another version, the result is conflict with the etag of the file now ' +
+    'on disk, and the other version is kept. This holds for a save by another program at any ' +
+    'moment: the server moves the file aside, installs the new file only at a free path, and ' +
+    'puts back a file that is not the ifMatch version. A version that it cannot put back ' +
+    'stays in a directory beside the file, and the result names it as recoveryPath. ' +
     'There is no unconditional save. Size and write-permission checks still apply.',
   input: z.object({
     token: LocalToken,

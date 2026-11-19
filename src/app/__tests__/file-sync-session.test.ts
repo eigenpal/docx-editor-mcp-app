@@ -87,7 +87,7 @@ describe('FileSyncSession', () => {
 
   it('shows the recovery path and pauses autosave after a local save conflict', async () => {
     const { editor, file, settle, last } = setup();
-    const recoveryPath = '/documents/.docx-recovery-test/a.docx';
+    const recoveryPath = '/documents/.docx-editor-save-test';
     let writes = 0;
     file.api.write = async () => {
       writes++;
@@ -97,7 +97,7 @@ describe('FileSyncSession', () => {
     await settle();
     expect(last()).toEqual({
       kind: 'conflict',
-      reason: `The file changed during the save. The previous file is preserved at ${recoveryPath}.`,
+      reason: `The file changed during the save. Another version is kept in ${recoveryPath}.`,
     });
     file.replace(V1);
     await settle();

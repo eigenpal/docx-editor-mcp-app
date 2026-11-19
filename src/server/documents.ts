@@ -2,22 +2,21 @@
  * Files `open_document` opened by path (local mode only), behind signed
  * tokens (`tokens.ts`). The widget reads a token as the `docx-local://<token>`
  * MCP resource; nothing accepts a raw path. Files are read fresh on every
- * request, versioned by content hashes, and saved with recovery files.
+ * request and versioned by content hashes. A save goes through `replace.ts`.
  *
  * Bytes passed in a call (`content_base64`) are only validated here: they go
  * back to the widget in the tool result, so the server keeps no document state.
  */
 
-import { randomUUID } from 'node:crypto';
 import { realpathSync, statSync } from 'node:fs';
 import type { BigIntStats } from 'node:fs';
-import { access, chmod, constants, lstat, open, unlink, writeFile } from 'node:fs/promises';
+import { access, constants, lstat, open } from 'node:fs/promises';
 import { homedir } from 'node:os';
-import { basename, isAbsolute, resolve } from 'node:path';
+import { basename, dirname, isAbsolute, resolve } from 'node:path';
 import { formatLimit, MAX_CONTENT_BYTES } from '../shared/limits.js';
 import { signPath, verifiedPath } from './tokens.js';
 import { contentEtag, fileVersion, metadataOf, OPEN_FLAGS } from './file-version.js';
-import { preserveSave } from './preserve-save.js';
+import { leftBySave, replaceFile } from './replace.js';
 
 type Refusal = { message: string };
 interface Version {
@@ -79,20 +78,65 @@ export function decodeBytes(base64: string): Buffer | Refusal {
  * a regular file, and a symlink or other node swapped in after the open must
  * not be read, versioned, or written through.
  */
+const GONE = 'The file no longer exists at its path.';
+/**
+ * A save, by this process or another, leaves the path absent between two
+ * system calls (`replace.ts`). A short wait tells that from a deleted file.
+ */
+const ABSENT_WAIT_MS = 25;
+const ABSENT_ATTEMPTS = 3;
+const pause = () => new Promise((resolve) => setTimeout(resolve, ABSENT_WAIT_MS));
+const absent = (cause: unknown) => (cause as NodeJS.ErrnoException).code === 'ENOENT';
+
+/** The file's content version, through the instant a save leaves the path absent. */
+async function hashed(path: string) {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await fileVersion(path);
+    } catch (cause) {
+      if (!absent(cause) || attempt === ABSENT_ATTEMPTS) throw cause;
+      await pause();
+    }
+  }
+}
+
+/**
+ * A save would replace even a read-only file; respect its permission instead.
+ * The directory counts too: a save makes its files there.
+ */
+async function canWrite(path: string): Promise<boolean> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      await access(path, constants.W_OK);
+      await access(dirname(path), constants.W_OK | constants.X_OK);
+      return true;
+    } catch (cause) {
+      if (!absent(cause) || attempt === ABSENT_ATTEMPTS) return false;
+      await pause();
+    }
+  }
+}
+
 async function current(
   token: string
 ): Promise<{ path: string; info: BigIntStats } | Refusal | null> {
   const path = verifiedPath(token);
   if (!path) return null;
-  let info: BigIntStats;
-  try {
-    info = await lstat(path, { bigint: true });
-  } catch (cause) {
-    const code = (cause as NodeJS.ErrnoException).code;
-    if (code === 'ENOENT' || code === 'ENOTDIR') {
-      return { message: 'The file no longer exists at its path.' };
+  let info: BigIntStats | undefined;
+  for (let attempt = 1; !info; attempt++) {
+    try {
+      info = await lstat(path, { bigint: true });
+    } catch (cause) {
+      const code = (cause as NodeJS.ErrnoException).code;
+      if (code === 'ENOENT' && attempt < ABSENT_ATTEMPTS) {
+        await pause();
+      } else if (code === 'ENOENT' || code === 'ENOTDIR') {
+        const copy = await leftBySave(path);
+        return { message: copy ? `${GONE} A save left a copy at ${copy}.` : GONE };
+      } else {
+        return { message: `The file cannot be checked (${code ?? 'unknown error'}).` };
+      }
     }
-    return { message: `The file cannot be checked (${code ?? 'unknown error'}).` };
   }
   if (!info.isFile()) return { message: 'The path no longer holds a regular file.' };
   return { path, info };
@@ -101,19 +145,22 @@ async function current(
 export async function version(token: string): Promise<Version | Refusal | null> {
   const file = await current(token);
   if (!file || 'message' in file) return file;
-  // A rename would replace even a read-only file; respect its permission instead.
-  const writable = await access(file.path, constants.W_OK).then(
-    () => true,
-    () => false
-  );
+  const writable = await canWrite(file.path);
+  // The widget polls this. Nothing here reads or shows a file over the cap, so
+  // such a file is versioned by its metadata instead of a hash of all of it.
+  // That etag never equals a content hash: a save still hashes the file.
+  if (file.info.size > BigInt(MAX_CONTENT_BYTES)) {
+    return { etag: `unread-${metadataOf(file.info)}`, writable };
+  }
   try {
-    return { etag: (await fileVersion(file.path)).etag, writable };
+    return { etag: (await hashed(file.path)).etag, writable };
   } catch {
     return { message: 'The file could not be versioned. Try again.' };
   }
 }
 
 const READ_ATTEMPTS = 3;
+const SAVE_ATTEMPTS = 3;
 
 /**
  * A token's file and the etag of exactly those bytes, or why it cannot travel.
@@ -124,7 +171,7 @@ const READ_ATTEMPTS = 3;
  */
 export async function read(
   token: string
-): Promise<{ bytes: Buffer; etag: string } | Refusal | null> {
+): Promise<{ bytes: Buffer; etag: string; writable: boolean } | Refusal | null> {
   const file = await current(token);
   if (!file || 'message' in file) return file;
   const tooLarge = {
@@ -153,7 +200,8 @@ export async function read(
       }
       const after = await handle.stat({ bigint: true });
       if (BigInt(length) === before.size && metadataOf(after) === metadataOf(before)) {
-        return { bytes: buffer.subarray(0, length), etag: contentEtag(buffer.subarray(0, length)) };
+        const bytes = buffer.subarray(0, length);
+        return { bytes, etag: contentEtag(bytes), writable: await canWrite(file.path) };
       }
     }
     return { message: 'The file kept changing during the read. Try again.' };
@@ -163,8 +211,13 @@ export async function read(
 }
 
 /**
- * Preserve the replaced file because another app can save after any version check.
- * Recovery files remain beside the document in private directories.
+ * Save over a token's file, only if it still holds the version `ifMatch`
+ * names. There is no unconditional save: "Keep my version" passes the etag of
+ * the newer file the reader chose to replace. `replace.ts` makes the swap and
+ * explains why no step of it can overwrite another program's save.
+ *
+ * `saved` carries the hash of the bytes written, never a later look at the
+ * path: an edit that lands right after the save must not pass for this one.
  */
 export async function write(
   token: string,
@@ -178,55 +231,66 @@ export async function write(
     return { outcome: 'too-large', maxBytes: MAX_CONTENT_BYTES };
   }
   if (!isDocx(bytes)) return { outcome: 'refused', message: 'The bytes are not a .docx file.' };
-  const writable = await access(file.path, constants.W_OK).then(
-    () => true,
-    () => false
-  );
-  if (!writable) return { outcome: 'refused', message: 'The file is read-only.' };
+  if (!(await canWrite(file.path)))
+    return { outcome: 'refused', message: 'The file is read-only.' };
   if (!ifMatch)
     return { outcome: 'refused', message: 'A save needs the etag of the file it replaces.' };
-  const initial = await version(token);
-  if (!initial || 'message' in initial) {
-    return { outcome: 'refused', message: 'The file could not be versioned. Try again.' };
-  }
-  if (initial.etag !== ifMatch) return { outcome: 'conflict', etag: initial.etag };
   const { path } = file;
-  // The mode of the version that passed the check, not of a later lookup.
-  const mode = Number(file.info.mode & 0o777n);
-  const temporary = `${path}.${randomUUID()}.tmp`;
-  let recoveryPath: string | undefined;
-  try {
-    await writeFile(temporary, bytes, { mode: 0o600, flag: 'wx' });
-    await chmod(temporary, mode); // exactly: writeFile's mode passes the umask
-    const now = await version(token);
-    if (!now || 'message' in now || now.etag !== ifMatch) {
-      await unlink(temporary);
-      if (!now) return { outcome: 'refused', message: 'This document is not open.' };
-      if ('message' in now) return { outcome: 'refused', message: now.message };
-      return { outcome: 'conflict', etag: now.etag };
+  /** The etag on disk after the save, or why the file cannot give one. */
+  const now = async (recoveryPath?: string): Promise<WriteResult> => {
+    try {
+      return { outcome: 'conflict', etag: (await hashed(path)).etag, recoveryPath };
+    } catch {
+      // Gone, or no longer a regular file: `current` has the words for it.
+      const gone = await current(token);
+      const reason =
+        gone && 'message' in gone ? gone.message : 'The file could not be versioned. Try again.';
+      const kept = recoveryPath ? ` Another version is kept in ${recoveryPath}.` : '';
+      return { outcome: 'refused', message: reason + kept };
     }
-    const result = await preserveSave(path, temporary, ifMatch);
-    recoveryPath = result.recoveryPath;
-    if (result.outcome === 'conflict') {
-      const now = await version(token);
+  };
+  // One attempt: check the version, replace the file, and look at the result.
+  const attempt = async (): Promise<WriteResult> => {
+    let seen;
+    try {
+      seen = await hashed(path);
+    } catch {
+      return { outcome: 'refused', message: 'The file could not be versioned. Try again.' };
+    }
+    if (seen.etag !== ifMatch) return { outcome: 'conflict', etag: seen.etag };
+    let replaced;
+    try {
+      replaced = await replaceFile(path, bytes, seen.info, ifMatch);
+    } catch (cause) {
+      const reason = cause instanceof Error ? cause.message : String(cause);
+      return { outcome: 'refused', message: `The file was not saved: ${reason}` };
+    }
+    // Deleted between the check and the move, or another save had it moved
+    // aside at that instant. Nothing was written; report what is there now.
+    if (replaced.outcome === 'missing') return now();
+    if (replaced.outcome === 'unsupported') {
       return {
-        outcome: 'conflict',
-        etag: now && !('message' in now) ? now.etag : '',
-        recoveryPath: result.recoveryPath,
+        outcome: 'refused',
+        message:
+          'This disk has no hard links, so the preview cannot save to it safely. ' +
+          'Press Save to download a copy.',
       };
     }
-  } catch (cause) {
-    await unlink(temporary).catch(() => undefined);
-    throw cause;
+    if (replaced.outcome === 'conflict') return now(replaced.recoveryPath);
+    // Another program can save right after this one. Its version is on disk,
+    // intact; report it, so that its etag never passes for this save's.
+    const saved = contentEtag(bytes);
+    const after = await now();
+    return after.outcome === 'conflict' && after.etag === saved
+      ? { outcome: 'saved', etag: saved }
+      : after;
+  };
+  for (let attempts = 1; ; attempts++) {
+    const result = await attempt();
+    // A conflict that names the caller's own version is no conflict: another
+    // save crossed this one and left the file as it was. A caller that got
+    // it would wait for a change that never comes. Try again instead.
+    const crossed = result.outcome === 'conflict' && result.etag === ifMatch;
+    if (!crossed || result.recoveryPath || attempts === SAVE_ATTEMPTS) return result;
   }
-  const after = await version(token);
-  if (!after || 'message' in after) {
-    return {
-      outcome: 'refused',
-      message: `The file changed after the save. The previous file is preserved at ${recoveryPath}.`,
-    };
-  }
-  const savedEtag = contentEtag(bytes);
-  if (after.etag !== savedEtag) return { outcome: 'conflict', etag: after.etag, recoveryPath };
-  return { outcome: 'saved', etag: savedEtag };
 }

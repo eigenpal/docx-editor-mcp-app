@@ -23,7 +23,6 @@ const docx = zipSync({
 });
 const required = [
   'dist/cli.js',
-  `dist/native/atomic-swap-${process.platform === 'darwin' ? 'darwin' : `linux-${process.arch}`}.node`,
   'dist/app/editor.html',
   'dist/app/editor.hash',
   'dist/app/build.json',

@@ -25,7 +25,6 @@
   },
   "files": [
     "dist/cli.js",
-    "dist/native",
     "dist/app",
     "assets",
     "skills",
@@ -48,7 +47,7 @@
     "access": "public"
   },
   "scripts": {
-    "build": "bun run build:native && bun run build:app && bun run build:cli && bun run build:notices",
+    "build": "bun run build:app && bun run build:cli && bun run build:notices",
     "build:app": "node scripts/build-app.mjs",
     "build:harness": "node scripts/build-harness.mjs",
     "dev": "node scripts/dev.mjs",
@@ -59,7 +58,7 @@
     "lint:fix": "eslint src/ --fix",
     "start": "node dist/cli.js http",
     "stdio": "node dist/cli.js stdio",
-    "test": "bun run build:native && bun test",
+    "test": "bun test",
     "typecheck": "tsc --noEmit",
     "build:cli": "node scripts/build-cli.mjs",
     "prepack": "bun run build",
@@ -74,8 +73,7 @@
     "engine:update": "node scripts/check-engine.mjs --update",
     "release:version": "node scripts/release-version.mjs",
     "release:verify": "bun run typecheck && bun run lint && bun run test && bun run build:local && bun run smoke && bun run smoke:packages && bun run smoke:upgrade",
-    "smoke:upgrade": "node scripts/smoke-upgrade.mjs",
-    "build:native": "node scripts/build-native.mjs"
+    "smoke:upgrade": "node scripts/smoke-upgrade.mjs"
   },
   "devDependencies": {
     "@docx-editor.dev/core": "2.39.0",
@@ -95,7 +93,6 @@
     "eslint": "^10.8.1",
     "eslint-plugin-react-hooks": "^7.0.1",
     "fflate": "^0.8.2",
-    "node-api-headers": "^1.9.0",
     "prettier": "^3.8.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",

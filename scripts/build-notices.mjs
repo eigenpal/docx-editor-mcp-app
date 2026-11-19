@@ -24,8 +24,7 @@ function packageRoot(input) {
   return parts.slice(0, at + width).join('/');
 }
 
-// Native builds use these headers outside the JavaScript bundles.
-const roots = new Set(['node_modules/node-api-headers']);
+const roots = new Set();
 for (const file of metafiles) {
   const meta = JSON.parse(readFileSync(join(root, file), 'utf8'));
   for (const input of Object.keys(meta.inputs)) {

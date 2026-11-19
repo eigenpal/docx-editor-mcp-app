@@ -255,10 +255,9 @@ export function createMcpServer({ local = false, ui = loadWidget() }: McpServerO
       new ResourceTemplate('docx-local://{token}', { list: undefined }),
       { title: 'Opened document', mimeType: DOCX_MIME },
       async (uri, { token }) => {
-        const [file, current] = await Promise.all([read(String(token)), version(String(token))]);
-        if (!file || !current) throw new Error('This document is no longer open.');
+        const file = await read(String(token));
+        if (!file) throw new Error('This document is no longer open.');
         if ('message' in file) throw new Error(file.message);
-        if ('message' in current) throw new Error(current.message);
         return {
           contents: [
             {
@@ -267,7 +266,7 @@ export function createMcpServer({ local = false, ui = loadWidget() }: McpServerO
               blob: file.bytes.toString('base64'),
               // The OpenAI host's metadata shape, so one sync session handles both kinds of file.
               // The etag is the one read with these bytes, never a separate later lookup.
-              _meta: { 'openai/resource': { etag: file.etag, writable: current.writable } },
+              _meta: { 'openai/resource': { etag: file.etag, writable: file.writable } },
             },
           ],
         };
