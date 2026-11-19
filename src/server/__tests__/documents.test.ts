@@ -7,6 +7,7 @@
 import { describe, expect, it } from 'bun:test';
 import {
   chmodSync,
+  linkSync,
   mkdtempSync,
   readFileSync,
   realpathSync,
@@ -40,6 +41,23 @@ async function etag(t: string): Promise<string> {
 }
 
 describe('openPath', () => {
+  it('refuses a file that is named .docx but does not start as one', () => {
+    // A hard link has no other real path: only the contents tell.
+    const secret = file('secret.txt', Buffer.from('not a document'));
+    linkSync(secret, join(dir, 'link.docx'));
+    expect(openPath(join(dir, 'link.docx'))).toHaveProperty('message');
+    expect(openPath(file('empty.docx', Buffer.alloc(0)))).toHaveProperty('message');
+  });
+
+  it('gives one answer for any path that is not a .docx, there or not', () => {
+    const there = openPath(file('notes.txt', Buffer.from('x')));
+    const absent = openPath(join(dir, 'no-such-file.txt'));
+    if (!('message' in there) || !('message' in absent)) throw new Error('opened');
+    expect(there.message.replace('notes.txt', '')).toBe(
+      absent.message.replace('no-such-file.txt', '')
+    );
+  });
+
   it('opens an absolute .docx path and reads it fresh', async () => {
     const path = file('a.docx');
     const t = token(openPath(path));
@@ -57,7 +75,9 @@ describe('openPath', () => {
   });
 
   it('opens an oversized file for the host viewer, but never reads it', async () => {
-    const path = file('huge.docx', Buffer.alloc(MAX_CONTENT_BYTES + 1));
+    const huge = Buffer.alloc(MAX_CONTENT_BYTES + 1);
+    DOCX.copy(huge);
+    const path = file('huge.docx', huge);
     const opened = openPath(path);
     expect(opened).toMatchObject({ path: realpathSync(path), size: MAX_CONTENT_BYTES + 1 });
     expect(await read(token(opened))).toHaveProperty('message');

@@ -8,7 +8,7 @@
  * back to the widget in the tool result, so the server keeps no document state.
  */
 
-import { realpathSync, statSync } from 'node:fs';
+import { closeSync, openSync, readSync, realpathSync, statSync } from 'node:fs';
 import type { BigIntStats } from 'node:fs';
 import { access, constants, lstat, open } from 'node:fs/promises';
 import { homedir } from 'node:os';
@@ -33,6 +33,19 @@ type WriteResult =
 const isDocx = (bytes: Uint8Array) =>
   bytes[0] === 0x50 && bytes[1] === 0x4b && bytes[2] === 0x03 && bytes[3] === 0x04;
 
+function startsAsDocx(path: string): boolean {
+  const head = Buffer.alloc(4);
+  let descriptor;
+  try {
+    descriptor = openSync(path, OPEN_FLAGS);
+    return readSync(descriptor, head, 0, 4, 0) === 4 && isDocx(head);
+  } catch {
+    return false;
+  } finally {
+    if (descriptor !== undefined) closeSync(descriptor);
+  }
+}
+
 export function openPath(
   raw: string,
   name?: string
@@ -45,6 +58,9 @@ export function openPath(
     real = realpathSync(expanded);
     info = statSync(real);
   } catch {
+    // One answer for every path that is not a .docx, there or not: the tool
+    // must not tell a model which other files exist.
+    if (!/\.docx$/i.test(expanded)) return { message: `"${raw}" is not a .docx file.` };
     return {
       message:
         `"${raw}" does not exist on this computer. For a file in a code sandbox, ` +
@@ -54,6 +70,10 @@ export function openPath(
   // Checked on the REAL path: the preview writes there, so a `.docx` symlink to
   // another file must not open.
   if (!info.isFile() || !/\.docx$/i.test(real)) return { message: `"${raw}" is not a .docx file.` };
+  // The name is not enough: a hard link named `.docx` can point at any file.
+  // Checked at the open only. A later read can meet a half-written file, and
+  // the widget waits that out.
+  if (!startsAsDocx(real)) return { message: `"${raw}" is not a .docx file.` };
   // No size check here: a host's own file viewer shows any size. `read`
   // refuses a file too large for this server's messages.
   return { token: signPath(real), name: name ?? basename(real), path: real, size: info.size };
@@ -281,7 +301,11 @@ export async function write(
     // intact; report it, so that its etag never passes for this save's.
     const saved = contentEtag(bytes);
     const after = await now();
-    return after.outcome === 'conflict' && after.etag === saved
+    if (after.outcome === 'conflict' && after.etag !== saved) return after;
+    // The file is there but this look at it failed. The save stands: its etag
+    // names the bytes written, so a later save cannot pass over another version.
+    const there = after.outcome === 'conflict' || (await current(token));
+    return there === true || (there && !('message' in there))
       ? { outcome: 'saved', etag: saved }
       : after;
   };
@@ -291,6 +315,9 @@ export async function write(
     // save crossed this one and left the file as it was. A caller that got
     // it would wait for a change that never comes. Try again instead.
     const crossed = result.outcome === 'conflict' && result.etag === ifMatch;
-    if (!crossed || result.recoveryPath || attempts === SAVE_ATTEMPTS) return result;
+    if (!crossed || result.recoveryPath) return result;
+    if (attempts === SAVE_ATTEMPTS) {
+      return { outcome: 'refused', message: 'The file could not be saved. Try again.' };
+    }
   }
 }

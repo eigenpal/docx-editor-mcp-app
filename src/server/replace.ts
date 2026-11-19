@@ -96,17 +96,33 @@ export async function replaceFile(
     const taken = await versionOf(aside);
     const replaceable =
       taken?.etag === ifMatch && (await metadataAt(aside)) === metadataOf(taken.info);
-    if (replaceable) {
+    if (replaceable && installed) {
       // A failure here leaves the old version in the directory. The save still stands.
       await unlink(aside).catch(() => undefined);
-      return { outcome: installed ? 'saved' : 'conflict' };
+      return { outcome: 'saved' };
     }
-    if (!installed) return { outcome: 'conflict', recoveryPath: directory };
+    if (!installed) {
+      // The file moved aside may be the only copy: a program can create a path
+      // and remove it again. Remove the caller's version only while the other
+      // file is there; else put it back.
+      if (replaceable && (await lstat(path).catch(() => null))?.isFile()) {
+        await unlink(aside).catch(() => undefined);
+        return { outcome: 'conflict' };
+      }
+      try {
+        linkSync(aside, path);
+      } catch {
+        return { outcome: 'conflict', recoveryPath: directory };
+      }
+      await unlink(aside).catch(() => undefined);
+      return { outcome: 'conflict' };
+    }
     // A fixed, short name: one made from the document's name can pass the name limit.
     return await rollBack(path, aside, join(directory, 'newer.docx'), bytes);
   } finally {
-    // `staged` is this save's own file, or one more name of it.
+    // `staged` is this save's own file, or one more name of it. So is the probe.
     await unlink(staged).catch(() => undefined);
+    await unlink(join(directory, 'probe')).catch(() => undefined);
     // Fails when the directory keeps a file. That is the intent.
     await rmdir(directory).catch(() => undefined);
   }

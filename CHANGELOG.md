@@ -6,6 +6,10 @@
 - Use the SHA-256 of the file contents as the etag. A `saved` result carries the hash of the bytes written, so a later edit never passes for the saved version.
 - Report a conflict, and keep the other version on disk, when the file changes during a save.
 - Refuse to save to a disk without hard links.
+- Keep the document when a step of a save fails. Before, one sequence removed the file that the save had moved aside.
+- Refuse to open a file that is named `.docx` but does not start as one, for example a hard link to another file.
+- Remove line breaks and direction overrides from file names in tool results.
+- Give one answer for a path that is not a `.docx`, whether the file is there or not.
 
 ## 2.39.0
 

@@ -61,6 +61,17 @@ let wasm: string | null = null;
 const loadWasm = () =>
   (wasm ??= readFileSync(join(REPO_ROOT, 'dist/app/harfbuzz.wasm')).toString('base64'));
 
+/**
+ * A file name as the model and the reader see it. A name comes from disk or
+ * from a tool call, so it can carry line breaks or direction overrides that
+ * make it read as an instruction or as another name.
+ */
+const shownName = (name: string) =>
+  name
+    .replace(/[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]+/g, ' ')
+    .trim()
+    .slice(0, 255) || 'document.docx';
+
 /** The newest preview in a conversation wins; see src/app/supersession.ts. */
 let seq = 0;
 
@@ -144,7 +155,7 @@ export function createMcpServer({ local = false, ui = loadWidget() }: McpServerO
         if ('message' in bytes) {
           return refuse(opened ? `${opened.message} ${bytes.message}` : bytes.message);
         }
-        const shown = name ?? (path ? basename(path) : 'document.docx');
+        const shown = shownName(name ?? (path ? basename(path) : 'document.docx'));
         // The agent must know this preview follows no file, or it waits for updates.
         const fallback = opened
           ? ` "${path}" did not open here, so the preview shows content_base64. It does ` +
@@ -167,9 +178,11 @@ export function createMcpServer({ local = false, ui = loadWidget() }: McpServerO
             "host's file viewer, and a host without one cannot show it."
           : '';
       return {
-        content: [{ type: 'text', text: `Showing ${opened.name} in the preview.${large}` }],
+        content: [
+          { type: 'text', text: `Showing ${shownName(opened.name)} in the preview.${large}` },
+        ],
         structuredContent: {
-          name: opened.name,
+          name: shownName(opened.name),
           resourceUri: `docx-local://${opened.token}`,
           ...election,
         },
