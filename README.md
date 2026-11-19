@@ -74,6 +74,14 @@ In ChatGPT and Codex, you can open every `.docx` in DOCX Editor: go to
 If the file and your unsaved edits both change, the preview asks which
 version to keep.
 
+In Claude, the plugin saves your edits to the file only when the file still
+holds the version that the preview shows. If another program saves at the
+same moment, the plugin keeps that version and shows the conflict. In a rare
+case, the plugin cannot put a version back at the path. Then it keeps that
+version in a `.docx-editor-save-*` directory beside your document, and the
+conflict message names the directory. Saves need a disk with hard links;
+on other disks, use **Save** to download a copy.
+
 ## How it works
 
 The model gets one tool, `open_document`. Your desktop host starts a small

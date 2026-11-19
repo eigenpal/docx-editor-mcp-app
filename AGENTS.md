@@ -95,9 +95,33 @@ parse boundary. Do not undo that here; `eslint.config.js` bans `innerHTML`.
 
 Paths are attacker-controlled too. `src/server/documents.ts` is the boundary:
 it resolves the REAL path and checks `.docx` on it (a symlink must not open),
-caps the size, and saves through a same-directory temporary file that keeps
-the original's mode. Nothing accepts a raw path except `open_document` in
+and caps the size. Nothing accepts a raw path except `open_document` in
 local mode. Keep `src/server/__tests__/documents.test.ts` passing.
+
+A save never replaces a file by name: another program can save between any
+check and a `rename`. `src/server/replace.ts` moves the file aside, links the
+new file in (a link fails at a path that holds a file), and puts back a file
+that is not the version the save names. Etags are content hashes; a `saved`
+result carries the hash of the bytes written, never a later look at the path.
+Do not add a `rename` or `unlink` of a file that the code did not read first.
+
+The save tests do not pick their moments. They act before EVERY file system
+call of a save, through `intercept` in `src/server/__tests__/save-steps.ts`,
+so a new step is covered without a new test:
+
+| Test file                      | Before each call of a save                           |
+| ------------------------------ | ---------------------------------------------------- |
+| `document-save-race.test.ts`   | Another program saves or deletes the file            |
+| `document-save-faults.test.ts` | The call fails, once or from then on                 |
+| `document-save-pairs.test.ts`  | Two of those, at every pair of calls                 |
+| `document-save-swaps.test.ts`  | The path becomes a symlink or a directory            |
+| `document-save-stress.test.ts` | No plan: real processes save the file in loops       |
+| `save-contract.test.ts`        | The four rules of a save, through the MCP protocol   |
+| `scripts/smoke-save-races.mjs` | The same, and a kill of the server, on `dist/cli.js` |
+
+`src/app/__tests__/file-sync-fuzz.test.ts` drives the sync session with random
+sequences. `bun run test:stress` runs the two random suites for longer.
+`docs/engineering/save-safety.md` states the rules that these tests hold.
 
 A host can run the server more than once and send the open and the widget's
 reads to different processes (Claude Desktop does, between a chat and

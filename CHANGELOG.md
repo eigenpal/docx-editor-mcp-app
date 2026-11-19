@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased
+
+- Keep a save by another program that lands at any moment during a preview save. Before, an edit between the last version check and the file replacement was overwritten.
+- Use the SHA-256 of the file contents as the etag. A `saved` result carries the hash of the bytes written, so a later edit never passes for the saved version.
+- Report a conflict, and keep the other version on disk, when the file changes during a save.
+- Refuse to save to a disk without hard links.
+- Keep the document when a step of a save fails. Before, one sequence removed the file that the save had moved aside.
+- Refuse to open a file that is named `.docx` but does not start as one, for example a hard link to another file.
+- Remove line breaks and direction overrides from file names in tool results.
+- Give one answer for a path that is not a `.docx`, whether the file is there or not.
+- Send the token that reads and saves a file to the preview only. The model no longer receives it, so it cannot call the save tool in a host that ignores tool visibility.
+- Name the copy that an interrupted save left, in `open_document` too.
+- Leave a Claude Desktop configuration unchanged when `setup claude` does not understand it, and write the new one in one step.
+- Put the new file at the path only when the save moved the file that it checked. Before, a second server could read the new bytes there, save over them, and lose that save to a rollback.
+- Answer with an error, and keep running, when the hosted server cannot start for a request.
+- Test the built package against another program at each step of a save, and against a stop of the server at each step.
+
 ## 2.39.0
 
 - Update the editor packages to `2.39.0`.

@@ -37,7 +37,8 @@ async function main(argv: string[]): Promise<void> {
       const flag = rest.indexOf('--port');
       const port = flag === -1 ? Number(process.env.PORT ?? 3000) : Number(rest[flag + 1]);
       if (!Number.isInteger(port) || port <= 0) return exit('--port needs a port number.');
-      return startHttp(port);
+      startHttp(port);
+      return;
     }
     case 'setup':
       if (rest[0] === 'codex') return setupCodex();

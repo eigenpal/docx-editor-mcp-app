@@ -4,7 +4,7 @@
  */
 
 import { describe, expect, it } from 'bun:test';
-import { mkdtempSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { mkdtempSync, readFileSync, readdirSync, writeFileSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -41,6 +41,52 @@ describe('docx-editor-mcp-app', () => {
     expect(Object.keys(written.mcpServers)).toEqual(['other', 'docx-editor']);
     expect(written.mcpServers['docx-editor'].args.at(-1)).toBe('stdio');
     expect(readFileSync(`${config}.bak`, 'utf8')).toContain('"other"');
+  });
+});
+
+describe('setup claude', () => {
+  it('leaves a configuration it does not understand exactly as it was', () => {
+    if (process.platform !== 'darwin') return;
+    for (const broken of [
+      '{ "mcpServers": ',
+      '[]',
+      'null',
+      '"text"',
+      '{"mcpServers":"x"}',
+      '{"mcpServers":[]}',
+    ]) {
+      const home = mkdtempSync(join(tmpdir(), 'docx-cli-'));
+      const dir = join(home, 'Library/Application Support/Claude');
+      mkdirSync(dir, { recursive: true });
+      const config = join(dir, 'claude_desktop_config.json');
+      writeFileSync(config, broken);
+      const { code, err } = run(['setup', 'claude'], { HOME: home });
+      expect(code, broken).toBe(1);
+      expect(err, broken).toContain('The file is unchanged.');
+      expect(readFileSync(config, 'utf8'), broken).toBe(broken);
+      expect(readdirSync(dir), broken).toEqual(['claude_desktop_config.json']);
+    }
+  });
+
+  it('keeps every other key of the configuration, and can run twice', () => {
+    if (process.platform !== 'darwin') return;
+    const home = mkdtempSync(join(tmpdir(), 'docx-cli-'));
+    const dir = join(home, 'Library/Application Support/Claude');
+    mkdirSync(dir, { recursive: true });
+    const config = join(dir, 'claude_desktop_config.json');
+    const before = { theme: 'dark', mcpServers: { other: { command: 'x', env: { A: '1' } } } };
+    writeFileSync(config, JSON.stringify(before));
+    expect(run(['setup', 'claude'], { HOME: home }).code).toBe(0);
+    expect(run(['setup', 'claude'], { HOME: home }).code).toBe(0);
+    const written = JSON.parse(readFileSync(config, 'utf8'));
+    expect(written.theme).toBe('dark');
+    expect(written.mcpServers.other).toEqual(before.mcpServers.other);
+    expect(Object.keys(written.mcpServers)).toEqual(['other', 'docx-editor']);
+    // No temporary file stays.
+    expect(readdirSync(dir).sort()).toEqual([
+      'claude_desktop_config.json',
+      'claude_desktop_config.json.bak',
+    ]);
   });
 });
 

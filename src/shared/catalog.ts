@@ -49,6 +49,14 @@ export const DOCUMENT_META = 'docx-editor/document';
 export const PATH_META = 'docx-editor/path';
 
 /**
+ * The `open_document` result `_meta` key carrying the `docx-local://<token>`
+ * URI of a file opened by path. In `_meta`, which hosts give the widget and
+ * not the model: the token is what `write_local_file` takes, so a model that
+ * never sees it cannot save, even in a host that ignores tool visibility.
+ */
+export const RESOURCE_META = 'docx-editor/resource';
+
+/**
  * The file viewer entrypoint. The HOST calls it when the user opens a .docx in
  * ChatGPT or Codex desktop. Its input is the OpenAI SDK's
  * `OpenAIFileEntrypointInputSchema`.
@@ -66,7 +74,7 @@ const LocalToken = z
   .string()
   .max(16_384)
   .regex(/^[\w-]+\.[\w-]{43}$/)
-  .describe('The signed token after docx-local:// in the open_document result resourceUri.');
+  .describe('The signed token after docx-local:// in the open_document result _meta.');
 
 /**
  * Local mode's file sync, called by the WIDGET: the preview watches the file
@@ -74,7 +82,10 @@ const LocalToken = z
  */
 export const LOCAL_FILE_VERSION = {
   name: 'local_file_version',
-  description: 'Return the current etag and write permission for a document opened from disk.',
+  description:
+    'Return the current etag and write permission for a document opened from disk. ' +
+    'The etag is the SHA-256 of the contents. For a file over the size limit it is not: ' +
+    'a save with that etag returns conflict, with an etag that a save accepts.',
   input: z.object({ token: LocalToken }),
 } as const;
 
@@ -82,8 +93,12 @@ export const WRITE_LOCAL_FILE = {
   name: 'write_local_file',
   description:
     "Save the preview's document over its opened file, only if the file is unchanged. " +
-    'ifMatch must be the etag of the version the save replaces; ' +
-    'a different current version returns conflict and the file is not changed. ' +
+    'ifMatch must be the etag (the SHA-256 of the contents) of the version the save replaces. ' +
+    'If the file holds another version, the result is conflict with the etag of the file now ' +
+    'on disk, and the other version is kept. This holds for a save by another program at any ' +
+    'moment: the server moves the file aside, installs the new file only at a free path, and ' +
+    'puts back a file that is not the ifMatch version. A version that it cannot put back ' +
+    'stays in a directory beside the file, and the result names it as recoveryPath. ' +
     'There is no unconditional save. Size and write-permission checks still apply.',
   input: z.object({
     token: LocalToken,

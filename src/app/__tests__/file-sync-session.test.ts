@@ -85,6 +85,31 @@ describe('FileSyncSession', () => {
     expect(last()?.kind).toBe('conflict');
   });
 
+  it('shows the recovery path and pauses autosave after a local save conflict', async () => {
+    const { editor, file, settle, last } = setup();
+    const recoveryPath = '/documents/.docx-editor-save-test';
+    let writes = 0;
+    file.api.write = async () => {
+      writes++;
+      return { outcome: 'conflict', etag: 'v2', recoveryPath };
+    };
+    editor.edit();
+    await settle();
+    expect(last()).toEqual({
+      kind: 'conflict',
+      reason: `The file changed during the save. Another version is kept in ${recoveryPath}.`,
+    });
+    file.replace(V1);
+    await settle();
+    expect(last()).toMatchObject({
+      kind: 'conflict',
+      reason: expect.stringContaining(recoveryPath),
+    });
+    editor.edit(docx(p('another edit')));
+    await settle();
+    expect(writes).toBe(1);
+  });
+
   it('saves edits typed while "Keep my version" was writing', async () => {
     const { editor, file, session, settle } = setup();
     editor.edit();

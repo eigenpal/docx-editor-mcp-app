@@ -82,7 +82,7 @@ describe('advertised tool contracts', () => {
     try {
       await withClient(true, async (client) => {
         const opened = await client.callTool({ name: 'open_document', arguments: { path } });
-        const { resourceUri } = opened.structuredContent as { resourceUri: string };
+        const resourceUri = opened._meta!['docx-editor/resource'] as string;
         const token = resourceUri.slice('docx-local://'.length);
         const version = await client.callTool({ name: 'local_file_version', arguments: { token } });
         const { etag } = version.structuredContent as { etag: string };

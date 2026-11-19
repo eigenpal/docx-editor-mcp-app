@@ -11,7 +11,14 @@
  */
 
 import { execFileSync } from 'node:child_process';
-import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  renameSync,
+  writeFileSync,
+} from 'node:fs';
 import { homedir, platform } from 'node:os';
 import { dirname, join } from 'node:path';
 import { REPO_ROOT } from './paths.js';
@@ -55,18 +62,30 @@ export function setupClaude(cliPath: string): void {
   const entry = { command: process.execPath, args: [cliPath, 'stdio'] };
   const configPath = claudeConfigPath();
   let config: { mcpServers?: Record<string, unknown> } = {};
+  const isObject = (value: unknown) =>
+    typeof value === 'object' && value !== null && !Array.isArray(value);
   if (existsSync(configPath)) {
-    copyFileSync(configPath, `${configPath}.bak`);
+    let parsed: unknown;
     try {
-      config = JSON.parse(readFileSync(configPath, 'utf8')) as typeof config;
+      parsed = JSON.parse(readFileSync(configPath, 'utf8'));
     } catch {
-      fail(`Could not parse ${configPath}. Fix it by hand; a backup is at .bak.`);
+      fail(`Could not parse ${configPath}. Fix it by hand. The file is unchanged.`);
     }
+    // This file holds the user's other servers. Change it only when its shape is known.
+    const servers = (parsed as { mcpServers?: unknown } | null)?.mcpServers;
+    if (!isObject(parsed) || (servers !== undefined && !isObject(servers))) {
+      fail(`${configPath} is not a Claude Desktop configuration. The file is unchanged.`);
+    }
+    config = parsed as typeof config;
+    copyFileSync(configPath, `${configPath}.bak`);
   } else {
     mkdirSync(dirname(configPath), { recursive: true });
   }
   config.mcpServers = { ...config.mcpServers, 'docx-editor': entry };
-  writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`, 'utf8');
+  // Whole or not at all: a stop during the write must not leave half a file.
+  const temporary = `${configPath}.${process.pid}.tmp`;
+  writeFileSync(temporary, `${JSON.stringify(config, null, 2)}\n`, 'utf8');
+  renameSync(temporary, configPath);
   say(`Added "docx-editor" to ${configPath} (backup at .bak).`);
   say('Restart Claude Desktop, then ask Claude to open a .docx file.');
 }

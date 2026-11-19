@@ -28,6 +28,7 @@ import {
 import {
   DOCUMENT_META,
   PATH_META,
+  RESOURCE_META,
   LOCAL_FILE_VERSION,
   HostedOpenDocumentInput,
   OpenDocumentInput,
@@ -60,6 +61,17 @@ function loadWidget() {
 let wasm: string | null = null;
 const loadWasm = () =>
   (wasm ??= readFileSync(join(REPO_ROOT, 'dist/app/harfbuzz.wasm')).toString('base64'));
+
+/**
+ * A file name as the model and the reader see it. A name comes from disk or
+ * from a tool call, so it can carry line breaks or direction overrides that
+ * make it read as an instruction or as another name.
+ */
+const shownName = (name: string) =>
+  name
+    .replace(/[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]+/g, ' ')
+    .trim()
+    .slice(0, 255) || 'document.docx';
 
 /** The newest preview in a conversation wins; see src/app/supersession.ts. */
 let seq = 0;
@@ -144,7 +156,7 @@ export function createMcpServer({ local = false, ui = loadWidget() }: McpServerO
         if ('message' in bytes) {
           return refuse(opened ? `${opened.message} ${bytes.message}` : bytes.message);
         }
-        const shown = name ?? (path ? basename(path) : 'document.docx');
+        const shown = shownName(name ?? (path ? basename(path) : 'document.docx'));
         // The agent must know this preview follows no file, or it waits for updates.
         const fallback = opened
           ? ` "${path}" did not open here, so the preview shows content_base64. It does ` +
@@ -167,14 +179,19 @@ export function createMcpServer({ local = false, ui = loadWidget() }: McpServerO
             "host's file viewer, and a host without one cannot show it."
           : '';
       return {
-        content: [{ type: 'text', text: `Showing ${opened.name} in the preview.${large}` }],
+        content: [
+          { type: 'text', text: `Showing ${shownName(opened.name)} in the preview.${large}` },
+        ],
         structuredContent: {
-          name: opened.name,
-          resourceUri: `docx-local://${opened.token}`,
+          name: shownName(opened.name),
           ...election,
         },
-        // For the widget only: a host with a file viewer opens the file there.
-        _meta: { [PATH_META]: opened.path },
+        // For the widget only: the token that reads and saves the file, and
+        // the path that a host with a file viewer opens there.
+        _meta: {
+          [RESOURCE_META]: `docx-local://${opened.token}`,
+          [PATH_META]: opened.path,
+        },
       };
     }
   );
@@ -255,10 +272,9 @@ export function createMcpServer({ local = false, ui = loadWidget() }: McpServerO
       new ResourceTemplate('docx-local://{token}', { list: undefined }),
       { title: 'Opened document', mimeType: DOCX_MIME },
       async (uri, { token }) => {
-        const [file, current] = await Promise.all([read(String(token)), version(String(token))]);
-        if (!file || !current) throw new Error('This document is no longer open.');
+        const file = await read(String(token));
+        if (!file) throw new Error('This document is no longer open.');
         if ('message' in file) throw new Error(file.message);
-        if ('message' in current) throw new Error(current.message);
         return {
           contents: [
             {
@@ -267,7 +283,7 @@ export function createMcpServer({ local = false, ui = loadWidget() }: McpServerO
               blob: file.bytes.toString('base64'),
               // The OpenAI host's metadata shape, so one sync session handles both kinds of file.
               // The etag is the one read with these bytes, never a separate later lookup.
-              _meta: { 'openai/resource': { etag: file.etag, writable: current.writable } },
+              _meta: { 'openai/resource': { etag: file.etag, writable: file.writable } },
             },
           ],
         };
