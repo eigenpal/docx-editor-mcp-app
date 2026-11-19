@@ -121,6 +121,7 @@ so a new step is covered without a new test:
 
 `src/app/__tests__/file-sync-fuzz.test.ts` drives the sync session with random
 sequences. `bun run test:stress` runs the two random suites for longer.
+`docs/engineering/save-safety.md` states the rules that these tests hold.
 
 A host can run the server more than once and send the open and the widget's
 reads to different processes (Claude Desktop does, between a chat and
