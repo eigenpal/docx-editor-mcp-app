@@ -49,14 +49,16 @@ So an edit that lands right after a save cannot pass for the saved version.
 - A disk without hard links refuses saves. The preview then offers a download.
 - The plugin is not tested on Windows.
 
-## Review findings
+## Fixed defects
 
-| Finding                                                               | Fix                                                           | Test                                 |
-| --------------------------------------------------------------------- | ------------------------------------------------------------- | ------------------------------------ |
-| A 12 MiB document made a message over the 10 MiB limit of the host    | A 7 MiB limit on every read, show, and save                   | `review-findings.test.ts`, finding 1 |
-| `ifMatch: null` skipped the version check                             | `ifMatch` is required; there is no unconditional save         | `review-findings.test.ts`, finding 2 |
-| An edit after the last check, before the replacement, was overwritten | Steps 3 to 8: the server never replaces a file by name        | `review-findings.test.ts`, finding 3 |
-| An edit right after the save was returned as the saved version        | Content hashes; `saved` carries the hash of the written bytes | `review-findings.test.ts`, finding 4 |
+Earlier versions broke these rules. Each row names the test that holds the rule now.
+
+| Defect                                                                | Fix                                                           | Test                            |
+| --------------------------------------------------------------------- | ------------------------------------------------------------- | ------------------------------- |
+| A 12 MiB document made a message over the 10 MiB limit of the host    | A 7 MiB limit on every read, show, and save                   | `save-contract.test.ts`, rule 1 |
+| `ifMatch: null` skipped the version check                             | `ifMatch` is required; there is no unconditional save         | `save-contract.test.ts`, rule 2 |
+| An edit after the last check, before the replacement, was overwritten | Steps 3 to 8: the server never replaces a file by name        | `save-contract.test.ts`, rule 3 |
+| An edit right after the save was returned as the saved version        | Content hashes; `saved` carries the hash of the written bytes | `save-contract.test.ts`, rule 4 |
 
 ## Tests
 
@@ -72,7 +74,7 @@ All files are in `src/server/__tests__/` unless the table says otherwise.
 | `document-save-swaps.test.ts`              | The path becomes a symlink or a directory, or loses its permissions                      |
 | `document-save-edges.test.ts`              | Not a race: metadata changes, long and unusual names, leftovers of a stopped server      |
 | `document-save-stress.test.ts`             | No plan: this server and another program save one file in loops; 3 servers save one file |
-| `review-findings.test.ts`                  | The 4 review findings, through the MCP protocol                                          |
+| `save-contract.test.ts`                    | The 4 rules of a save, through the MCP protocol                                          |
 | `scripts/smoke-save-races.mjs`             | Foreign saves and a kill of the server, on the built `dist/cli.js` over stdio            |
 | `src/app/__tests__/file-sync-fuzz.test.ts` | Random sequences of edits, foreign changes, and button presses in the preview            |
 

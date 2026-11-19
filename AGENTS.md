@@ -116,12 +116,12 @@ so a new step is covered without a new test:
 | `document-save-pairs.test.ts`  | Two of those, at every pair of calls                 |
 | `document-save-swaps.test.ts`  | The path becomes a symlink or a directory            |
 | `document-save-stress.test.ts` | No plan: real processes save the file in loops       |
-| `review-findings.test.ts`      | The four findings of the directory review, by name   |
+| `save-contract.test.ts`        | The four rules of a save, through the MCP protocol   |
 | `scripts/smoke-save-races.mjs` | The same, and a kill of the server, on `dist/cli.js` |
 
 `src/app/__tests__/file-sync-fuzz.test.ts` drives the sync session with random
 sequences. `bun run test:stress` runs the two random suites for longer.
-`docs/submission/save-safety.md` states the rules that these tests hold.
+`docs/save-safety.md` states the rules that these tests hold.
 
 A host can run the server more than once and send the open and the widget's
 reads to different processes (Claude Desktop does, between a chat and

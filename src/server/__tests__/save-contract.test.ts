@@ -1,10 +1,9 @@
 /**
- * The four defects that the plugin directory review found in this server.
- * Each test holds the rule that the finding broke.
+ * The four rules of a local save, each with the defect that once broke it.
  *
- * They run as the review ran them: through the MCP protocol, against the
- * local server, with another program that changes the file at a chosen
- * moment. The wider suites grew from these: `document-save-race.test.ts`
+ * The tests run as a host runs the server: through the MCP protocol, against
+ * the local server, with another program that changes the file at a chosen
+ * moment. The wider suites cover more moments: `document-save-race.test.ts`
  * (every step, not one), `document-save-faults.test.ts`,
  * `document-save-pairs.test.ts`, and `document-save-stress.test.ts`.
  */
@@ -42,7 +41,7 @@ async function open(path: string) {
   });
   const [clientSide, serverSide] = InMemoryTransport.createLinkedPair();
   await server.connect(serverSide);
-  const client = new Client({ name: 'review', version: '0' });
+  const client = new Client({ name: 'test', version: '0' });
   await client.connect(clientSide);
   const opened = await client.callTool({ name: 'open_document', arguments: { path } });
   const uri = opened._meta!['docx-editor/resource'] as string;
@@ -72,7 +71,7 @@ function sized(bytes: number): Buffer {
   return file;
 }
 
-describe('finding 1: a document whose base64 passes the 10 MiB message limit of the host', () => {
+describe('rule 1: no message passes the 10 MiB message limit of the host', () => {
   it('sends a file at the size limit in one message under the host limit', async () => {
     const { path } = setup('at-limit.docx', sized(MAX_CONTENT_BYTES));
     const { client, uri } = await open(path);
@@ -98,7 +97,7 @@ describe('finding 1: a document whose base64 passes the 10 MiB message limit of 
       outcome: 'too-large',
       maxBytes: MAX_CONTENT_BYTES,
     });
-    // The 12 MiB document of the review: refused the same way.
+    // A 12 MiB document makes 16 MiB of base64: refused the same way.
     expect((await save(sized(12 * 1024 * 1024), 'any')).outcome).toBe('too-large');
     expect(readFileSync(path)).toHaveLength(MAX_CONTENT_BYTES + 1);
     expect((await client.listTools()).tools.length).toBeGreaterThan(0);
@@ -113,7 +112,7 @@ describe('finding 1: a document whose base64 passes the 10 MiB message limit of 
   });
 });
 
-describe('finding 2: `ifMatch: null` skipped the version check', () => {
+describe('rule 2: every save names the version it replaces', () => {
   it('refuses every save that does not name a version, and changes nothing', async () => {
     const { path } = setup();
     const { save } = await open(path);
@@ -147,7 +146,7 @@ describe('finding 2: `ifMatch: null` skipped the version check', () => {
   });
 });
 
-describe('finding 3: an edit after the last version check, before the file was replaced', () => {
+describe('rule 3: an edit after the last version check survives the save', () => {
   it('keeps the edit and reports a conflict, for an edit at the last moment', async () => {
     const { dir, path } = setup();
     const { save } = await open(path);
@@ -184,7 +183,7 @@ describe('finding 3: an edit after the last version check, before the file was r
   });
 });
 
-describe('finding 4: an edit right after the save was returned as the saved version', () => {
+describe('rule 4: `saved` names the bytes written, never a later edit', () => {
   it('returns the version of the bytes written, so the next save sees the edit', async () => {
     const { path } = setup();
     const { save, version } = await open(path);

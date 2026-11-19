@@ -2,7 +2,7 @@
  * The save path of the BUILT package, over stdio, against another program.
  *
  * The unit tests prove `src/server/replace.ts` under Bun. This proves what
- * ships: `dist/cli.js` under Node, through the MCP protocol, as a reviewer
+ * ships: `dist/cli.js` under Node, through the MCP protocol, as a host
  * runs it. Before every file system call of one save, in turn:
  *
  *   - another program saves the document (three ways) or deletes it;

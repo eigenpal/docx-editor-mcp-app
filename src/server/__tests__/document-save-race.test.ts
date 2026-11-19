@@ -3,9 +3,9 @@
  *
  * The first test does not pick its moments: it puts each kind of foreign save
  * before EVERY file system call a save makes, and after the last one. A new
- * step in `replace.ts` is covered without a new test. The rule it holds is the
- * one a reviewer checks: the foreign save is never lost, and `saved` never
- * names a version that is not this save's own bytes.
+ * step in `replace.ts` is covered without a new test. The rule it holds: the
+ * foreign save is never lost, and `saved` never names a version that is not
+ * this save's own bytes.
  */
 
 import { afterEach, describe, expect, it, setDefaultTimeout, spyOn } from 'bun:test';
@@ -55,7 +55,7 @@ const FOREIGN: Record<string, (path: string, bytes: Buffer) => void> = {
   },
   // `open(path, 'w')`: python-docx and most scripts.
   'rewrites the file in place': (path, bytes) => writeFileSync(path, bytes),
-  // The reviewer's case: the same size, and the old modification time put back.
+  // The hard case for a stat check: the same size, and the old modification time put back.
   'rewrites it with the same size and time': (path, bytes) => {
     const before = existsSync(path) ? statSync(path) : null;
     writeFileSync(path, bytes);
