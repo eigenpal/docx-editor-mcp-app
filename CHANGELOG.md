@@ -1,7 +1,8 @@
 # Changelog
 
-## Unreleased
+## 2.40.0
 
+- Update the editor packages to `2.40.0`.
 - Keep a save by another program that lands at any moment during a preview save. Before, an edit between the last version check and the file replacement was overwritten.
 - Use the SHA-256 of the file contents as the etag. A `saved` result carries the hash of the bytes written, so a later edit never passes for the saved version.
 - Report a conflict, and keep the other version on disk, when the file changes during a save.
