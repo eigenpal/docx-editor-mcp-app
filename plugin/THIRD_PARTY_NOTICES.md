@@ -7,7 +7,7 @@ This package bundles the following packages. Their licenses follow. The propriet
 License: MIT
 
 
-## @docx-editor.dev/core@2.39.0
+## @docx-editor.dev/core@2.40.0
 
 License: Apache-2.0
 
@@ -215,7 +215,7 @@ Apache License
    limitations under the License.
 ```
 
-## @docx-editor.dev/i18n@2.39.0
+## @docx-editor.dev/i18n@2.40.0
 
 License: Apache-2.0
 
@@ -423,7 +423,7 @@ Apache License
    limitations under the License.
 ```
 
-## @docx-editor.dev/pro@2.39.0
+## @docx-editor.dev/pro@2.40.0
 
 License: EigenPal Pro License; additional plugin permission in LICENSE-PLUGIN.md
 
@@ -552,7 +552,7 @@ that agreement controls to the extent it grants additional rights or conflicts
 with this license.
 ```
 
-## @docx-editor.dev/react@2.39.0
+## @docx-editor.dev/react@2.40.0
 
 License: Apache-2.0
 
@@ -2443,7 +2443,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-## emf-converter@4.28.0
+## emf-converter@4.29.0
 
 License: Apache-2.0
 
@@ -2716,7 +2716,7 @@ The complete list of contributors can be found at:
 - https://github.com/garycourt/uri-js/graphs/contributors
 ```
 
-## fast-xml-builder@1.3.1
+## fast-xml-builder@1.3.2
 
 License: MIT
 
@@ -2744,7 +2744,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-## fast-xml-parser@5.12.0
+## fast-xml-parser@5.12.1
 
 License: MIT
 

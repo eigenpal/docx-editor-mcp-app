@@ -15616,11 +15616,11 @@ var require_codegen = __commonJS({
         const rhs = this.rhs === void 0 ? "" : ` = ${this.rhs}`;
         return `${varKind} ${this.name}${rhs};` + _n;
       }
-      optimizeNames(names, constants3) {
+      optimizeNames(names, constants4) {
         if (!names[this.name.str])
           return;
         if (this.rhs)
-          this.rhs = optimizeExpr(this.rhs, names, constants3);
+          this.rhs = optimizeExpr(this.rhs, names, constants4);
         return this;
       }
       get names() {
@@ -15637,10 +15637,10 @@ var require_codegen = __commonJS({
       render({ _n }) {
         return `${this.lhs} = ${this.rhs};` + _n;
       }
-      optimizeNames(names, constants3) {
+      optimizeNames(names, constants4) {
         if (this.lhs instanceof code_1.Name && !names[this.lhs.str] && !this.sideEffects)
           return;
-        this.rhs = optimizeExpr(this.rhs, names, constants3);
+        this.rhs = optimizeExpr(this.rhs, names, constants4);
         return this;
       }
       get names() {
@@ -15701,8 +15701,8 @@ var require_codegen = __commonJS({
       optimizeNodes() {
         return `${this.code}` ? this : void 0;
       }
-      optimizeNames(names, constants3) {
-        this.code = optimizeExpr(this.code, names, constants3);
+      optimizeNames(names, constants4) {
+        this.code = optimizeExpr(this.code, names, constants4);
         return this;
       }
       get names() {
@@ -15731,12 +15731,12 @@ var require_codegen = __commonJS({
         }
         return nodes.length > 0 ? this : void 0;
       }
-      optimizeNames(names, constants3) {
+      optimizeNames(names, constants4) {
         const { nodes } = this;
         let i = nodes.length;
         while (i--) {
           const n = nodes[i];
-          if (n.optimizeNames(names, constants3))
+          if (n.optimizeNames(names, constants4))
             continue;
           subtractNames(names, n.names);
           nodes.splice(i, 1);
@@ -15789,12 +15789,12 @@ var require_codegen = __commonJS({
           return void 0;
         return this;
       }
-      optimizeNames(names, constants3) {
+      optimizeNames(names, constants4) {
         var _a3;
-        this.else = (_a3 = this.else) === null || _a3 === void 0 ? void 0 : _a3.optimizeNames(names, constants3);
-        if (!(super.optimizeNames(names, constants3) || this.else))
+        this.else = (_a3 = this.else) === null || _a3 === void 0 ? void 0 : _a3.optimizeNames(names, constants4);
+        if (!(super.optimizeNames(names, constants4) || this.else))
           return;
-        this.condition = optimizeExpr(this.condition, names, constants3);
+        this.condition = optimizeExpr(this.condition, names, constants4);
         return this;
       }
       get names() {
@@ -15817,10 +15817,10 @@ var require_codegen = __commonJS({
       render(opts) {
         return `for(${this.iteration})` + super.render(opts);
       }
-      optimizeNames(names, constants3) {
-        if (!super.optimizeNames(names, constants3))
+      optimizeNames(names, constants4) {
+        if (!super.optimizeNames(names, constants4))
           return;
-        this.iteration = optimizeExpr(this.iteration, names, constants3);
+        this.iteration = optimizeExpr(this.iteration, names, constants4);
         return this;
       }
       get names() {
@@ -15856,10 +15856,10 @@ var require_codegen = __commonJS({
       render(opts) {
         return `for(${this.varKind} ${this.name} ${this.loop} ${this.iterable})` + super.render(opts);
       }
-      optimizeNames(names, constants3) {
-        if (!super.optimizeNames(names, constants3))
+      optimizeNames(names, constants4) {
+        if (!super.optimizeNames(names, constants4))
           return;
-        this.iterable = optimizeExpr(this.iterable, names, constants3);
+        this.iterable = optimizeExpr(this.iterable, names, constants4);
         return this;
       }
       get names() {
@@ -15901,11 +15901,11 @@ var require_codegen = __commonJS({
         (_b = this.finally) === null || _b === void 0 ? void 0 : _b.optimizeNodes();
         return this;
       }
-      optimizeNames(names, constants3) {
+      optimizeNames(names, constants4) {
         var _a3, _b;
-        super.optimizeNames(names, constants3);
-        (_a3 = this.catch) === null || _a3 === void 0 ? void 0 : _a3.optimizeNames(names, constants3);
-        (_b = this.finally) === null || _b === void 0 ? void 0 : _b.optimizeNames(names, constants3);
+        super.optimizeNames(names, constants4);
+        (_a3 = this.catch) === null || _a3 === void 0 ? void 0 : _a3.optimizeNames(names, constants4);
+        (_b = this.finally) === null || _b === void 0 ? void 0 : _b.optimizeNames(names, constants4);
         return this;
       }
       get names() {
@@ -16206,7 +16206,7 @@ var require_codegen = __commonJS({
     function addExprNames(names, from) {
       return from instanceof code_1._CodeOrName ? addNames(names, from.names) : names;
     }
-    function optimizeExpr(expr, names, constants3) {
+    function optimizeExpr(expr, names, constants4) {
       if (expr instanceof code_1.Name)
         return replaceName(expr);
       if (!canOptimize(expr))
@@ -16221,14 +16221,14 @@ var require_codegen = __commonJS({
         return items;
       }, []));
       function replaceName(n) {
-        const c = constants3[n.str];
+        const c = constants4[n.str];
         if (c === void 0 || names[n.str] !== 1)
           return n;
         delete names[n.str];
         return c;
       }
       function canOptimize(e) {
-        return e instanceof code_1._Code && e._items.some((c) => c instanceof code_1.Name && names[c.str] === 1 && constants3[c.str] !== void 0);
+        return e instanceof code_1._Code && e._items.some((c) => c instanceof code_1.Name && names[c.str] === 1 && constants4[c.str] !== void 0);
       }
     }
     function subtractNames(names, from) {
@@ -23791,7 +23791,7 @@ var MAX_MESSAGE_BYTES = 32 * 1024 * 1024;
 // src/server/http.ts
 import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
-import { extname, join as join5, normalize } from "node:path";
+import { extname, join as join6, normalize } from "node:path";
 
 // node_modules/@hono/node-server/dist/constants-BLSFu_RU.mjs
 var X_ALREADY_SENT = "x-hono-already-sent";
@@ -25842,7 +25842,7 @@ var StreamableHTTPServerTransport = class {
 
 // src/server/mcp.ts
 import { readFileSync as readFileSync4 } from "node:fs";
-import { basename as basename2, join as join4 } from "node:path";
+import { basename as basename3, join as join5 } from "node:path";
 
 // node_modules/zod/v3/helpers/util.js
 var util;
@@ -34161,20 +34161,21 @@ var HostedOpenDocumentInput = OpenDocumentInput.omit({ path: true }).extend({
 });
 var DOCUMENT_META = "docx-editor/document";
 var PATH_META = "docx-editor/path";
+var RESOURCE_META = "docx-editor/resource";
 var VIEW_DOCX_FILE = {
   name: "view_docx_file",
   title: "DOCX Editor",
   description: "Shows a .docx file the user opened, page by page. The view updates when the file changes. The user's own edits in the viewer save through the host."
 };
-var LocalToken = external_exports.string().max(16384).regex(/^[\w-]+\.[\w-]{43}$/).describe("The signed token after docx-local:// in the open_document result resourceUri.");
+var LocalToken = external_exports.string().max(16384).regex(/^[\w-]+\.[\w-]{43}$/).describe("The signed token after docx-local:// in the open_document result _meta.");
 var LOCAL_FILE_VERSION = {
   name: "local_file_version",
-  description: "Return the current etag and write permission for a document opened from disk.",
+  description: "Return the current etag and write permission for a document opened from disk. The etag is the SHA-256 of the contents. For a file over the size limit it is not: a save with that etag returns conflict, with an etag that a save accepts.",
   input: external_exports.object({ token: LocalToken })
 };
 var WRITE_LOCAL_FILE = {
   name: "write_local_file",
-  description: "Save the preview's document over its opened file, only if the file is unchanged. ifMatch must be the etag of the version the save replaces; a different current version returns conflict and the file is not changed. There is no unconditional save. Size and write-permission checks still apply.",
+  description: "Save the preview's document over its opened file, only if the file is unchanged. ifMatch must be the etag (the SHA-256 of the contents) of the version the save replaces. If the file holds another version, the result is conflict with the etag of the file now on disk, and the other version is kept. This holds for a save by another program at any moment: the server moves the file aside, installs the new file only at a free path, and puts back a file that is not the ifMatch version. A version that it cannot put back stays in a directory beside the file, and the result names it as recoveryPath. There is no unconditional save. Size and write-permission checks still apply.",
   input: external_exports.object({
     token: LocalToken,
     blob: external_exports.string().min(1).describe(
@@ -34187,11 +34188,10 @@ var WRITE_LOCAL_FILE = {
 };
 
 // src/server/documents.ts
-import { randomUUID } from "node:crypto";
-import { realpathSync, statSync } from "node:fs";
-import { access, chmod, constants as constants2, lstat, open, rename, unlink, writeFile } from "node:fs/promises";
+import { closeSync, openSync, readSync, realpathSync, statSync } from "node:fs";
+import { access, constants as constants3, lstat as lstat2, open as open3 } from "node:fs/promises";
 import { homedir as homedir2 } from "node:os";
-import { basename, isAbsolute, resolve } from "node:path";
+import { basename as basename2, dirname as dirname3, isAbsolute, resolve } from "node:path";
 
 // src/server/tokens.ts
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
@@ -34240,8 +34240,232 @@ function verifiedPath(token) {
   return given.byteLength === expected.byteLength && timingSafeEqual(given, expected) ? path : null;
 }
 
+// src/server/file-version.ts
+import { createHash } from "node:crypto";
+import { constants as constants2, open } from "node:fs/promises";
+var OPEN_FLAGS = constants2.O_RDONLY | (constants2.O_NOFOLLOW ?? 0) | (constants2.O_NONBLOCK ?? 0);
+var metadataOf = (info) => `${info.dev}-${info.ino}-${info.size}-${info.mtimeNs}-${info.ctimeNs}`;
+var contentEtag = (bytes) => createHash("sha256").update(bytes).digest("hex");
+async function fileVersion(path) {
+  const handle = await open(path, OPEN_FLAGS);
+  try {
+    return await handleVersion(handle);
+  } finally {
+    await handle.close();
+  }
+}
+async function handleVersion(handle) {
+  {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const before = await handle.stat({ bigint: true });
+      if (!before.isFile()) throw new Error("The path no longer holds a regular file.");
+      const hash2 = createHash("sha256");
+      const buffer = Buffer.allocUnsafe(64 * 1024);
+      let position = 0;
+      while (true) {
+        const { bytesRead } = await handle.read(buffer, 0, buffer.length, position);
+        if (!bytesRead) break;
+        hash2.update(buffer.subarray(0, bytesRead));
+        position += bytesRead;
+        if (BigInt(position) > before.size) break;
+      }
+      const after = await handle.stat({ bigint: true });
+      if (BigInt(position) === before.size && metadataOf(before) === metadataOf(after)) {
+        return { etag: hash2.digest("hex"), info: after };
+      }
+    }
+    throw new Error("The file kept changing during the read. Try again.");
+  }
+}
+
+// src/server/replace.ts
+import {
+  linkSync as linkSync2,
+  lstatSync,
+  readdirSync,
+  readlinkSync,
+  renameSync,
+  symlinkSync,
+  unlinkSync as unlinkSync2
+} from "node:fs";
+import { link, lstat, mkdtemp, open as open2, readdir, rmdir, unlink } from "node:fs/promises";
+import { basename, dirname as dirname2, join as join3 } from "node:path";
+var PREFIX = ".docx-editor-save-";
+var STALE_MS = 10 * 60 * 1e3;
+var codeOf = (cause) => cause.code;
+var versionOf = (path) => fileVersion(path).catch(() => null);
+var identityOf = (info) => `${info.dev}-${info.ino}-${info.size}-${info.mtimeNs}`;
+var metadataAt = (path) => lstat(path, { bigint: true }).then(metadataOf, () => null);
+async function replaceFile(path, bytes, seen, ifMatch) {
+  await sweep(path);
+  const directory = await mkdtemp(join3(dirname2(path), PREFIX));
+  const staged = join3(directory, "new");
+  const aside = join3(directory, basename(path));
+  try {
+    const handle = await open2(staged, "wx", 384);
+    try {
+      await handle.writeFile(bytes);
+      await handle.chmod(Number(seen.mode & 0o777n));
+      await handle.sync();
+    } finally {
+      await handle.close();
+    }
+    const probe = join3(directory, "probe");
+    try {
+      await link(staged, probe);
+      await unlink(probe);
+    } catch {
+      return { outcome: "unsupported" };
+    }
+    let held;
+    try {
+      held = await open2(path, OPEN_FLAGS);
+    } catch (cause) {
+      return { outcome: codeOf(cause) === "ENOENT" ? "missing" : "conflict" };
+    }
+    let move;
+    try {
+      const checked = await handleVersion(held).catch(() => null);
+      if (checked?.etag !== ifMatch) return { outcome: "conflict" };
+      move = moveThenLink(path, aside, staged, identityOf(checked.info));
+    } finally {
+      await held.close();
+    }
+    if (move === "missing") return { outcome: "missing" };
+    if (move === "other") return { outcome: "conflict" };
+    if (move === "other-kept") return { outcome: "conflict", recoveryPath: directory };
+    const installed = move === "installed";
+    const taken = await versionOf(aside);
+    const replaceable = taken?.etag === ifMatch && await metadataAt(aside) === metadataOf(taken.info);
+    if (replaceable && installed) {
+      await unlink(aside).catch(() => void 0);
+      return { outcome: "saved" };
+    }
+    if (!installed) {
+      if (replaceable && (await lstat(path).catch(() => null))?.isFile()) {
+        await unlink(aside).catch(() => void 0);
+        return { outcome: "conflict" };
+      }
+      try {
+        linkSync2(aside, path);
+      } catch {
+        return { outcome: "conflict", recoveryPath: directory };
+      }
+      await unlink(aside).catch(() => void 0);
+      return { outcome: "conflict" };
+    }
+    return await rollBack(path, aside, join3(directory, "newer.docx"), bytes);
+  } finally {
+    await unlink(staged).catch(() => void 0);
+    await unlink(join3(directory, "probe")).catch(() => void 0);
+    await rmdir(directory).catch(() => void 0);
+  }
+}
+async function sweep(path) {
+  const parent = dirname2(path);
+  const names = await readdir(parent).catch(() => []);
+  for (const name of names.filter((entry) => entry.startsWith(PREFIX))) {
+    const directory = join3(parent, name);
+    const info = await lstat(directory).catch(() => null);
+    if (!info?.isDirectory() || Date.now() - info.mtimeMs < STALE_MS) continue;
+    const staged = join3(directory, "new");
+    const copy = await versionOf(staged);
+    if (copy && copy.etag === (await versionOf(path))?.etag) {
+      await unlink(staged).catch(() => void 0);
+    }
+    await unlink(join3(directory, "probe")).catch(() => void 0);
+    await rmdir(directory).catch(() => void 0);
+  }
+}
+function leftBySave(path) {
+  try {
+    for (const name of readdirSync(dirname2(path))) {
+      if (!name.startsWith(PREFIX)) continue;
+      const copy = join3(dirname2(path), name, basename(path));
+      if (lstatSync(copy, { throwIfNoEntry: false })?.isFile()) return copy;
+    }
+  } catch {
+  }
+  return null;
+}
+function moveThenLink(path, aside, from, expected) {
+  try {
+    renameSync(path, aside);
+  } catch (cause) {
+    if (codeOf(cause) === "ENOENT") return "missing";
+    throw cause;
+  }
+  if (expected !== void 0) {
+    const taken = lstatSync(aside, { bigint: true, throwIfNoEntry: false });
+    if (!taken || identityOf(taken) !== expected) {
+      try {
+        if (taken?.isSymbolicLink()) symlinkSync(readlinkSync(aside), path);
+        else if (taken?.isDirectory()) renameSync(aside, path);
+        else linkSync2(aside, path);
+        if (!taken?.isDirectory()) unlinkSync2(aside);
+        return "other";
+      } catch {
+        return "other-kept";
+      }
+    }
+  }
+  try {
+    linkSync2(from, path);
+    return "installed";
+  } catch (cause) {
+    if (codeOf(cause) === "EEXIST") return "occupied";
+    try {
+      linkSync2(aside, path);
+      unlinkSync2(aside);
+    } catch {
+      throw new Error(`The save failed. Your document is at ${aside}.`);
+    }
+    throw cause;
+  }
+}
+async function rollBack(path, aside, displaced, bytes) {
+  const kept = { outcome: "conflict", recoveryPath: dirname2(aside) };
+  const info = await lstat(aside, { bigint: true }).catch(() => null);
+  if (!info?.isFile()) return kept;
+  let move;
+  try {
+    move = moveThenLink(path, displaced, aside);
+  } catch {
+    return kept;
+  }
+  const moved = move !== "missing";
+  let restored = move === "installed";
+  if (!moved) {
+    try {
+      linkSync2(aside, path);
+      restored = true;
+    } catch {
+      restored = false;
+    }
+  }
+  if (restored) await unlink(aside);
+  let cleared = true;
+  if (moved) {
+    cleared = (await versionOf(displaced))?.etag === contentEtag(bytes);
+    if (cleared) await unlink(displaced);
+  }
+  return restored && cleared ? { outcome: "conflict" } : kept;
+}
+
 // src/server/documents.ts
 var isDocx = (bytes) => bytes[0] === 80 && bytes[1] === 75 && bytes[2] === 3 && bytes[3] === 4;
+function startsAsDocx(path) {
+  const head = Buffer.alloc(4);
+  let descriptor;
+  try {
+    descriptor = openSync(path, OPEN_FLAGS);
+    return readSync(descriptor, head, 0, 4, 0) === 4 && isDocx(head);
+  } catch {
+    return false;
+  } finally {
+    if (descriptor !== void 0) closeSync(descriptor);
+  }
+}
 function openPath(raw, name) {
   const expanded = raw.startsWith("~/") ? resolve(homedir2(), raw.slice(2)) : raw;
   if (!isAbsolute(expanded)) return { message: `"${raw}" is not an absolute path.` };
@@ -34251,12 +34475,16 @@ function openPath(raw, name) {
     real = realpathSync(expanded);
     info = statSync(real);
   } catch {
+    if (!/\.docx$/i.test(expanded)) return { message: `"${raw}" is not a .docx file.` };
+    const copy = leftBySave(expanded);
+    if (copy) return { message: `"${raw}" is not at its path. A save left a copy at ${copy}.` };
     return {
       message: `"${raw}" does not exist on this computer. For a file in a code sandbox, pass its bytes as content_base64.`
     };
   }
   if (!info.isFile() || !/\.docx$/i.test(real)) return { message: `"${raw}" is not a .docx file.` };
-  return { token: signPath(real), name: name ?? basename(real), path: real, size: info.size };
+  if (!startsAsDocx(real)) return { message: `"${raw}" is not a .docx file.` };
+  return { token: signPath(real), name: name ?? basename2(real), path: real, size: info.size };
 }
 function decodeBytes(base643) {
   const bytes = Buffer.from(base643, "base64");
@@ -34267,34 +34495,70 @@ function decodeBytes(base643) {
   }
   return isDocx(bytes) ? bytes : { message: "content_base64 is not a .docx file." };
 }
+var GONE = "The file no longer exists at its path.";
+var ABSENT_WAIT_MS = 25;
+var ABSENT_ATTEMPTS = 3;
+var pause = () => new Promise((resolve2) => setTimeout(resolve2, ABSENT_WAIT_MS));
+var absent = (cause) => cause.code === "ENOENT";
+async function hashed(path) {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await fileVersion(path);
+    } catch (cause) {
+      if (!absent(cause) || attempt === ABSENT_ATTEMPTS) throw cause;
+      await pause();
+    }
+  }
+}
+async function canWrite(path) {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      await access(path, constants3.W_OK);
+      await access(dirname3(path), constants3.W_OK | constants3.X_OK);
+      return true;
+    } catch (cause) {
+      if (!absent(cause) || attempt === ABSENT_ATTEMPTS) return false;
+      await pause();
+    }
+  }
+}
 async function current(token) {
   const path = verifiedPath(token);
   if (!path) return null;
   let info;
-  try {
-    info = await lstat(path, { bigint: true });
-  } catch (cause) {
-    const code = cause.code;
-    if (code === "ENOENT" || code === "ENOTDIR") {
-      return { message: "The file no longer exists at its path." };
+  for (let attempt = 1; !info; attempt++) {
+    try {
+      info = await lstat2(path, { bigint: true });
+    } catch (cause) {
+      const code = cause.code;
+      if (code === "ENOENT" && attempt < ABSENT_ATTEMPTS) {
+        await pause();
+      } else if (code === "ENOENT" || code === "ENOTDIR") {
+        const copy = leftBySave(path);
+        return { message: copy ? `${GONE} A save left a copy at ${copy}.` : GONE };
+      } else {
+        return { message: `The file cannot be checked (${code ?? "unknown error"}).` };
+      }
     }
-    return { message: `The file cannot be checked (${code ?? "unknown error"}).` };
   }
   if (!info.isFile()) return { message: "The path no longer holds a regular file." };
   return { path, info };
 }
-var etagOf = (info) => `${info.ino}-${info.size}-${info.mtimeNs}-${info.ctimeNs}`;
 async function version2(token) {
   const file2 = await current(token);
   if (!file2 || "message" in file2) return file2;
-  const writable = await access(file2.path, constants2.W_OK).then(
-    () => true,
-    () => false
-  );
-  return { etag: etagOf(file2.info), writable };
+  const writable = await canWrite(file2.path);
+  if (file2.info.size > BigInt(MAX_CONTENT_BYTES)) {
+    return { etag: `unread-${metadataOf(file2.info)}`, writable };
+  }
+  try {
+    return { etag: (await hashed(file2.path)).etag, writable };
+  } catch {
+    return { message: "The file could not be versioned. Try again." };
+  }
 }
-var OPEN_FLAGS = constants2.O_RDONLY | (constants2.O_NOFOLLOW ?? 0) | (constants2.O_NONBLOCK ?? 0);
 var READ_ATTEMPTS = 3;
+var SAVE_ATTEMPTS = 3;
 async function read(token) {
   const file2 = await current(token);
   if (!file2 || "message" in file2) return file2;
@@ -34304,7 +34568,7 @@ async function read(token) {
   if (file2.info.size > BigInt(MAX_CONTENT_BYTES)) return tooLarge;
   let handle;
   try {
-    handle = await open(file2.path, OPEN_FLAGS);
+    handle = await open3(file2.path, OPEN_FLAGS);
   } catch {
     return { message: "The file could not be opened." };
   }
@@ -34321,8 +34585,9 @@ async function read(token) {
         length += bytesRead;
       }
       const after = await handle.stat({ bigint: true });
-      if (BigInt(length) === before.size && etagOf(after) === etagOf(before)) {
-        return { bytes: buffer.subarray(0, length), etag: etagOf(before) };
+      if (BigInt(length) === before.size && metadataOf(after) === metadataOf(before)) {
+        const bytes = buffer.subarray(0, length);
+        return { bytes, etag: contentEtag(bytes), writable: await canWrite(file2.path) };
       }
     }
     return { message: "The file kept changing during the read. Try again." };
@@ -34338,48 +34603,65 @@ async function write(token, bytes, ifMatch) {
     return { outcome: "too-large", maxBytes: MAX_CONTENT_BYTES };
   }
   if (!isDocx(bytes)) return { outcome: "refused", message: "The bytes are not a .docx file." };
-  const writable = await access(file2.path, constants2.W_OK).then(
-    () => true,
-    () => false
-  );
-  if (!writable) return { outcome: "refused", message: "The file is read-only." };
+  if (!await canWrite(file2.path))
+    return { outcome: "refused", message: "The file is read-only." };
   if (!ifMatch)
     return { outcome: "refused", message: "A save needs the etag of the file it replaces." };
-  if (etagOf(file2.info) !== ifMatch) return { outcome: "conflict", etag: etagOf(file2.info) };
   const { path } = file2;
-  const mode = Number(file2.info.mode & 0o777n);
-  let written;
-  const temporary = `${path}.${randomUUID()}.tmp`;
-  try {
-    await writeFile(temporary, bytes, { mode: 384, flag: "wx" });
-    await chmod(temporary, mode);
-    written = await lstat(temporary, { bigint: true });
-    const now = await version2(token);
-    if (!now || "message" in now || now.etag !== ifMatch) {
-      await unlink(temporary);
-      if (!now) return { outcome: "refused", message: "This document is not open." };
-      if ("message" in now) return { outcome: "refused", message: now.message };
-      return { outcome: "conflict", etag: now.etag };
+  const now = async (recoveryPath) => {
+    try {
+      return { outcome: "conflict", etag: (await hashed(path)).etag, recoveryPath };
+    } catch {
+      const gone = await current(token);
+      const reason = gone && "message" in gone ? gone.message : "The file could not be versioned. Try again.";
+      const kept = recoveryPath ? ` Another version is kept in ${recoveryPath}.` : "";
+      return { outcome: "refused", message: reason + kept };
     }
-    await rename(temporary, path);
-  } catch (cause) {
-    await unlink(temporary).catch(() => void 0);
-    throw cause;
+  };
+  const attempt = async () => {
+    let seen;
+    try {
+      seen = await hashed(path);
+    } catch {
+      return { outcome: "refused", message: "The file could not be versioned. Try again." };
+    }
+    if (seen.etag !== ifMatch) return { outcome: "conflict", etag: seen.etag };
+    let replaced;
+    try {
+      replaced = await replaceFile(path, bytes, seen.info, ifMatch);
+    } catch (cause) {
+      const reason = cause instanceof Error ? cause.message : String(cause);
+      return { outcome: "refused", message: `The file was not saved: ${reason}` };
+    }
+    if (replaced.outcome === "missing") return now();
+    if (replaced.outcome === "unsupported") {
+      return {
+        outcome: "refused",
+        message: "This disk has no hard links, so the preview cannot save to it safely. Press Save to download a copy."
+      };
+    }
+    if (replaced.outcome === "conflict") return now(replaced.recoveryPath);
+    const saved = contentEtag(bytes);
+    const after = await now();
+    if (after.outcome === "conflict" && after.etag !== saved) return after;
+    const there = after.outcome === "conflict" || await current(token);
+    return there === true || there && !("message" in there) ? { outcome: "saved", etag: saved } : after;
+  };
+  for (let attempts = 1; ; attempts++) {
+    const result = await attempt();
+    const crossed = result.outcome === "conflict" && result.etag === ifMatch;
+    if (!crossed || result.recoveryPath) return result;
+    if (attempts === SAVE_ATTEMPTS) {
+      return { outcome: "refused", message: "The file could not be saved. Try again." };
+    }
   }
-  const after = await current(token);
-  if (!after || "message" in after) {
-    return { outcome: "refused", message: "The file changed right after the save. Reload it." };
-  }
-  const ours = after.info.ino === written.ino && after.info.size === written.size && after.info.mtimeNs === written.mtimeNs;
-  if (!ours) return { outcome: "conflict", etag: etagOf(after.info) };
-  return { outcome: "saved", etag: etagOf(after.info) };
 }
 
 // src/server/icons.ts
 import { readFileSync as readFileSync3 } from "node:fs";
-import { join as join3 } from "node:path";
+import { join as join4 } from "node:path";
 function svgIcon(file2, theme) {
-  const svg = readFileSync3(join3(REPO_ROOT, "assets", file2), "utf8");
+  const svg = readFileSync3(join4(REPO_ROOT, "assets", file2), "utf8");
   return {
     src: `data:image/svg+xml,${encodeURIComponent(svg)}`,
     mimeType: "image/svg+xml",
@@ -34469,12 +34751,13 @@ var appOnly = { ui: { visibility: ["app"] } };
 var widget = null;
 function loadWidget() {
   if (widget) return widget;
-  const html = readFileSync4(join4(REPO_ROOT, "dist/app/editor.html"), "utf8");
-  const hash2 = readFileSync4(join4(REPO_ROOT, "dist/app/editor.hash"), "utf8").trim();
+  const html = readFileSync4(join5(REPO_ROOT, "dist/app/editor.html"), "utf8");
+  const hash2 = readFileSync4(join5(REPO_ROOT, "dist/app/editor.hash"), "utf8").trim();
   return widget = { uri: `ui://docx-editor/editor.html?v=${hash2}`, html };
 }
 var wasm = null;
-var loadWasm = () => wasm ??= readFileSync4(join4(REPO_ROOT, "dist/app/harfbuzz.wasm")).toString("base64");
+var loadWasm = () => wasm ??= readFileSync4(join5(REPO_ROOT, "dist/app/harfbuzz.wasm")).toString("base64");
+var shownName = (name) => name.replace(/[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]+/g, " ").trim().slice(0, 255) || "document.docx";
 var seq = 0;
 function createMcpServer({ local = false, ui = loadWidget() } = {}) {
   const widgetContents = (uri) => ({
@@ -34524,7 +34807,7 @@ function createMcpServer({ local = false, ui = loadWidget() } = {}) {
         if ("message" in bytes) {
           return refuse(opened ? `${opened.message} ${bytes.message}` : bytes.message);
         }
-        const shown = name ?? (path ? basename2(path) : "document.docx");
+        const shown = shownName(name ?? (path ? basename3(path) : "document.docx"));
         const fallback = opened ? ` "${path}" did not open here, so the preview shows content_base64. It does not follow the file: show the document again after each change.` : "";
         return {
           content: [{ type: "text", text: `Showing ${shown} in the preview.${fallback}` }],
@@ -34537,14 +34820,19 @@ function createMcpServer({ local = false, ui = loadWidget() } = {}) {
       }
       const large = opened.size > MAX_CONTENT_BYTES ? ` The file is larger than ${formatLimit(MAX_CONTENT_BYTES)}: it opens in the host's file viewer, and a host without one cannot show it.` : "";
       return {
-        content: [{ type: "text", text: `Showing ${opened.name} in the preview.${large}` }],
+        content: [
+          { type: "text", text: `Showing ${shownName(opened.name)} in the preview.${large}` }
+        ],
         structuredContent: {
-          name: opened.name,
-          resourceUri: `docx-local://${opened.token}`,
+          name: shownName(opened.name),
           ...election
         },
-        // For the widget only: a host with a file viewer opens the file there.
-        _meta: { [PATH_META]: opened.path }
+        // For the widget only: the token that reads and saves the file, and
+        // the path that a host with a file viewer opens there.
+        _meta: {
+          [RESOURCE_META]: `docx-local://${opened.token}`,
+          [PATH_META]: opened.path
+        }
       };
     }
   );
@@ -34614,10 +34902,9 @@ function createMcpServer({ local = false, ui = loadWidget() } = {}) {
       new ResourceTemplate("docx-local://{token}", { list: void 0 }),
       { title: "Opened document", mimeType: DOCX_MIME },
       async (uri, { token }) => {
-        const [file2, current2] = await Promise.all([read(String(token)), version2(String(token))]);
-        if (!file2 || !current2) throw new Error("This document is no longer open.");
+        const file2 = await read(String(token));
+        if (!file2) throw new Error("This document is no longer open.");
         if ("message" in file2) throw new Error(file2.message);
-        if ("message" in current2) throw new Error(current2.message);
         return {
           contents: [
             {
@@ -34626,7 +34913,7 @@ function createMcpServer({ local = false, ui = loadWidget() } = {}) {
               blob: file2.bytes.toString("base64"),
               // The OpenAI host's metadata shape, so one sync session handles both kinds of file.
               // The etag is the one read with these bytes, never a separate later lookup.
-              _meta: { "openai/resource": { etag: file2.etag, writable: current2.writable } }
+              _meta: { "openai/resource": { etag: file2.etag, writable: file2.writable } }
             }
           ]
         };
@@ -34676,7 +34963,7 @@ function createMcpServer({ local = false, ui = loadWidget() } = {}) {
 }
 
 // src/server/http.ts
-var HARNESS = join5(REPO_ROOT, "public/__harness");
+var HARNESS = join6(REPO_ROOT, "public/__harness");
 var TYPES = { ".html": "text/html", ".js": "text/javascript" };
 function json3(res, status, body) {
   res.writeHead(status, { "Content-Type": "application/json" }).end(JSON.stringify(body));
@@ -34700,7 +34987,7 @@ async function readBody(req) {
     throw Object.assign(new Error("parse"), { status: 400 });
   }
 }
-async function handleMcp(req, res) {
+async function handleMcp(req, res, ui) {
   if (req.method !== "POST") return json3(res, 405, rpcError(-32e3, "Method not allowed"));
   let body;
   try {
@@ -34713,13 +35000,13 @@ async function handleMcp(req, res) {
       status === 413 ? rpcError(-32600, `The request is larger than ${MAX_MESSAGE_BYTES} bytes.`) : rpcError(-32700, "Parse error")
     );
   }
-  const server = createMcpServer();
-  const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: void 0 });
-  res.on("close", () => {
-    void transport.close();
-    void server.close();
-  });
   try {
+    const server = createMcpServer(ui ? { ui } : {});
+    const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: void 0 });
+    res.on("close", () => {
+      void transport.close();
+      void server.close();
+    });
     await server.connect(transport);
     await transport.handleRequest(req, res, body);
   } catch (error51) {
@@ -34728,16 +35015,16 @@ async function handleMcp(req, res) {
   }
 }
 async function handleHarness(path, res) {
-  const file2 = normalize(join5(HARNESS, path.slice("/__harness/".length) || "host.html"));
+  const file2 = normalize(join6(HARNESS, path.slice("/__harness/".length) || "host.html"));
   if (!file2.startsWith(HARNESS)) return json3(res, 404, { error: "not found" });
   const body = await readFile(file2).catch(() => null);
   if (!body) return json3(res, 404, { error: "not found" });
   res.writeHead(200, { "Content-Type": TYPES[extname(file2)] ?? "application/octet-stream" }).end(body);
 }
-function startHttp(port) {
-  createServer((req, res) => {
+function startHttp(port, ui) {
+  return createServer((req, res) => {
     const path = new URL(req.url ?? "/", "http://localhost").pathname;
-    if (path === "/mcp") return void handleMcp(req, res);
+    if (path === "/mcp") return void handleMcp(req, res, ui);
     if (path === "/health") return json3(res, 200, { ok: true });
     if (path === "/.well-known/openai-apps-challenge" && process.env.OPENAI_APPS_CHALLENGE) {
       res.writeHead(200, { "Content-Type": "text/plain" }).end(process.env.OPENAI_APPS_CHALLENGE);
@@ -34752,9 +35039,16 @@ function startHttp(port) {
 
 // src/server/setup.ts
 import { execFileSync } from "node:child_process";
-import { copyFileSync, existsSync as existsSync2, mkdirSync as mkdirSync2, readFileSync as readFileSync5, writeFileSync as writeFileSync2 } from "node:fs";
+import {
+  copyFileSync,
+  existsSync as existsSync2,
+  mkdirSync as mkdirSync2,
+  readFileSync as readFileSync5,
+  renameSync as renameSync2,
+  writeFileSync as writeFileSync2
+} from "node:fs";
 import { homedir as homedir3, platform as platform2 } from "node:os";
-import { dirname as dirname2, join as join6 } from "node:path";
+import { dirname as dirname4, join as join7 } from "node:path";
 var MARKETPLACE = "docx-editor";
 var PLUGIN = `docx-editor@${MARKETPLACE}`;
 function setupCodex() {
@@ -34786,31 +35080,40 @@ function setupClaude(cliPath) {
   const entry = { command: process.execPath, args: [cliPath, "stdio"] };
   const configPath = claudeConfigPath();
   let config2 = {};
+  const isObject2 = (value) => typeof value === "object" && value !== null && !Array.isArray(value);
   if (existsSync2(configPath)) {
-    copyFileSync(configPath, `${configPath}.bak`);
+    let parsed;
     try {
-      config2 = JSON.parse(readFileSync5(configPath, "utf8"));
+      parsed = JSON.parse(readFileSync5(configPath, "utf8"));
     } catch {
-      fail(`Could not parse ${configPath}. Fix it by hand; a backup is at .bak.`);
+      fail(`Could not parse ${configPath}. Fix it by hand. The file is unchanged.`);
     }
+    const servers = parsed?.mcpServers;
+    if (!isObject2(parsed) || servers !== void 0 && !isObject2(servers)) {
+      fail(`${configPath} is not a Claude Desktop configuration. The file is unchanged.`);
+    }
+    config2 = parsed;
+    copyFileSync(configPath, `${configPath}.bak`);
   } else {
-    mkdirSync2(dirname2(configPath), { recursive: true });
+    mkdirSync2(dirname4(configPath), { recursive: true });
   }
   config2.mcpServers = { ...config2.mcpServers, "docx-editor": entry };
-  writeFileSync2(configPath, `${JSON.stringify(config2, null, 2)}
+  const temporary = `${configPath}.${process.pid}.tmp`;
+  writeFileSync2(temporary, `${JSON.stringify(config2, null, 2)}
 `, "utf8");
+  renameSync2(temporary, configPath);
   say(`Added "docx-editor" to ${configPath} (backup at .bak).`);
   say("Restart Claude Desktop, then ask Claude to open a .docx file.");
 }
 function claudeConfigPath() {
   if (platform2() === "darwin") {
-    return join6(homedir3(), "Library/Application Support/Claude/claude_desktop_config.json");
+    return join7(homedir3(), "Library/Application Support/Claude/claude_desktop_config.json");
   }
   if (platform2() === "win32") {
-    const appData = process.env.APPDATA ?? join6(homedir3(), "AppData/Roaming");
-    return join6(appData, "Claude/claude_desktop_config.json");
+    const appData = process.env.APPDATA ?? join7(homedir3(), "AppData/Roaming");
+    return join7(appData, "Claude/claude_desktop_config.json");
   }
-  return join6(homedir3(), ".config/Claude/claude_desktop_config.json");
+  return join7(homedir3(), ".config/Claude/claude_desktop_config.json");
 }
 function say(message) {
   process.stdout.write(`${message}
@@ -34842,7 +35145,8 @@ async function main(argv) {
       const flag = rest.indexOf("--port");
       const port = flag === -1 ? Number(process.env.PORT ?? 3e3) : Number(rest[flag + 1]);
       if (!Number.isInteger(port) || port <= 0) return exit("--port needs a port number.");
-      return startHttp(port);
+      startHttp(port);
+      return;
     }
     case "setup":
       if (rest[0] === "codex") return setupCodex();
