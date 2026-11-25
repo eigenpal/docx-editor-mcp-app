@@ -18,8 +18,8 @@ export function chatgptManifests(legacy, review, demo) {
       mcpServers: {
         'docx-editor': {
           type: 'stdio',
-          command: 'node',
-          args: ['${PLUGIN_ROOT}/dist/cli.js', 'stdio'],
+          command: 'sh',
+          args: ['${PLUGIN_ROOT}/scripts/launch-desktop-mcp.sh'],
           cwd: '${PLUGIN_ROOT}',
         },
       },

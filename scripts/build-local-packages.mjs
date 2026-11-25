@@ -77,8 +77,12 @@ for (const host of target === 'all' ? ['chatgpt', 'claude'] : [target]) {
   for (const [path, value] of Object.entries(manifests)) {
     await writeFile(join(stage, path), json(value));
   }
-  if (host === 'chatgpt')
+  if (host === 'chatgpt') {
     await cp(join(root, 'skills'), join(stage, 'skills'), { recursive: true });
+    const launcher = 'scripts/launch-desktop-mcp.sh';
+    await mkdir(join(stage, 'scripts'));
+    await cp(join(root, launcher), join(stage, launcher));
+  }
   await cp(join(root, `docs/submission/${host}-install.md`), join(stage, 'README.md'));
   const files = {};
   const collect = async (dir) => {
