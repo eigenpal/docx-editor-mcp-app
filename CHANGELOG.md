@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.41.0
+
+- Update the editor packages to `2.41.0`.
+
 ## 2.40.0
 
 - Update the editor packages to `2.40.0`.
