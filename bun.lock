@@ -5,9 +5,9 @@
     "": {
       "name": "docx-editor-mcp-app",
       "devDependencies": {
-        "@docx-editor.dev/core": "2.40.0",
-        "@docx-editor.dev/pro": "2.40.0",
-        "@docx-editor.dev/react": "2.40.0",
+        "@docx-editor.dev/core": "2.41.0",
+        "@docx-editor.dev/pro": "2.41.0",
+        "@docx-editor.dev/react": "2.41.0",
         "@modelcontextprotocol/ext-apps": "^1.7.5",
         "@modelcontextprotocol/sdk": "^1.30.0",
         "@openai/mcp-extensions": "^0.1.0",
@@ -69,13 +69,13 @@
 
     "@cfworker/json-schema": ["@cfworker/json-schema@4.1.1", "", {}, "sha512-gAmrUZSGtKc3AiBL71iNWxDsyUC5uMaKKGdvzYsBoTW/xi42JQHl7eKV2OYzCUqvc+D2RCcf7EXY2iCyFIk6og=="],
 
-    "@docx-editor.dev/core": ["@docx-editor.dev/core@2.40.0", "", { "dependencies": { "@docx-editor.dev/i18n": "^2.40.0", "bidi-js": "1.1.0", "emf-converter": "4.29.0", "fast-xml-parser": "^5.12.1", "fflate": "^0.8.2", "harfbuzzjs": "1.6.4", "prosemirror-commands": "^1.7.1", "prosemirror-keymap": "^1.2.3", "prosemirror-model": "^1.25.13", "prosemirror-state": "^1.4.4", "prosemirror-view": "^1.42.9", "utif2": "4.1.0" }, "peerDependencies": { "pdf-lib": "^1.17.1", "yjs": "^13.6.0" }, "optionalPeers": ["pdf-lib", "yjs"] }, "sha512-C6DlqcQiUYz01R6tF7KFq0VyowoWAZD1BGqi6sHPdgrprhRedjmtWuWNcTIMHuvpUg3GdDA0SAXPEQmsoMfVhQ=="],
+    "@docx-editor.dev/core": ["@docx-editor.dev/core@2.41.0", "", { "dependencies": { "@docx-editor.dev/i18n": "^2.41.0", "bidi-js": "1.1.0", "emf-converter": "4.29.0", "fast-xml-parser": "^5.12.1", "fflate": "^0.8.2", "harfbuzzjs": "1.6.4", "prosemirror-commands": "^1.7.1", "prosemirror-keymap": "^1.2.3", "prosemirror-model": "^1.25.13", "prosemirror-state": "^1.4.4", "prosemirror-view": "^1.42.9", "utif2": "4.1.0" }, "peerDependencies": { "pdf-lib": "^1.17.1", "yjs": "^13.6.0" }, "optionalPeers": ["pdf-lib", "yjs"] }, "sha512-FPVsZ0Th4RnE0TFEZn1pBIPEiVc4runmqNuJumfIsSrSV43+y24dNz0jjZSNuR7kUKUu+GKPYjawC7tQPvaZdA=="],
 
-    "@docx-editor.dev/i18n": ["@docx-editor.dev/i18n@2.40.0", "", {}, "sha512-e2VrrwKZABWK13b339rkav+IMmT1UZiT1PDM269MPWeNpAe0cwmhVhl1d2t2ld9QscYfyvE8oZsOMBznFcNDGg=="],
+    "@docx-editor.dev/i18n": ["@docx-editor.dev/i18n@2.41.0", "", {}, "sha512-7i6hTeD0Ilml9gCP7E9oZRTCpLiru+RXryLzKQxaztzc2k83QLw+rQ7UG8KHDSCfWUJFwKOdIDFRewCwN3EHqQ=="],
 
-    "@docx-editor.dev/pro": ["@docx-editor.dev/pro@2.40.0", "", { "dependencies": { "emf-converter": "4.29.0", "y-protocols": "^1.0.7" }, "peerDependencies": { "@docx-editor.dev/core": "~2.40.0", "@docx-editor.dev/react": "~2.40.0", "@docx-editor.dev/vue": "~2.40.0", "@hocuspocus/provider": "^4.6.0", "react": "^18.0.0 || ^19.0.0", "react-dom": "^18.0.0 || ^19.0.0", "vue": "^3.3.0", "y-webrtc": "^10.3.0", "yjs": "^13.6.32" }, "optionalPeers": ["@docx-editor.dev/react", "@docx-editor.dev/vue", "@hocuspocus/provider", "react", "react-dom", "vue", "y-webrtc", "yjs"] }, "sha512-jTUw6+As2qVSg0klZGcwRsudGXn13E5CXOxmUXLEiImaUxncHeBJ5d/IZg+/z2S4yYhjDkNe6mM78Km3TMnLNQ=="],
+    "@docx-editor.dev/pro": ["@docx-editor.dev/pro@2.41.0", "", { "dependencies": { "emf-converter": "4.29.0", "y-protocols": "^1.0.7" }, "peerDependencies": { "@docx-editor.dev/core": "~2.41.0", "@docx-editor.dev/react": "~2.41.0", "@docx-editor.dev/vue": "~2.41.0", "@hocuspocus/provider": "^4.6.0", "react": "^18.0.0 || ^19.0.0", "react-dom": "^18.0.0 || ^19.0.0", "vue": "^3.3.0", "y-webrtc": "^10.3.0", "yjs": "^13.6.32" }, "optionalPeers": ["@docx-editor.dev/react", "@docx-editor.dev/vue", "@hocuspocus/provider", "react", "react-dom", "vue", "y-webrtc", "yjs"] }, "sha512-6xnVJWwg2sG15mDR6bl4XCZnIteemf0ugp8F5kRtJEqFwpZIXUtKW+cR2JpNIWtdSXSg6gpWrlkNUne+Orsdeg=="],
 
-    "@docx-editor.dev/react": ["@docx-editor.dev/react@2.40.0", "", { "dependencies": { "@docx-editor.dev/i18n": "^2.40.0", "@radix-ui/react-select": "^2.3.3", "class-variance-authority": "^0.7.1", "clsx": "^2.1.1" }, "peerDependencies": { "@docx-editor.dev/core": "~2.40.0", "react": "^18.0.0 || ^19.0.0", "react-dom": "^18.0.0 || ^19.0.0" }, "optionalPeers": ["react", "react-dom"] }, "sha512-o2kmoCNF33WGhlAy3vYrIMZu9UesE31XUL8BsVuOj+ie3uD7uKo1VUJb9ptUe7Vh+OdKkVjSO6q3ictyHQCUaQ=="],
+    "@docx-editor.dev/react": ["@docx-editor.dev/react@2.41.0", "", { "dependencies": { "@docx-editor.dev/i18n": "^2.41.0", "@radix-ui/react-select": "^2.3.3", "class-variance-authority": "^0.7.1", "clsx": "^2.1.1" }, "peerDependencies": { "@docx-editor.dev/core": "~2.41.0", "react": "^18.0.0 || ^19.0.0", "react-dom": "^18.0.0 || ^19.0.0" }, "optionalPeers": ["react", "react-dom"] }, "sha512-JuXDgycpMcge/NNWmaDjkAPZ05ttsStYOhWwFTEZczw72oHWWFk4Am1P7KwVKfhPN4FRP0ic30B6jZIa/Znesw=="],
 
     "@esbuild/aix-ppc64": ["@esbuild/aix-ppc64@0.28.2", "", { "os": "aix", "cpu": "ppc64" }, "sha512-XExcO+dvLKvVtNTibSTBej1NCAbaGhWn9Ww1ZPx80qsahhPFe/8jgWP0IchNe0F3HwkU7n8ejhH8bjonqht8mQ=="],
 
