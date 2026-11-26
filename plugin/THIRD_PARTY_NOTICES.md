@@ -7,7 +7,7 @@ This package bundles the following packages. Their licenses follow. The propriet
 License: MIT
 
 
-## @docx-editor.dev/core@2.40.0
+## @docx-editor.dev/core@2.41.0
 
 License: Apache-2.0
 
@@ -215,7 +215,7 @@ Apache License
    limitations under the License.
 ```
 
-## @docx-editor.dev/i18n@2.40.0
+## @docx-editor.dev/i18n@2.41.0
 
 License: Apache-2.0
 
@@ -423,7 +423,7 @@ Apache License
    limitations under the License.
 ```
 
-## @docx-editor.dev/pro@2.40.0
+## @docx-editor.dev/pro@2.41.0
 
 License: EigenPal Pro License; additional plugin permission in LICENSE-PLUGIN.md
 
@@ -552,7 +552,7 @@ that agreement controls to the extent it grants additional rights or conflicts
 with this license.
 ```
 
-## @docx-editor.dev/react@2.40.0
+## @docx-editor.dev/react@2.41.0
 
 License: Apache-2.0
 
