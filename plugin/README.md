@@ -3,7 +3,7 @@
 Install this plugin through the desktop plugin directory after OpenAI approves the listing.
 You need no account or API key for DOCX Editor.
 Your desktop host starts the bundled MCP server over stdio.
-The server uses Node.js 22 or later.
+On macOS, it uses Node.js from the desktop app.
 The package includes all server dependencies and editor assets.
 You do not run an HTTP server or install npm packages.
 

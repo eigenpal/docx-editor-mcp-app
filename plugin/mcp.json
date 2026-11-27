@@ -3,11 +3,8 @@
   "mcpServers": {
     "docx-editor": {
       "type": "stdio",
-      "command": "node",
-      "args": [
-        "${PLUGIN_ROOT}/dist/cli.js",
-        "stdio"
-      ],
+      "command": "./scripts/launch-desktop-mcp",
+      "args": [],
       "cwd": "${PLUGIN_ROOT}"
     }
   }

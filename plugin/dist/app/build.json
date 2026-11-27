@@ -1,12 +1,12 @@
 {
-  "version": "2.41.0",
+  "version": "2.41.1",
   "engine": {
-    "core": "2.41.0",
-    "pro": "2.41.0",
-    "react": "2.41.0"
+    "core": "2.41.1",
+    "pro": "2.41.1",
+    "react": "2.41.1"
   },
   "source": {
-    "commit": "03a4293b7a06affe4c4864587274d590e0b2a4b7",
+    "commit": "c1d886c79a6debe7ee43c9869b6f3c2455271ae7",
     "dirty": false
   }
 }
