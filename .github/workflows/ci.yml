@@ -68,7 +68,7 @@ jobs:
       - run: bun run smoke:packages
       - run: npm pack --dry-run 2>&1 | tee pack.txt
       - run: |
-          for f in .codex-plugin/plugin.json .agents/plugins/marketplace.json .mcp.json scripts/launch-desktop-mcp.sh dist/cli.js dist/app/editor.html dist/app/editor.hash dist/app/harfbuzz.wasm THIRD_PARTY_NOTICES.md LICENSE-PLUGIN.md assets/icon.svg skills/docx-editor/SKILL.md; do
+          for f in .codex-plugin/plugin.json .agents/plugins/marketplace.json .mcp.json scripts/launch-desktop-mcp dist/cli.js dist/app/editor.html dist/app/editor.hash dist/app/harfbuzz.wasm THIRD_PARTY_NOTICES.md LICENSE-PLUGIN.md assets/icon.svg skills/docx-editor/SKILL.md; do
             grep -q " $f$" pack.txt || { echo "missing from the package: $f"; exit 1; }
           done
 

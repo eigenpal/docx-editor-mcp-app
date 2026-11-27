@@ -30,7 +30,7 @@
     "skills",
     ".codex-plugin/plugin.json",
     ".mcp.json",
-    "scripts/launch-desktop-mcp.sh",
+    "scripts/launch-desktop-mcp",
     ".agents/plugins/marketplace.json",
     "README.md",
     "CHANGELOG.md",

@@ -2,7 +2,7 @@
   "mcpServers": {
     "docx-editor": {
       "command": "/bin/sh",
-      "args": ["./scripts/launch-desktop-mcp.sh"],
+      "args": ["./scripts/launch-desktop-mcp"],
       "cwd": ".",
       "env_vars": [
         "CODEX_MCP_NODE_PATH",
