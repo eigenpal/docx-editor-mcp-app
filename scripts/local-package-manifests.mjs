@@ -1,4 +1,4 @@
-/** The variables `scripts/launch-desktop-mcp.sh` reads to find Node.js. Codex passes only listed ones. */
+/** The variables `scripts/launch-desktop-mcp` reads to find Node.js. Codex passes only listed ones. */
 export const LAUNCHER_ENV = [
   'CODEX_MCP_NODE_PATH',
   'CODEX_BROWSER_USE_NODE_PATH',
@@ -6,6 +6,8 @@ export const LAUNCHER_ENV = [
   'CODEX_CLI_PATH',
   'XDG_CACHE_HOME',
   'HOME',
+  'LOCALAPPDATA',
+  'USERPROFILE',
   'PATH',
 ];
 
@@ -29,9 +31,10 @@ export function chatgptManifests(legacy, review, demo) {
       mcpServers: {
         'docx-editor': {
           type: 'stdio',
-          // Codex lists no server when this file names an absolute command such as `/bin/sh`.
-          command: 'sh',
-          args: ['${PLUGIN_ROOT}/scripts/launch-desktop-mcp.sh'],
+          // Codex resolves a relative command against `cwd`, and on Windows adds `.exe` from
+          // PATHEXT (`which_in` in codex-rs `rmcp-client`). An absolute command lists no server.
+          command: './scripts/launch-desktop-mcp',
+          args: [],
           cwd: '${PLUGIN_ROOT}',
         },
       },

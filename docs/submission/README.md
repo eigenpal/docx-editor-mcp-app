@@ -16,6 +16,8 @@ Use [demonstration guide](demo.md) and `fixtures/` for the review demonstration.
 
 ## Build both packages
 
+Install Go to build the Windows launcher when you package the ChatGPT ZIP.
+
 ```bash
 bun install --frozen-lockfile
 bun run build:local

@@ -35,6 +35,10 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version-file: .bun-version
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.27.4'
+          cache: false
       - run: bun install --frozen-lockfile
       - run: npm install --global @openai/codex@0.163.0-alpha.11
       - name: Verify release version

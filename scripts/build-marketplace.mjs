@@ -45,7 +45,14 @@ async function collect(dir) {
   for (const entry of await readdir(dir, { withFileTypes: true })) {
     const path = join(dir, entry.name);
     if (entry.isDirectory()) await collect(path);
-    else files[relative(out, path).split('\\').join('/')] = await readFile(path);
+    else {
+      const name = relative(out, path).split('\\').join('/');
+      const bytes = await readFile(path);
+      files[name] =
+        name === 'plugin/scripts/launch-desktop-mcp'
+          ? [bytes, { os: 3, attrs: 0o100755 << 16 }]
+          : bytes;
+    }
   }
 }
 await collect(out);
