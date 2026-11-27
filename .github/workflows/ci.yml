@@ -52,6 +52,10 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version-file: .bun-version
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.27.4'
+          cache: false
       - run: bun install --frozen-lockfile
 
       # Builds the inline widget, the CLI bundle, and the third-party notices.

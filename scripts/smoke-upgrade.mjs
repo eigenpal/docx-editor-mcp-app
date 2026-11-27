@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
@@ -39,13 +39,13 @@ try {
   const entries = JSON.parse(run('mcp', 'list', '--json'));
   const entry = entries.find((item) => item.name === 'docx-editor');
   assert.ok(entry?.enabled);
-  const args = entry.transport.args;
-  assert.ok(args[0].startsWith(installed.installedPath));
+  const { args, cwd, command } = entry.transport;
+  assert.equal(resolve(cwd, command), join(installed.installedPath, 'scripts/launch-desktop-mcp'));
   const client = new Client({ name: 'upgrade-test', version: '1' });
   try {
     await client.connect(
       new StdioClientTransport({
-        command: entry.transport.command,
+        command: resolve(cwd, command),
         args,
         cwd: entry.transport.cwd,
         env: {

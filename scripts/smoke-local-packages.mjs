@@ -2,9 +2,9 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
-import { mkdtemp, mkdir, readFile, rm, symlink, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { unzipSync, zipSync, strToU8 } from 'fflate';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
@@ -62,7 +62,9 @@ try {
       );
       assert.ok(!path.endsWith('.docx'), `Local document in archive: ${path}`);
       await mkdir(dirname(join(stage, path)), { recursive: true });
-      await writeFile(join(stage, path), bytes);
+      await writeFile(join(stage, path), bytes, {
+        mode: path === 'scripts/launch-desktop-mcp' ? 0o755 : 0o644,
+      });
     }
     const meta = JSON.parse(Buffer.from(files['package.json']).toString());
     assert.equal(meta.version, pkg.version);
@@ -88,7 +90,11 @@ try {
       assert.equal(config.type, 'stdio');
       assert.equal(config.url, undefined);
       placeholder = '${PLUGIN_ROOT}';
-      assert.equal(config.command, 'sh');
+      assert.equal(config.command, './scripts/launch-desktop-mcp');
+      assert.equal(
+        Buffer.from(files['scripts/launch-desktop-mcp.exe']).subarray(0, 2).toString(),
+        'MZ'
+      );
       // A directory install can get neither the host's Node.js variable nor Node.js on PATH.
       // The fake app bundle records that it ran, so a Node.js on the fallback PATH cannot pass.
       const home = join(temp, 'desktop-home');
@@ -100,10 +106,8 @@ try {
         `#!/bin/sh\n: > '${launched}'\nexec '${process.execPath}' "$@"\n`,
         { mode: 0o755 }
       );
-      // The host finds `sh` on PATH; Codex drops a plugin server with an absolute command.
       const path = join(temp, 'desktop-bin');
       await mkdir(path);
-      await symlink('/bin/sh', join(path, 'sh'));
       env = { PATH: path, HOME: home };
     } else {
       const manifest = JSON.parse(Buffer.from(files['manifest.json']).toString());
@@ -121,7 +125,7 @@ try {
     try {
       await client.connect(
         new StdioClientTransport({
-          command: config.command,
+          command: config.command.startsWith('./') ? resolve(cwd, config.command) : config.command,
           args,
           cwd,
           env: { ...env, DOCX_EDITOR_STATE_DIR: join(temp, 'state') },

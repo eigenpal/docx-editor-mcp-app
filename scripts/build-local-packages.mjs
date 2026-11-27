@@ -1,4 +1,5 @@
 /** Package only release files, so local documents and development files cannot enter an archive. */
+import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { cp, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { dirname, join, relative } from 'node:path';
@@ -79,9 +80,24 @@ for (const host of target === 'all' ? ['chatgpt', 'claude'] : [target]) {
   }
   if (host === 'chatgpt') {
     await cp(join(root, 'skills'), join(stage, 'skills'), { recursive: true });
-    const launcher = 'scripts/launch-desktop-mcp.sh';
+    const launcher = 'scripts/launch-desktop-mcp';
     await mkdir(join(stage, 'scripts'));
     await cp(join(root, launcher), join(stage, launcher));
+    execFileSync(
+      process.env.DOCX_LAUNCHER_GO ?? 'go',
+      [
+        'build',
+        '-trimpath',
+        '-ldflags=-s -w',
+        '-o',
+        join(stage, launcher + '.exe'),
+        join(root, 'tools/windows-launcher/main.go'),
+      ],
+      {
+        env: { ...process.env, GOOS: 'windows', GOARCH: 'amd64', CGO_ENABLED: '0' },
+        stdio: 'inherit',
+      }
+    );
   }
   await cp(join(root, `docs/submission/${host}-install.md`), join(stage, 'README.md'));
   const files = {};
@@ -91,9 +107,12 @@ for (const host of target === 'all' ? ['chatgpt', 'claude'] : [target]) {
     )) {
       const path = join(dir, entry.name);
       if (entry.isDirectory()) await collect(path);
-      else if (entry.isFile())
-        files[relative(stage, path).split('\\').join('/')] = await readFile(path);
-      else throw new Error(`Unsupported archive entry: ${path}`);
+      else if (entry.isFile()) {
+        const name = relative(stage, path).split('\\').join('/');
+        const bytes = await readFile(path);
+        files[name] =
+          name === 'scripts/launch-desktop-mcp' ? [bytes, { os: 3, attrs: 0o100755 << 16 }] : bytes;
+      } else throw new Error(`Unsupported archive entry: ${path}`);
     }
   };
   await collect(stage);
