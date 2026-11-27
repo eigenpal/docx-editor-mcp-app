@@ -1,6 +1,7 @@
 /** Test extracted archives from an unrelated directory, without the repository or node_modules. */
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
+import { existsSync } from 'node:fs';
 import { mkdtemp, mkdir, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
@@ -77,6 +78,7 @@ try {
     let config;
     let placeholder;
     let env;
+    let launched;
     if (host === 'chatgpt') {
       const manifest = JSON.parse(Buffer.from(files['plugin.json']).toString());
       assert.equal(manifest.version, pkg.version);
@@ -86,15 +88,23 @@ try {
       assert.equal(config.type, 'stdio');
       assert.equal(config.url, undefined);
       placeholder = '${PLUGIN_ROOT}';
-      // Directory installs can omit the host's Node.js variable and omit Node.js from PATH.
-      const bin = join(temp, 'desktop-bin');
+      assert.equal(config.command, 'sh');
+      // A directory install can get neither the host's Node.js variable nor Node.js on PATH.
+      // The fake app bundle records that it ran, so a Node.js on the fallback PATH cannot pass.
       const home = join(temp, 'desktop-home');
-      const resources = join(home, 'Applications/ChatGPT.app/Contents/Resources');
-      await mkdir(bin);
-      await mkdir(resources, { recursive: true });
-      await symlink('/bin/sh', join(bin, 'sh'));
-      await symlink(process.execPath, join(resources, 'node'));
-      env = { PATH: bin, HOME: home, CODEX_MCP_NODE_PATH: '' };
+      const bin = join(home, 'Applications/ChatGPT.app/Contents/Resources/cua_node/bin');
+      launched = join(temp, 'bundled-node-ran');
+      await mkdir(bin, { recursive: true });
+      await writeFile(
+        join(bin, 'node'),
+        `#!/bin/sh\n: > '${launched}'\nexec '${process.execPath}' "$@"\n`,
+        { mode: 0o755 }
+      );
+      // The host finds `sh` on PATH; Codex drops a plugin server with an absolute command.
+      const path = join(temp, 'desktop-bin');
+      await mkdir(path);
+      await symlink('/bin/sh', join(path, 'sh'));
+      env = { PATH: path, HOME: home };
     } else {
       const manifest = JSON.parse(Buffer.from(files['manifest.json']).toString());
       assert.equal(manifest.version, pkg.version);
@@ -119,6 +129,7 @@ try {
         })
       );
       assert.equal(client.getServerVersion().version, pkg.version);
+      if (launched) assert.ok(existsSync(launched), 'The launcher must use the bundled Node.js.');
       const { tools } = await client.listTools();
       // Directory reviewers ask for the exact tools/list a package serves.
       if (host === 'chatgpt') {

@@ -93,7 +93,7 @@ The host and model provider still process data under their own policies.
 
 1. Confirm our organization's eligibility and approval for local MCP submissions.
 2. Confirm the current ZIP upload route and required review material.
-3. Confirm how the installed package receives Node.js 22 or later without customer setup.
+3. Confirm that a directory install can start the package through `sh`, which finds the desktop app's Node.js.
 4. Confirm support for the `view_docx_file` extension in approved directory packages.
 5. Confirm how customers receive bundled local code updates.
 6. Confirm update review, rollback controls, and supported desktop operating systems.
