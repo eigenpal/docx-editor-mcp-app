@@ -6,7 +6,8 @@ The public publisher name is Eigenpal.
 
 ## Install
 
-You need Codex desktop, the `codex` command, and Node.js 22 or later.
+You need Codex desktop and the `codex` command.
+On macOS, the plugin uses Node.js from the desktop app.
 This private installation uses terminal commands.
 The official directory installation remains a separate approval process.
 

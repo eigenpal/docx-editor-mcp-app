@@ -1,3 +1,14 @@
+/** The variables `scripts/launch-desktop-mcp.sh` reads to find Node.js. Codex passes only listed ones. */
+export const LAUNCHER_ENV = [
+  'CODEX_MCP_NODE_PATH',
+  'CODEX_BROWSER_USE_NODE_PATH',
+  'CODEX_ELECTRON_RESOURCES_PATH',
+  'CODEX_CLI_PATH',
+  'XDG_CACHE_HOME',
+  'HOME',
+  'PATH',
+];
+
 /** Keep host metadata separate from the shared local server payload. */
 export function chatgptManifests(legacy, review, demo) {
   const { skills: _skills, mcpServers: _mcp, interface: listing, ...portable } = legacy;
@@ -18,8 +29,9 @@ export function chatgptManifests(legacy, review, demo) {
       mcpServers: {
         'docx-editor': {
           type: 'stdio',
-          command: 'node',
-          args: ['${PLUGIN_ROOT}/dist/cli.js', 'stdio'],
+          // Codex lists no server when this file names an absolute command such as `/bin/sh`.
+          command: 'sh',
+          args: ['${PLUGIN_ROOT}/scripts/launch-desktop-mcp.sh'],
           cwd: '${PLUGIN_ROOT}',
         },
       },

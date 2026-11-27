@@ -93,8 +93,8 @@ Complete publisher identity verification and confirm your submission permissions
 The build includes review cases without a demo when you omit `DEMO_URL`.
 It reports the missing recording instead of inventing a URL.
 The package sets `requires_local_executor` and declares a stdio MCP server.
-The host must provide Node.js 22 or later for the `node` launch command.
-No shell launcher, global npm package, or local HTTP port is required.
+On macOS, the package starts the desktop app's bundled Node.js.
+You do not need to install Node.js or open a local HTTP port.
 
 OpenAI hosts support `view_docx_file` for their file viewer.
 The model uses `open_document`; the host or widget uses the other tools.

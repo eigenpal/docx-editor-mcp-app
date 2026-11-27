@@ -45,11 +45,16 @@ try {
   try {
     await client.connect(
       new StdioClientTransport({
-        command: process.execPath,
+        command: entry.transport.command,
         args,
         cwd: entry.transport.cwd,
-        env: { PATH: dirname(process.execPath), DOCX_EDITOR_UPDATE_CHECK: '0' },
-        stderr: 'pipe',
+        env: {
+          PATH: '/bin',
+          CODEX_MCP_NODE_PATH: process.execPath,
+          DOCX_EDITOR_STATE_DIR: join(temp, 'state'),
+          DOCX_EDITOR_UPDATE_CHECK: '0',
+        },
+        stderr: 'inherit',
       })
     );
     assert.equal(client.getServerVersion().version, expected);

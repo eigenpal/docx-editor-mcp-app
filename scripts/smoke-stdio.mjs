@@ -15,6 +15,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+const dir = mkdtempSync(join(tmpdir(), 'smoke-'));
 const fail = (message) => {
   console.error(`smoke-stdio: ${message}`);
   process.exit(1);
@@ -25,6 +26,7 @@ await client.connect(
   new StdioClientTransport({
     command: process.execPath,
     args: [join(root, 'dist/cli.js'), 'stdio'],
+    env: { DOCX_EDITOR_STATE_DIR: join(dir, 'state') },
     stderr: 'ignore',
   })
 );
@@ -40,7 +42,6 @@ if (/<(script|link)[^>]+(src|href)=/.test(ui.contents[0].text))
 const wasm = await client.readResource({ uri: 'docx-asset://harfbuzz.wasm' });
 if (Buffer.from(wasm.contents[0].blob, 'base64').length < 100_000) fail('harfbuzz.wasm is missing');
 
-const dir = mkdtempSync(join(tmpdir(), 'smoke-'));
 const path = join(dir, 'big.docx');
 const doc = (size) => {
   const bytes = Buffer.alloc(size);

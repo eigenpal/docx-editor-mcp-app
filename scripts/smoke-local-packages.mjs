@@ -1,9 +1,10 @@
 /** Test extracted archives from an unrelated directory, without the repository or node_modules. */
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
+import { mkdtemp, mkdir, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { unzipSync, zipSync, strToU8 } from 'fflate';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
@@ -76,6 +77,8 @@ try {
     assert.equal(meta.dependencies, undefined);
     let config;
     let placeholder;
+    let env;
+    let launched;
     if (host === 'chatgpt') {
       const manifest = JSON.parse(Buffer.from(files['plugin.json']).toString());
       assert.equal(manifest.version, pkg.version);
@@ -85,6 +88,23 @@ try {
       assert.equal(config.type, 'stdio');
       assert.equal(config.url, undefined);
       placeholder = '${PLUGIN_ROOT}';
+      assert.equal(config.command, 'sh');
+      // A directory install can get neither the host's Node.js variable nor Node.js on PATH.
+      // The fake app bundle records that it ran, so a Node.js on the fallback PATH cannot pass.
+      const home = join(temp, 'desktop-home');
+      const bin = join(home, 'Applications/ChatGPT.app/Contents/Resources/cua_node/bin');
+      launched = join(temp, 'bundled-node-ran');
+      await mkdir(bin, { recursive: true });
+      await writeFile(
+        join(bin, 'node'),
+        `#!/bin/sh\n: > '${launched}'\nexec '${process.execPath}' "$@"\n`,
+        { mode: 0o755 }
+      );
+      // The host finds `sh` on PATH; Codex drops a plugin server with an absolute command.
+      const path = join(temp, 'desktop-bin');
+      await mkdir(path);
+      await symlink('/bin/sh', join(path, 'sh'));
+      env = { PATH: path, HOME: home };
     } else {
       const manifest = JSON.parse(Buffer.from(files['manifest.json']).toString());
       assert.equal(manifest.version, pkg.version);
@@ -93,23 +113,23 @@ try {
       assert.equal(manifest.user_config, undefined);
       config = manifest.server.mcp_config;
       placeholder = '${__dirname}';
+      env = { PATH: dirname(process.execPath) };
     }
-    assert.equal(config.command, 'node');
     const args = config.args.map((arg) => arg.replaceAll(placeholder, stage));
-    assert.equal(resolve(args[0]), join(stage, 'dist/cli.js'));
-    assert.equal(args[1], 'stdio');
+    const cwd = config.cwd?.replaceAll(placeholder, stage) ?? temp;
     const client = new Client({ name: 'local-package-smoke', version: '1' });
     try {
       await client.connect(
         new StdioClientTransport({
-          command: process.execPath,
+          command: config.command,
           args,
-          cwd: temp,
-          env: { PATH: dirname(process.execPath) },
+          cwd,
+          env: { ...env, DOCX_EDITOR_STATE_DIR: join(temp, 'state') },
           stderr: 'inherit',
         })
       );
       assert.equal(client.getServerVersion().version, pkg.version);
+      if (launched) assert.ok(existsSync(launched), 'The launcher must use the bundled Node.js.');
       const { tools } = await client.listTools();
       // Directory reviewers ask for the exact tools/list a package serves.
       if (host === 'chatgpt') {
@@ -126,6 +146,10 @@ try {
         ['open_document']
       );
       assert.ok(visible[0].inputSchema.properties.path, 'Local paths must be enabled.');
+      const viewer = tools.find((tool) => tool.name === 'view_docx_file');
+      assert.deepEqual(viewer?._meta?.['openai/ui']?.entrypoints, [
+        { type: 'file', extensions: ['.docx'] },
+      ]);
       const widget = await client.readResource({ uri: visible[0]._meta.ui.resourceUri });
       assert.ok(widget.contents[0].text.length > 1_000_000);
       assert.ok(!/<(script|link)[^>]+(src|href)=/.test(widget.contents[0].text));
