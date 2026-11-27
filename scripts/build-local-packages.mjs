@@ -85,15 +85,9 @@ for (const host of target === 'all' ? ['chatgpt', 'claude'] : [target]) {
     await cp(join(root, launcher), join(stage, launcher));
     execFileSync(
       process.env.DOCX_LAUNCHER_GO ?? 'go',
-      [
-        'build',
-        '-trimpath',
-        '-ldflags=-s -w',
-        '-o',
-        join(stage, launcher + '.exe'),
-        join(root, 'tools/windows-launcher/main.go'),
-      ],
+      ['build', '-trimpath', '-ldflags=-s -w', '-o', join(stage, launcher + '.exe'), '.'],
       {
+        cwd: join(root, 'tools/windows-launcher'),
         env: { ...process.env, GOOS: 'windows', GOARCH: 'amd64', CGO_ENABLED: '0' },
         stdio: 'inherit',
       }

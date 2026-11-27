@@ -45,7 +45,8 @@ try {
   try {
     await client.connect(
       new StdioClientTransport({
-        command: resolve(cwd, command),
+        // Unchanged: the installed copy must keep the launcher's executable bit.
+        command,
         args,
         cwd: entry.transport.cwd,
         env: {

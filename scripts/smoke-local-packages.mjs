@@ -1,10 +1,11 @@
 /** Test extracted archives from an unrelated directory, without the repository or node_modules. */
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync } from 'node:fs';
+import { existsSync, statSync } from 'node:fs';
 import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { unzipSync, zipSync, strToU8 } from 'fflate';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
@@ -42,6 +43,25 @@ const changed = zipSync({
   ),
 });
 const verified = [];
+
+function assertExecutable(path) {
+  assert.ok(statSync(path).mode & 0o100, `Not executable after extraction: ${path}`);
+}
+
+// The marketplace ZIP is a second route to the same launcher, with its own archive modes.
+async function checkMarketplace() {
+  const name = `docx-editor-codex-${pkg.version}.zip`;
+  const stage = join(temp, 'marketplace extracted');
+  await mkdir(stage, { recursive: true });
+  execFileSync('unzip', ['-q', join(artifacts, name), '-d', stage]);
+  assertExecutable(join(stage, 'plugin/scripts/launch-desktop-mcp'));
+  assert.ok(existsSync(join(stage, 'plugin/scripts/launch-desktop-mcp.exe')));
+  const config = JSON.parse(await readFile(join(stage, 'plugin/.mcp.json'), 'utf8')).mcpServers[
+    'docx-editor'
+  ];
+  assert.equal(config.command, './scripts/launch-desktop-mcp');
+  assert.equal(config.cwd, '${PLUGIN_ROOT}');
+}
 try {
   for (const host of ['chatgpt', 'claude']) {
     const name = `docx-editor-${host}-${pkg.version}.${host === 'chatgpt' ? 'zip' : 'mcpb'}`;
@@ -51,7 +71,7 @@ try {
     const files = unzipSync(archive);
     for (const path of required) assert.ok(files[path]?.length, `${host}: missing ${path}`);
     const stage = join(temp, `${host} extracted`);
-    for (const [path, bytes] of Object.entries(files)) {
+    for (const path of Object.keys(files)) {
       assert.ok(
         !path.startsWith('/') && !path.split('/').includes('..'),
         `Unsafe archive path: ${path}`
@@ -61,11 +81,10 @@ try {
         `Development file: ${path}`
       );
       assert.ok(!path.endsWith('.docx'), `Local document in archive: ${path}`);
-      await mkdir(dirname(join(stage, path)), { recursive: true });
-      await writeFile(join(stage, path), bytes, {
-        mode: path === 'scripts/launch-desktop-mcp' ? 0o755 : 0o644,
-      });
     }
+    // Extract as a host does, so the launcher keeps only the mode the archive carries.
+    await mkdir(stage, { recursive: true });
+    execFileSync('unzip', ['-q', join(artifacts, name), '-d', stage]);
     const meta = JSON.parse(Buffer.from(files['package.json']).toString());
     assert.equal(meta.version, pkg.version);
     const built = JSON.parse(Buffer.from(files['dist/app/build.json']).toString());
@@ -95,6 +114,8 @@ try {
         Buffer.from(files['scripts/launch-desktop-mcp.exe']).subarray(0, 2).toString(),
         'MZ'
       );
+      assertExecutable(join(stage, 'scripts/launch-desktop-mcp'));
+      await checkMarketplace();
       // A directory install can get neither the host's Node.js variable nor Node.js on PATH.
       // The fake app bundle records that it ran, so a Node.js on the fallback PATH cannot pass.
       const home = join(temp, 'desktop-home');
@@ -125,7 +146,8 @@ try {
     try {
       await client.connect(
         new StdioClientTransport({
-          command: config.command.startsWith('./') ? resolve(cwd, config.command) : config.command,
+          // Pass the command unchanged: the spawn resolves `./` against `cwd`, as Codex does.
+          command: config.command,
           args,
           cwd,
           env: { ...env, DOCX_EDITOR_STATE_DIR: join(temp, 'state') },

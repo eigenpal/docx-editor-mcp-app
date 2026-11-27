@@ -31,7 +31,8 @@ export function chatgptManifests(legacy, review, demo) {
       mcpServers: {
         'docx-editor': {
           type: 'stdio',
-          // Windows resolves the same command to the .exe beside the macOS launcher.
+          // Codex resolves a relative command against `cwd`, and on Windows adds `.exe` from
+          // PATHEXT (`which_in` in codex-rs `rmcp-client`). An absolute command lists no server.
           command: './scripts/launch-desktop-mcp',
           args: [],
           cwd: '${PLUGIN_ROOT}',

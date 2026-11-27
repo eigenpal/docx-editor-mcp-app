@@ -71,6 +71,7 @@
     "build:local": "bun run build && node scripts/build-local-packages.mjs && node scripts/build-marketplace.mjs",
     "build:claude": "node scripts/build-local-packages.mjs claude",
     "smoke:packages": "node scripts/smoke-local-packages.mjs",
+    "smoke:windows": "node scripts/smoke-windows-launcher.mjs",
     "engine:check": "node scripts/check-engine.mjs",
     "engine:update": "node scripts/check-engine.mjs --update",
     "release:version": "node scripts/release-version.mjs",
